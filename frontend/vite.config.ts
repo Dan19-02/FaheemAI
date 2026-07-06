@@ -2,7 +2,8 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
-const target_url = process.env.BACKEND_URL;
+// Default to the local Fahim backend so `npm run dev` proxies /api without extra env.
+const target_url = process.env.BACKEND_URL || 'http://localhost:4000';
 
 export default defineConfig(() => {
   return {

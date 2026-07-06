@@ -120,7 +120,7 @@ async function request<T = any>(path: string, options: RequestInit = {}): Promis
 }
 
 export type ChatStreamResult =
-  | { kind: "done"; text: string; sources: any[]; verification?: "passed" | "unavailable" }
+  | { kind: "done"; text: string; sources: any[]; verification?: "passed" | "unavailable"; grounding?: any; outOfSyllabus?: boolean }
   | { kind: "fallback"; reason: string }
   | { kind: "paywall"; error: string; subscription?: Subscription };
 
@@ -164,7 +164,7 @@ async function chatStream(
       }
       if (msg.type === "delta" && typeof msg.text === "string") onDelta(msg.text);
       else if (msg.type === "checking") onChecking();
-      else if (msg.type === "done") return { kind: "done", text: msg.text, sources: msg.sources || [], verification: msg.verification };
+      else if (msg.type === "done") return { kind: "done", text: msg.text, sources: msg.sources || [], verification: msg.verification, grounding: msg.grounding, outOfSyllabus: msg.outOfSyllabus };
       else if (msg.type === "fallback") return { kind: "fallback", reason: msg.reason || "" };
       else if (msg.type === "paywall") return { kind: "paywall", error: msg.error || "", subscription: msg.subscription };
       else if (msg.type === "error") throw new Error(msg.error || "Stream error");
@@ -227,7 +227,7 @@ export const api = {
     request<ClarifyNote>("/notebook/notes", { method: "POST", body: JSON.stringify({ subject, chapter }) }),
 
   chat: (body: any) =>
-    request<{ text: string; sources: any[]; cached?: boolean; verification?: "passed" | "unavailable" }>("/chat", {
+    request<{ text: string; sources: any[]; cached?: boolean; verification?: "passed" | "unavailable"; grounding?: any; outOfSyllabus?: boolean }>("/chat", {
       method: "POST",
       body: JSON.stringify(body),
     }),

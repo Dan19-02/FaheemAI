@@ -28,6 +28,12 @@ export interface ChatMessage {
    *  only); "passed" = the examiner pass ran; "unavailable" = it could not
    *  run, so the answer is shown unverified and the UI says so. */
   verification?: "checking" | "passed" | "unavailable";
+  /** Curriculum grounding (Fahim): the MoE/curriculum unit this answer was
+   *  built from, surfaced as a source chip so trust is visible. */
+  grounding?: { unitTitle: string; section: string; level: string; groundednessScore: number };
+  /** True when the question fell outside the grade's textbook coverage (the
+   *  answer, if any, is general knowledge, not from the curriculum). */
+  outOfSyllabus?: boolean;
   /** True while this bubble is receiving a live streamed draft (client only:
    *  rendered as plain markdown, action buttons hidden until complete). */
   streaming?: boolean;
@@ -108,9 +114,9 @@ export interface ClarifyNote {
 
 export interface StudentProfile {
   name: string;
-  board: string; // CBSE, ICSE, State Boards, JEE, NEET, None
-  grade: string; // 1st - 12th, College, Competitive
-  language: string; // English, Hinglish, Hindi
+  board: string; // Bahrain MoE, CBSE, Cambridge
+  grade: string; // Grade 9 - Grade 12
+  language: string; // Arabic, English
   preferredAnalogy: string; // Daily Life, Sports, Cooking, Bicycles & Trains, Mobile Phones & Tech, Games
   weakChapters?: string[];
   strongChapters?: string[];

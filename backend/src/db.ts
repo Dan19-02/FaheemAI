@@ -1542,6 +1542,34 @@ export async function corpusChunkCountForUnit(q: Queryable, unitId: string): Pro
   return Number(rows[0]?.n || 0);
 }
 
+/** All corpus chunks for a whole board+grade (across every unit), each carrying
+ *  its unit title. This is how the chat flow resolves subject+unit SERVER-SIDE:
+ *  the student just asks, and retrieval finds the best-matching unit's content. */
+export async function corpusChunksForBoardGrade(
+  q: Queryable,
+  board: string,
+  gradeId: string
+): Promise<(CorpusChunk & { unitTitle: string })[]> {
+  const { rows } = await q.query(
+    `SELECT c.chunk_id, c.unit_id, c.ref_id, c.section_label, c.content_display, c.content_embed, c.embedding, c.token_count,
+            u.title_en AS unit_title
+     FROM corpus_chunks c JOIN curriculum_units u ON u.unit_id = c.unit_id
+     WHERE u.board = $1 AND u.grade_id = $2`,
+    [board, gradeId]
+  );
+  return rows.map((r) => ({
+    chunkId: r.chunk_id,
+    unitId: r.unit_id,
+    refId: r.ref_id || null,
+    sectionLabel: r.section_label || "",
+    contentDisplay: r.content_display,
+    contentEmbed: r.content_embed || "",
+    embedding: Array.isArray(r.embedding) ? r.embedding : null,
+    tokenCount: Number(r.token_count || 0),
+    unitTitle: r.unit_title || "",
+  }));
+}
+
 // ---- Accuracy telemetry ----
 
 export interface AccuracyEventInsert {

@@ -56,8 +56,8 @@ import { STUDY_FACTS, FALLBACK_STUDY_FACT, pickFirstFactIndex } from "./facts";
 
 const SUGGESTED_QUERIES = [
   { label: "Explain Photosynthesis", prompt: "Can you explain photosynthesis simply?", hint: "Start with a plain, everyday walk-through." },
-  { label: "Newton's 2nd Law (JEE)", prompt: "Explain Newton's Second Law of Motion at a JEE exam level. Give me a good analogy!", hint: "Exam-level, with an analogy you will remember." },
-  { label: "Cell Division (NEET)", prompt: "What is the difference between mitosis and meiosis? I am preparing for NEET.", hint: "The NEET comparison, side by side." },
+  { label: "Newton's 2nd Law", prompt: "Explain Newton's Second Law of Motion at an exam level. Give me a good analogy!", hint: "Exam-level, with an analogy you will remember." },
+  { label: "Cell Division", prompt: "What is the difference between mitosis and meiosis? Explain it clearly for my exam.", hint: "The comparison, side by side." },
   { label: "Quadratic Equations", prompt: "How do I find the roots of a quadratic equation?", hint: "The method, worked out step by step." }
 ];
 
@@ -571,7 +571,9 @@ export default function App() {
           text: streamResult.text,
           timestamp: new Date().toLocaleTimeString(),
           sources: streamResult.sources || [],
-          verification: streamResult.verification
+          verification: streamResult.verification,
+          grounding: streamResult.grounding,
+          outOfSyllabus: streamResult.outOfSyllabus
         });
       } else {
         // Plain /chat: the proven whole-answer path (also the stream's safety
@@ -584,7 +586,9 @@ export default function App() {
           text: data.text,
           timestamp: new Date().toLocaleTimeString(),
           sources: data.sources || [],
-          verification: data.verification
+          verification: data.verification,
+          grounding: data.grounding,
+          outOfSyllabus: data.outOfSyllabus
         });
       }
 
@@ -724,7 +728,7 @@ export default function App() {
       setIsLiveActive(true);
 
       ws.onopen = () => {
-        setLiveStatus("Connected. Say hello to Clarify.AI!");
+        setLiveStatus("Connected. Say hello to Fahim!");
         ws.send(JSON.stringify({ type: "start" }));
       };
 
@@ -732,7 +736,7 @@ export default function App() {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === "ready") {
-            setLiveStatus("Clarify.AI is listening to your voice!");
+            setLiveStatus("Fahim is listening to your voice!");
           } else if (msg.type === "audio") {
             if (liveInterruptedRef.current) return;
             playLiveAudioChunk(base64ToFloat32PCM(msg.audio));
@@ -886,7 +890,7 @@ export default function App() {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-editorial-ivory text-editorial-charcoal px-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage motion-safe:animate-[clarify-breathe_2.2s_ease-in-out_infinite]">
-          <span className="font-serif text-2xl italic leading-none text-editorial-ivory">C</span>
+          <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
         </div>
         <div>
           <p className="text-sm font-medium text-editorial-sage">Preparing your study desk</p>
@@ -902,7 +906,7 @@ export default function App() {
         fallback={
           <div className="flex min-h-[100dvh] items-center justify-center bg-night">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-editorial-sage">
-              <span className="font-serif text-2xl italic leading-none text-editorial-ivory">C</span>
+              <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
             </div>
           </div>
         }
@@ -928,9 +932,9 @@ export default function App() {
       <nav className="flex justify-between items-center px-4 py-3 md:px-8 border-b border-editorial-line bg-editorial-ivory">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-editorial-sage flex items-center justify-center shrink-0">
-            <span className="text-editorial-ivory font-serif italic text-lg leading-none">C</span>
+            <span className="text-editorial-ivory font-serif italic text-lg leading-none">F</span>
           </div>
-          <span className="font-serif italic text-xl tracking-tight text-editorial-charcoal">Clarify.AI</span>
+          <span className="font-serif italic text-xl tracking-tight text-editorial-charcoal">فهيم</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -987,7 +991,7 @@ export default function App() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
-          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-e border-[color:rgba(90,90,64,0.14)] p-4 md:p-5 flex-col gap-4 bg-editorial-ivory overflow-y-auto`}
+          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-e border-[color:rgba(206,17,38,0.14)] p-4 md:p-5 flex-col gap-4 bg-editorial-ivory overflow-y-auto`}
         >
 
           {/* New chat */}
@@ -1175,7 +1179,7 @@ export default function App() {
             {chatHistory.length === 0 && !isGenerating && (
               <div className="m-auto w-full max-w-lg rounded-3xl border border-editorial-line bg-editorial-stone/30 px-6 py-8 md:px-9 md:py-10 text-center flex flex-col items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage shrink-0">
-                  <span className="font-serif text-2xl italic leading-none text-editorial-ivory">C</span>
+                  <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
                 </div>
                 <div>
                   <h2 className="font-serif italic text-2xl md:text-[26px] leading-snug text-editorial-charcoal">
@@ -1217,7 +1221,7 @@ export default function App() {
                 className={`flex flex-col max-w-[92%] md:max-w-[85%] ${message.role === "user" ? "self-end items-end" : "self-start items-start"}`}
               >
                 <div className="flex items-center gap-2 mb-1 text-[10px] text-editorial-charcoal/70">
-                  <span>{message.role === "user" ? "You" : "Clarify.AI"}</span>
+                  <span>{message.role === "user" ? "You" : "فهيم"}</span>
                   <span>·</span>
                   <span>{message.timestamp}</span>
                 </div>
@@ -1287,6 +1291,24 @@ export default function App() {
                         : message.verification === "passed"
                         ? "Deep-checked: a second examiner pass reviewed this answer."
                         : "Deep-check could not run this time, so this answer is shown unverified."}
+                    </div>
+                  )}
+
+                  {/* Curriculum source (Fahim): which MoE/curriculum unit grounded this answer. */}
+                  {message.role === "model" && message.grounding && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-editorial-sage/10 px-2.5 py-1 text-[11px] font-medium text-editorial-sage">
+                      <BookOpen size={12} className="shrink-0" />
+                      <span dir="ltr" style={{ unicodeBidi: "isolate" }}>
+                        {message.grounding.unitTitle}
+                        {message.grounding.section ? ` · ${message.grounding.section}` : ""}
+                      </span>
+                    </div>
+                  )}
+                  {/* Honest flag: the question fell outside the grade's textbooks. */}
+                  {message.role === "model" && message.outOfSyllabus && !message.grounding && (
+                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-800">
+                      <AlertTriangle size={12} className="shrink-0" />
+                      <span>خارج نطاق مقرّرك — هذه الإجابة من معرفة عامة وليست من منهجك.</span>
                     </div>
                   )}
 
@@ -1463,8 +1485,8 @@ export default function App() {
             />
             <button
               onClick={isLiveActive ? stopLiveSession : startLiveSession}
-              title={isLiveActive ? "Stop the voice session" : "Talk to Clarify.AI with your voice"}
-              aria-label={isLiveActive ? "Stop the voice session" : "Talk to Clarify.AI with your voice"}
+              title={isLiveActive ? "Stop the voice session" : "Talk to Fahim with your voice"}
+              aria-label={isLiveActive ? "Stop the voice session" : "Talk to Fahim with your voice"}
               className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors shrink-0 cursor-pointer motion-safe:active:scale-[0.96] ${
                 isLiveActive
                   ? "bg-editorial-sage text-white hover:bg-editorial-sage/90"
@@ -1598,17 +1620,19 @@ export default function App() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-editorial-charcoal/70">Board / Exam</label>
                     <select value={editProfileForm.board} onChange={(e) => setEditProfileForm({ ...editProfileForm, board: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
-                      <option value="None">General Study</option>
-                      <option value="CBSE">CBSE Board</option>
-                      <option value="ICSE">ICSE Board</option>
-                      <option value="State Board">State Board</option>
-                      <option value="JEE">JEE Prep</option>
-                      <option value="NEET">NEET Prep</option>
+                      <option value="Bahrain MoE">Bahrain MoE</option>
+                      <option value="CBSE">CBSE</option>
+                      <option value="Cambridge">Cambridge</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-editorial-charcoal/70">Grade / Level</label>
-                    <input type="text" value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-editorial-sage text-editorial-charcoal" />
+                    <select value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
+                      <option value="Grade 9">Grade 9</option>
+                      <option value="Grade 10">Grade 10</option>
+                      <option value="Grade 11">Grade 11</option>
+                      <option value="Grade 12">Grade 12</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1616,9 +1640,8 @@ export default function App() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-editorial-charcoal/70">Language</label>
                     <select value={editProfileForm.language} onChange={(e) => setEditProfileForm({ ...editProfileForm, language: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
-                      <option value="English">Pure English</option>
-                      <option value="Hinglish">Hinglish (Hindi + English)</option>
-                      <option value="Hindi">Hindi</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="English">English</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">

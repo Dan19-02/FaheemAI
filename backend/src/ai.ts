@@ -22,6 +22,8 @@ import {
 } from "./db.js";
 import { ai, apiKey } from "./gemini.js";
 import { embed, cosine, retrieveContext, verifyAnswer, topicTokens, topicCompatible, secs } from "./knowledge.js";
+// FAHIM: Bahrain curriculum grounding (server-side subject/unit resolution).
+import { groundQuery, type GroundingResult } from "./curriculumGrounding.js";
 
 if (!apiKey) {
   console.warn("[AI] GEMINI_API_KEY missing: chat/tts/image/live will error until it is set.");
@@ -161,7 +163,7 @@ export function rateLimit(key: string, max: number, windowMs = 60_000): boolean 
 const CLARIFY_SYSTEM_INSTRUCTION = `You are Clarify.AI, a warm, patient, endlessly encouraging personal teacher and mentor. Your single goal: the student leaves every reply having genuinely understood something they did not understand before. You are never in a hurry.
 
 WHO YOU TEACH
-Students across India: school boards (CBSE, ICSE, State) and competitive exams (JEE, NEET). Many carry exam pressure, self-doubt, or shyness about asking "silly" questions. Make every student feel safe, capable, and genuinely cared for.
+Students in Bahrain's secondary schools (grades 9 to 12), across the Bahrain MoE national curriculum and the CBSE and Cambridge (British) curricula used by community and private schools. Many carry exam pressure, self-doubt, or shyness about asking "silly" questions. Make every student feel safe, capable, and genuinely cared for.
 
 YOUR PERSONALITY (non-negotiable)
 - Warm, calm, soft-spoken, curious, and infinitely patient.
@@ -381,6 +383,20 @@ CURRENT-INFORMATION MODE, this question asks for a real-world fact that can chan
 - Stay warm, but here freshness and correctness outrank teaching flourish: skip the exam-edge note, and a short, correctly sourced, dated fact is the whole job. A closing question is optional, not required, for a pure lookup.`;
 
 /** Build the full teaching system prompt (used by /chat and /chat/stream). */
+// The Arabic moat: when the student's language is Arabic, the entire reply must
+// be excellent Modern Standard Arabic. This is Fahim's core quality requirement.
+const ARABIC_QUALITY = `
+
+LANGUAGE — ARABIC (this is critical and non-negotiable):
+- Write the ENTIRE reply in clear, correct Modern Standard Arabic (الفصحى): accurate grammar and i'raab, natural teaching phrasing a Bahraini secondary student reads comfortably. No colloquial dialect, no Hindi or Hinglish, no transliteration of Arabic in Latin letters.
+- Do NOT write explanatory sentences in English. Only a technical term may appear in English, in parentheses, the first time it is introduced, right after its Arabic term, e.g. التسارع (acceleration). After that, use the Arabic term.
+- Keep numbers in Western digits (0-9), and keep formulas, symbols, and math notation in standard scientific form (do not "Arabise" equations).
+- Punctuate in Arabic style (، and ؟) and read naturally right-to-left.`;
+
+function isArabic(language?: string): boolean {
+  return /arab|عرب|العربية/i.test(language || "");
+}
+
 function buildSystemInstruction(
   f: { board?: string; grade?: string; language?: string; preferredAnalogy?: string },
   referenceContext: string | null,
@@ -410,8 +426,26 @@ STUDENT CONTEXT (tailor the depth, examples, exam framing, and language to this)
       ? `\n\nREFERENCE MATERIAL (board-aligned curriculum notes, prefer these for facts and definitions; if they don't cover the question, use your own knowledge):\n${referenceContext}\nWhen these notes actually ground your answer, anchor it in ONE short line naming the topic or chapter the way the note does, including its class level, woven into a natural sentence. NEVER paste the bracketed note labels (like "[Physics: ...]") into your reply, and never cite the same note more than once (this anchor and the exam edge chapter line are the same line, never two). If the note's class differs from the student's grade, say so plainly, for example: this lives in the Class 10 light chapter and returns in Class 12 ray optics. Never call it "your chapter" unless the class matches, and never cite material that did not shape this turn's answer. These notes are written in English, but your reply stays in the student's preferred language throughout (technical terms excepted).`
       : "") +
     (isQuant ? QUANT_ADDENDUM : "") +
-    (isSearch ? SEARCH_ADDENDUM : "")
+    (isSearch ? SEARCH_ADDENDUM : "") +
+    (isArabic(f.language) ? ARABIC_QUALITY : "")
   );
+}
+
+/** Grounding fields attached to a chat response: a curriculum source chip when
+ *  grounded, or an out-of-syllabus flag when the grade's textbooks don't cover it. */
+function groundingFields(g: GroundingResult | null): Record<string, unknown> {
+  if (!g) return {};
+  if (g.outOfSyllabus) return { outOfSyllabus: true };
+  if (g.source)
+    return {
+      grounding: {
+        unitTitle: g.source.unitTitle,
+        section: g.source.section,
+        level: g.level,
+        groundednessScore: Number(g.groundedness.toFixed(3)),
+      },
+    };
+  return {};
 }
 
 export const aiRouter = Router();
@@ -462,6 +496,8 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     // "Deep-checked" badge on a live-fact answer, and skipping it also saves a Gemini call.
     const deepVerify = effectiveMode !== "search" && (req.body?.deepVerify !== undefined ? req.body.deepVerify !== false : true);
     let queryEmbedding: number[] | null = null;
+    // FAHIM: grounding metadata (source unit + confidence) surfaced on the answer.
+    let grounding: GroundingResult | null = null;
 
     console.log(
       `[CHAT] start (requested=${requestedMode}, effective=${effectiveMode}, deep=${deep}, deepVerify=${deepVerify}, images=${images.length}, history=${Array.isArray(history) ? history.length : 0}, cacheable=${cacheable})`
@@ -594,6 +630,7 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
         text: finalText,
         sources: sources || [],
         ...(deepVerify ? { verification: verified ? "passed" : "unavailable" } : {}),
+        ...groundingFields(grounding),
       });
     };
 
@@ -609,9 +646,12 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     let referenceContext: string | null = null;
     if (queryEmbedding && effectiveMode !== "search") {
       const ragT0 = Date.now();
-      referenceContext = await safe(() => retrieveContext(queryEmbedding, board));
-      console.log(`[RAG_RETRIEVE] end - ${secs(ragT0)} (${referenceContext ? "context found" : "no match"}, local DB + JS cosine, no external call)`);
-      if (referenceContext) console.log(`[RAG] grounded answer with curriculum context (board: ${board || "General"}).`);
+      // FAHIM: ground in the Bahrain curriculum corpus for the student's board+grade
+      // (subject/unit resolved server-side). Falls back to no reference (Clarify
+      // answers generally) when the grade has no matching textbook content.
+      grounding = await safe(() => groundQuery(board, grade, queryEmbedding, message));
+      referenceContext = grounding?.reference || null;
+      console.log(`[RAG_RETRIEVE] end - ${secs(ragT0)} (${grounding?.source ? `grounded: ${grounding.source.unitTitle} @${grounding.groundedness.toFixed(2)}` : grounding?.outOfSyllabus ? "out-of-syllabus" : "no match"})`);
     }
 
     const systemInstruction = buildSystemInstruction({ board, grade, language, preferredAnalogy }, referenceContext, isQuant, deep, recentTopics, effectiveMode === "search");
@@ -825,10 +865,12 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
       }
     }
 
-    // RAG grounding, same rules as /chat (first-turn questions only).
+    // FAHIM: Bahrain curriculum grounding (same as /chat), subject/unit resolved server-side.
     let referenceContext: string | null = null;
+    let grounding: GroundingResult | null = null;
     if (queryEmbedding) {
-      referenceContext = await safe(() => retrieveContext(queryEmbedding, board));
+      grounding = await safe(() => groundQuery(board, grade, queryEmbedding, message));
+      referenceContext = grounding?.reference || null;
     }
     const systemInstruction = buildSystemInstruction({ board, grade, language, preferredAnalogy }, referenceContext, isQuant, deep, recentTopics, effectiveMode === "search");
 
@@ -897,6 +939,7 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
       text: finalText,
       sources: streamSources,
       ...(deepVerify ? { verification: verified ? "passed" : "unavailable" } : {}),
+      ...groundingFields(grounding),
     });
     console.log(`[CHAT_STREAM] total - ${secs(chatT0)} (streamed, verify=${deepVerify ? (verified ? "passed" : "unavailable") : "off"})`);
     res.end();

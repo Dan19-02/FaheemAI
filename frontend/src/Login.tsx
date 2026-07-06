@@ -9,8 +9,9 @@ import { useAuth } from "./AuthContext";
 import { useGoogleButton } from "./googleSignIn";
 import { SUPPORT_EMAIL } from "./defaults";
 
-const BOARDS = ["CBSE", "ICSE", "State Board", "JEE", "NEET", "None"];
-const LANGUAGES = ["English", "Hinglish", "Hindi"];
+const BOARDS = ["Bahrain MoE", "CBSE", "Cambridge"];
+const GRADES = ["Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+const LANGUAGES = ["Arabic", "English"];
 const ANALOGIES = ["Daily Life", "Sports", "Cooking", "Bicycles & Trains", "Mobile Phones & Tech"];
 
 interface LoginProps {
@@ -54,9 +55,9 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
 
   // Signup profile
   const [name, setName] = useState("");
-  const [board, setBoard] = useState("CBSE");
-  const [grade, setGrade] = useState("11th Grade");
-  const [language, setLanguage] = useState("Hinglish");
+  const [board, setBoard] = useState("Bahrain MoE");
+  const [grade, setGrade] = useState("Grade 10");
+  const [language, setLanguage] = useState("Arabic");
   const [preferredAnalogy, setPreferredAnalogy] = useState("Daily Life");
   const [examGoals, setExamGoals] = useState("");
   const [confidenceLevel, setConfidenceLevel] = useState(3);
@@ -154,7 +155,7 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
             {mode === "signup" && (
               <div className="flex flex-col gap-1.5">
                 <label className={label}>Your name</label>
-                <input className={input} required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aarav" />
+                <input className={input} required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ahmed" />
               </div>
             )}
 
@@ -189,7 +190,11 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className={label}>Grade / Level</label>
-                    <input className={input} value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="11th Grade" />
+                    <select className={input} value={grade} onChange={(e) => setGrade(e.target.value)}>
+                      {GRADES.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -219,7 +224,7 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
                     rows={2}
                     value={examGoals}
                     onChange={(e) => setExamGoals(e.target.value)}
-                    placeholder="e.g. Crack board exams and build deep conceptual clarity!"
+                    placeholder="e.g. Understand my subjects deeply and do well in exams!"
                   />
                 </div>
 

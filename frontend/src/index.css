@@ -12,10 +12,16 @@
      platform Arabic fonts below carry the app. NOT loaded via a CDN @import. */
   --font-arabic: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
 
-  --color-editorial-ivory: #FAF9F6;
+  /* Bahrain palette: the flag's red (#CE1126) on a warm ivory white.
+     --editorial-sage is the app's single accent token (buttons, active
+     states, focus rings, ~50 uses); retheming it to Bahrain red re-skins the
+     whole workspace in one place. Backgrounds stay a calm warm ivory so the
+     red reads as a considered accent, never garish. Body text is charcoal for
+     strong contrast; red-on-white passes WCAG AA for the white-on-red buttons. */
+  --color-editorial-ivory: #FCFAF7;
   --color-editorial-charcoal: #1A1A1A;
-  --color-editorial-sage: #5A5A40;
-  --color-editorial-stone: #F4F4F0;
+  --color-editorial-sage: #CE1126;
+  --color-editorial-stone: #F6F1EE;
   --color-editorial-line: rgba(26, 26, 26, 0.1);
   --color-editorial-line-light: rgba(26, 26, 26, 0.05);
 
