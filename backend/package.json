@@ -9,7 +9,8 @@
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/index.cjs",
     "lint": "tsc --noEmit",
     "test:db": "tsx src/db.test.ts",
-    "test:subscription": "tsx src/subscription.test.ts"
+    "test:subscription": "tsx src/subscription.test.ts",
+    "seed:curriculum": "tsx scripts/curriculum/seed.ts"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",

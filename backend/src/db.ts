@@ -274,9 +274,19 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 -- 'D' sensitive/doctrinal. Enabling a subject is an UPDATE here, not a deploy.
 CREATE TABLE IF NOT EXISTS curriculum_subjects (
   subject_id TEXT PRIMARY KEY,
+  -- Board/curriculum this subject belongs to: 'moe' (Bahrain MoE), 'cbse',
+  -- 'cambridge'. subject_id is board-qualified (e.g. 'cbse.physics') so the
+  -- same subject name across boards never collides.
+  board TEXT NOT NULL DEFAULT 'moe',
   name_ar TEXT NOT NULL DEFAULT '',
   name_en TEXT NOT NULL DEFAULT '',
   accuracy_type TEXT NOT NULL DEFAULT 'A',
+  -- How well this subject can be grounded TODAY: 'textbook' (real textbook text
+  -- ingested, e.g. NCERT), 'syllabus' (only outline/topics), 'proxy' (nearest
+  -- documented grade used as a stand-in), 'structure' (system structure only).
+  -- Confidence/sourcing surfacing reads this so we never imply textbook-true
+  -- grounding we don't have.
+  grounding_level TEXT NOT NULL DEFAULT 'syllabus',
   gate_status TEXT NOT NULL DEFAULT 'draft',
   correctness_bar NUMERIC,
   min_review_sample INTEGER NOT NULL DEFAULT 100,
@@ -288,8 +298,11 @@ CREATE TABLE IF NOT EXISTS curriculum_subjects (
 
 CREATE TABLE IF NOT EXISTS curriculum_grades (
   grade_id TEXT PRIMARY KEY,
+  board TEXT NOT NULL DEFAULT 'moe',
   label_ar TEXT NOT NULL DEFAULT '',
   label_en TEXT NOT NULL DEFAULT '',
+  -- India Class 9-12 equivalent, so the three boards line up in the UI.
+  india_equiv TEXT NOT NULL DEFAULT '',
   cycle TEXT NOT NULL DEFAULT ''
 );
 
@@ -298,6 +311,7 @@ CREATE TABLE IF NOT EXISTS curriculum_grades (
 -- per-unit go-live flag (a subject can be 'live' while some units are still dark).
 CREATE TABLE IF NOT EXISTS curriculum_units (
   unit_id TEXT PRIMARY KEY,
+  board TEXT NOT NULL DEFAULT 'moe',
   subject_id TEXT NOT NULL REFERENCES curriculum_subjects(subject_id) ON DELETE CASCADE,
   grade_id TEXT NOT NULL REFERENCES curriculum_grades(grade_id) ON DELETE CASCADE,
   seq INTEGER NOT NULL DEFAULT 0,
@@ -1158,10 +1172,13 @@ export async function cacheClearMismatchedEmbeddings(q: Queryable, dims: number)
 
 export interface CurriculumSubject {
   subjectId: string;
+  board: string;
   nameAr: string;
   nameEn: string;
   /** 'A' objective | 'B' language | 'C' interpretive | 'D' sensitive/doctrinal. */
   accuracyType: string;
+  /** 'textbook' | 'syllabus' | 'proxy' | 'structure' — how deep grounding can go. */
+  groundingLevel: string;
   /** 'draft' | 'in_review' | 'blocked' | 'live'. Only 'live' is served to students. */
   gateStatus: string;
   correctnessBar: number | null;
@@ -1172,9 +1189,11 @@ export interface CurriculumSubject {
 function rowToSubject(r: any): CurriculumSubject {
   return {
     subjectId: r.subject_id,
+    board: r.board || "moe",
     nameAr: r.name_ar,
     nameEn: r.name_en,
     accuracyType: r.accuracy_type,
+    groundingLevel: r.grounding_level || "syllabus",
     gateStatus: r.gate_status,
     correctnessBar: r.correctness_bar == null ? null : Number(r.correctness_bar),
     minReviewSample: Number(r.min_review_sample || 0),
@@ -1189,9 +1208,11 @@ export async function upsertSubject(
   q: Queryable,
   s: {
     subjectId: string;
+    board: string;
     nameAr: string;
     nameEn: string;
     accuracyType: string;
+    groundingLevel?: string;
     gateStatus?: string;
     correctnessBar?: number | null;
     minReviewSample?: number;
@@ -1200,26 +1221,38 @@ export async function upsertSubject(
 ): Promise<void> {
   await q.query(
     `INSERT INTO curriculum_subjects
-       (subject_id, name_ar, name_en, accuracy_type, gate_status, correctness_bar, min_review_sample, curriculum_version)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       (subject_id, board, name_ar, name_en, accuracy_type, grounding_level, gate_status, correctness_bar, min_review_sample, curriculum_version)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
      ON CONFLICT (subject_id) DO UPDATE SET
+       board = EXCLUDED.board,
        name_ar = EXCLUDED.name_ar,
        name_en = EXCLUDED.name_en,
        accuracy_type = EXCLUDED.accuracy_type,
+       grounding_level = EXCLUDED.grounding_level,
        correctness_bar = EXCLUDED.correctness_bar,
        min_review_sample = EXCLUDED.min_review_sample,
        curriculum_version = EXCLUDED.curriculum_version`,
     [
       s.subjectId,
+      s.board,
       s.nameAr,
       s.nameEn,
       s.accuracyType,
+      s.groundingLevel ?? "syllabus",
       s.gateStatus ?? "draft",
       s.correctnessBar ?? null,
       s.minReviewSample ?? 100,
       s.curriculumVersion ?? "",
     ]
   );
+}
+
+/** All subjects for a board (or every subject if board omitted), for ops/authoring. */
+export async function listSubjects(q: Queryable, board?: string): Promise<CurriculumSubject[]> {
+  const { rows } = board
+    ? await q.query(`SELECT * FROM curriculum_subjects WHERE board = $1 ORDER BY subject_id`, [board])
+    : await q.query(`SELECT * FROM curriculum_subjects ORDER BY board, subject_id`);
+  return rows.map(rowToSubject);
 }
 
 /** Flip a subject's gate status. Setting 'live' stamps who/when. This is the
@@ -1240,6 +1273,12 @@ export async function setSubjectGateStatus(
   );
 }
 
+/** Update how deeply a subject can be grounded (set 'textbook' once real
+ *  textbook corpus is ingested for it). Drives honest confidence surfacing. */
+export async function setSubjectGrounding(q: Queryable, subjectId: string, level: string): Promise<void> {
+  await q.query(`UPDATE curriculum_subjects SET grounding_level = $2 WHERE subject_id = $1`, [subjectId, level]);
+}
+
 export async function getSubject(q: Queryable, subjectId: string): Promise<CurriculumSubject | null> {
   const { rows } = await q.query(`SELECT * FROM curriculum_subjects WHERE subject_id = $1`, [subjectId]);
   return rows[0] ? rowToSubject(rows[0]) : null;
@@ -1255,20 +1294,31 @@ export async function listLiveSubjects(q: Queryable): Promise<CurriculumSubject[
 
 export async function upsertGrade(
   q: Queryable,
-  g: { gradeId: string; labelAr: string; labelEn: string; cycle?: string }
+  g: { gradeId: string; board: string; labelAr: string; labelEn: string; indiaEquiv?: string; cycle?: string }
 ): Promise<void> {
   await q.query(
-    `INSERT INTO curriculum_grades (grade_id, label_ar, label_en, cycle)
-     VALUES ($1,$2,$3,$4)
-     ON CONFLICT (grade_id) DO UPDATE SET label_ar = EXCLUDED.label_ar, label_en = EXCLUDED.label_en, cycle = EXCLUDED.cycle`,
-    [g.gradeId, g.labelAr, g.labelEn, g.cycle ?? ""]
+    `INSERT INTO curriculum_grades (grade_id, board, label_ar, label_en, india_equiv, cycle)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (grade_id) DO UPDATE SET
+       board = EXCLUDED.board, label_ar = EXCLUDED.label_ar, label_en = EXCLUDED.label_en,
+       india_equiv = EXCLUDED.india_equiv, cycle = EXCLUDED.cycle`,
+    [g.gradeId, g.board, g.labelAr, g.labelEn, g.indiaEquiv ?? "", g.cycle ?? ""]
   );
+}
+
+/** Grades for a board, ordered by India-equivalent so the three boards line up. */
+export async function listGrades(q: Queryable, board?: string): Promise<{ gradeId: string; board: string; labelEn: string; labelAr: string; indiaEquiv: string }[]> {
+  const { rows } = board
+    ? await q.query(`SELECT * FROM curriculum_grades WHERE board = $1 ORDER BY india_equiv, grade_id`, [board])
+    : await q.query(`SELECT * FROM curriculum_grades ORDER BY board, india_equiv, grade_id`);
+  return rows.map((r) => ({ gradeId: r.grade_id, board: r.board || "moe", labelEn: r.label_en, labelAr: r.label_ar, indiaEquiv: r.india_equiv || "" }));
 }
 
 // ---- Units (the immutable unit_id join key) ----
 
 export interface CurriculumUnit {
   unitId: string;
+  board: string;
   subjectId: string;
   gradeId: string;
   seq: number;
@@ -1284,6 +1334,7 @@ export interface CurriculumUnit {
 function rowToUnit(r: any): CurriculumUnit {
   return {
     unitId: r.unit_id,
+    board: r.board || "moe",
     subjectId: r.subject_id,
     gradeId: r.grade_id,
     seq: Number(r.seq || 0),
@@ -1303,6 +1354,7 @@ export async function upsertUnit(
   q: Queryable,
   u: {
     unitId: string;
+    board: string;
     subjectId: string;
     gradeId: string;
     seq: number;
@@ -1316,9 +1368,10 @@ export async function upsertUnit(
 ): Promise<void> {
   await q.query(
     `INSERT INTO curriculum_units
-       (unit_id, subject_id, grade_id, seq, title_ar, title_en, source_textbook, source_edition, curriculum_version, is_in_syllabus)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       (unit_id, board, subject_id, grade_id, seq, title_ar, title_en, source_textbook, source_edition, curriculum_version, is_in_syllabus)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      ON CONFLICT (unit_id) DO UPDATE SET
+       board = EXCLUDED.board,
        subject_id = EXCLUDED.subject_id,
        grade_id = EXCLUDED.grade_id,
        seq = EXCLUDED.seq,
@@ -1330,6 +1383,7 @@ export async function upsertUnit(
        is_in_syllabus = EXCLUDED.is_in_syllabus`,
     [
       u.unitId,
+      u.board,
       u.subjectId,
       u.gradeId,
       u.seq,

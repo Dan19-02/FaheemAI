@@ -15,5 +15,7 @@ build/
 .DS_Store
 *.log
 
-# Local corpus source (curriculum PDFs/text are licensed; keep out of git)
+# Local corpus source (curriculum PDFs are licensed; keep out of git)
 backend/corpus-source/
+# Derived corpus chunks (regenerable from source; can be large)
+backend/corpus/
