@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- Fahim is Arabic-first: seed lang/dir here so the very first paint is RTL,
+     before JS hydrates and LocaleProvider takes over syncing these attributes. -->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta
+      name="description"
+      content="Clarify.AI is a calm, patient AI teacher and doubt solver for CBSE, ICSE, State board, JEE and NEET students in class 6 to 12. It explains the doubts you missed in class, again and again, a different way each time, until it clicks. Physics, Chemistry, Maths, Biology and more, in English, Hinglish and Hindi."
+    />
+    <meta name="theme-color" content="#15150e" />
+    <link rel="canonical" href="https://clarifyai.in/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph / social preview -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Clarify.AI" />
+    <meta property="og:url" content="https://clarifyai.in/" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:title" content="Clarify.AI — Patient AI Doubt Solver for CBSE, ICSE, JEE, NEET" />
+    <meta
+      property="og:description"
+      content="A calm, patient AI teacher and doubt solver for CBSE, ICSE, State board, JEE and NEET, class 6 to 12. It explains what you missed in class, again and again, until it clicks. English, Hinglish and Hindi."
+    />
+    <meta property="og:image" content="https://clarifyai.in/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Clarify.AI: a patient AI teacher and doubt solver for CBSE, ICSE, State Board, JEE and NEET, in English, Hinglish and Hindi." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Clarify.AI — Patient AI Doubt Solver for CBSE, ICSE, JEE, NEET" />
+    <meta
+      name="twitter:description"
+      content="A calm, patient AI teacher and doubt solver for CBSE, ICSE, State board, JEE and NEET. It stays until it clicks. English, Hinglish and Hindi."
+    />
+    <meta name="twitter:image" content="https://clarifyai.in/og-image.png" />
+    <meta name="twitter:image:alt" content="Clarify.AI: a patient AI teacher and doubt solver for CBSE, ICSE, State Board, JEE and NEET." />
+
+    <title>Clarify.AI — Patient AI Doubt Solver for CBSE, ICSE, JEE, NEET</title>
+
+    <!-- Google Identity Services: powers the "Continue with Google" button.
+         Loads async and only initializes when VITE_GOOGLE_CLIENT_ID is set. -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Structured data: only true facts (no ratings or user counts). Helps
+         search engines understand what Clarify.AI is, who it serves, and the
+         real plan prices. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "EducationalOrganization",
+            "@id": "https://clarifyai.in/#org",
+            "name": "Clarify.AI",
+            "url": "https://clarifyai.in/",
+            "logo": "https://clarifyai.in/favicon.svg",
+            "description": "A calm, patient AI teacher and doubt solver for Indian school and entrance-exam students. It explains what you missed in class, again and again, a different way each time, until it clicks.",
+            "email": "support@clarifyai.in",
+            "areaServed": "IN",
+            "knowsLanguage": ["en", "hi", "en-IN"],
+            "audience": {
+              "@type": "EducationalAudience",
+              "educationalRole": "student"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://clarifyai.in/#website",
+            "url": "https://clarifyai.in/",
+            "name": "Clarify.AI",
+            "publisher": { "@id": "https://clarifyai.in/#org" },
+            "inLanguage": ["en", "hi"]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Clarify.AI",
+            "applicationCategory": "EducationApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "url": "https://clarifyai.in/",
+            "publisher": { "@id": "https://clarifyai.in/#org" },
+            "description": "AI doubt solver and patient teacher for CBSE, ICSE, State board, JEE and NEET students in class 6 to 12, across Physics, Chemistry, Maths and Biology, in English, Hinglish and Hindi.",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "199",
+                "priceCurrency": "INR",
+                "description": "100 questions a month."
+              },
+              {
+                "@type": "Offer",
+                "name": "Regular",
+                "price": "499",
+                "priceCurrency": "INR",
+                "description": "300 questions a month, with the Pre-exam notebook."
+              },
+              {
+                "@type": "Offer",
+                "name": "Unlimited",
+                "price": "999",
+                "priceCurrency": "INR",
+                "description": "Unlimited questions, with the Pre-exam notebook."
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

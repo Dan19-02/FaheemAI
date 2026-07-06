@@ -1,0 +1,6 @@
+{
+  "name": "Clarify.AI",
+  "description": "Your warm, patient, and encouraging personal AI teacher and learning companion.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

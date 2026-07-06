@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Tiro+Devanagari+Hindi:ital@0;1&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Lora", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Arabic-capable UI stack for Fahim. Once a subsetted IBM Plex Sans Arabic
+     WOFF2 is dropped into public/fonts and @font-face-declared (see
+     public/fonts/README.md), it becomes the first choice; until then the
+     platform Arabic fonts below carry the app. NOT loaded via a CDN @import. */
+  --font-arabic: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+
+  --color-editorial-ivory: #FAF9F6;
+  --color-editorial-charcoal: #1A1A1A;
+  --color-editorial-sage: #5A5A40;
+  --color-editorial-stone: #F4F4F0;
+  --color-editorial-line: rgba(26, 26, 26, 0.1);
+  --color-editorial-line-light: rgba(26, 26, 26, 0.05);
+
+  /* Landing "night" palette: the dark classroom the story opens in.
+     Warm olive-cast darks so the night and the ivory day share one family. */
+  --color-night: #15150e;
+  --color-night-soft: #202016;
+  --color-night-deep: #100f0a;
+  --color-night-line: rgba(240, 238, 226, 0.14);
+  --color-chalk: #f0eee2;
+  --color-chalk-dim: rgba(240, 238, 226, 0.62);
+  --color-sage-bright: #b9b98d;
+}
+
+/* Landing-only helpers */
+.landing-balance { text-wrap: balance; }
+.landing-pretty { text-wrap: pretty; }
+
+/* The Arabic-first app shell renders in the Arabic-capable stack. The landing
+   is intentionally LTR/Latin and keeps --font-sans, so this is scoped to the
+   app root (.fahim-app), never the marketing site. */
+.fahim-app { font-family: var(--font-arabic); }
+
+/* Long display equations scroll instead of stretching their bubble. */
+.clarify-prose .katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* --- CRITICAL: bidi-isolated math ---
+   KaTeX 0.17 has no `dir` option, and its .katex-html inherits dir=rtl from the
+   Arabic page, which mirrors and reorders every equation (fractions, exponents,
+   operators all flip). Force the math subtree back to LTR and isolate it from
+   the surrounding RTL run so notation matches the textbook. Markdown.tsx also
+   wraps each math node in a dir="ltr" isolate as belt-and-suspenders. */
+.katex,
+.katex-display > .katex > .katex-html {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.katex-display { text-align: start; }
+
+/* Western (Latin) numerals in math so digits read like standard notation even
+   when the surrounding UI/body would otherwise render Arabic-Indic digits. */
+.katex { font-feature-settings: "lnum" 1, "tnum" 1; }
+
+/* Devanagari lines on the landing get a bookish serif that matches Lora's
+   voice where the system fallback breaks it. Google Fonts serves the family
+   with unicode-range, so the file only downloads when Hindi glyphs paint. */
+.landing-devanagari { font-family: "Tiro Devanagari Hindi", "Lora", Georgia, serif; }
+
+/* Pools of lamplight. Pre-composited radial gradients painted once; any
+   later animation on them is transform and opacity only, so a low-end phone
+   never re-rasterizes a blur. */
+.lamp-pool {
+  background: radial-gradient(
+    closest-side,
+    rgba(240, 238, 226, 0.13),
+    rgba(240, 238, 226, 0.05) 55%,
+    transparent 78%
+  );
+}
+
+/* Paper held up in the dark: the warm bloom around the lit ivory sheets. */
+.lit-sheet {
+  box-shadow:
+    0 0 90px 12px rgba(240, 238, 226, 0.08),
+    0 0 28px 2px rgba(240, 238, 226, 0.06);
+}
+
+/* The half-caught words drifting across the night classroom. Pure CSS so the
+   hero stays cheap on low-end phones. Each span sets its own --dx/--dy/--dur. */
+@keyframes landing-drift {
+  0%   { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+  50%  { transform: translate3d(var(--dx, 14px), var(--dy, -20px), 0) rotate(var(--rot, 0deg)); }
+  100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+}
+.landing-drift {
+  animation: landing-drift var(--dur, 18s) ease-in-out var(--delay, 0s) infinite;
+}
+
+/* The page's one deliberate loop: the Still fuzzy chip, breathing. */
+@keyframes landing-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.landing-breathe { animation: landing-breathe 4s ease-in-out infinite; }
+
+/* The loading gate's monogram: a slow, patient breath. Driven by CSS (not a
+   motion/react loop) so a motion-safe: variant fully halts it for reduced
+   motion, including the opacity, which MotionConfig would keep pulsing. */
+@keyframes clarify-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.85; }
+}
+
+/* Acts far below the fold skip layout and paint until the visitor nears.
+   Each section reserves a placeholder close to its real rendered height, so
+   the first reveal does not pop the scrollbar/scroll position. */
+.landing-cv { content-visibility: auto; }
+.landing-cv-ladder { contain-intrinsic-size: auto 1850px; }
+.landing-cv-register { contain-intrinsic-size: auto 950px; }
+.landing-cv-cards { contain-intrinsic-size: auto 1100px; }
+.landing-cv-pricing { contain-intrinsic-size: auto 1150px; }
+.landing-cv-finale { contain-intrinsic-size: auto 1300px; }
+
+/* Dotted leaders for the finale's index page. */
+.landing-leader { border-bottom: 2px dotted rgba(240, 238, 226, 0.26); }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-drift, .landing-breathe { animation: none !important; }
+}

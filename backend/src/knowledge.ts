@@ -1,0 +1,288 @@
+/**
+ * Retrieval (RAG) + embeddings + topic gating + deep-verify.
+ *
+ * - embed(): Gemini embeddings with taskType=SEMANTIC_SIMILARITY (better
+ *   calibrated for paraphrase/similarity than the default), with graceful
+ *   fallback. The same taskType is used for the corpus, the query, and the
+ *   semantic cache so all vectors are comparable.
+ * - Multi-board seed corpus (CBSE / ICSE-ISC / JEE / NEET / General). Retrieval
+ *   prefers the student's board (and universal "General" facts).
+ * - topicTokens()/sharesTopic(): gate the semantic cache so it never reuses an
+ *   answer across unrelated topics (e.g. osmosis vs diffusion).
+ * - verifyAnswer(): optional deep-verify examiner pass.
+ */
+import { ai, apiKey } from "./gemini.js";
+import { pool, knowledgeCount, knowledgeIds, knowledgeInsert, knowledgeAll, knowledgeDeleteAll, cacheClearMismatchedEmbeddings } from "./db.js";
+
+// gemini-embedding-001 is the live embeddings model. text-embedding-004 was
+// retired from the API (404s as of 2026-07-02) and is no longer tried.
+const EMBED_MODELS = ["gemini-embedding-001"];
+let chosenEmbedModel: string | null = null;
+
+/** Seconds elapsed since t0, formatted for the latency trace logs. */
+export const secs = (t0: number) => ((Date.now() - t0) / 1000).toFixed(1) + "s";
+
+export async function embed(text: string, taskType = "SEMANTIC_SIMILARITY"): Promise<number[] | null> {
+  if (!apiKey || !text?.trim()) return null;
+  const models = chosenEmbedModel ? [chosenEmbedModel] : EMBED_MODELS;
+  const embedT0 = Date.now();
+  for (const model of models) {
+    // Try with taskType first; fall back to no-config if the model rejects it.
+    for (const cfg of [{ taskType }, undefined] as const) {
+      const t0 = Date.now();
+      console.log(`[GEMINI_EMBED] start (model=${model}, cfg=${cfg ? "taskType" : "plain"})`);
+      try {
+        const r: any = await ai.models.embedContent({ model, contents: text, ...(cfg ? { config: cfg } : {}) });
+        const values: number[] | undefined = r?.embeddings?.[0]?.values || r?.embedding?.values;
+        if (Array.isArray(values) && values.length) {
+          chosenEmbedModel = model;
+          console.log(`[GEMINI_EMBED] end - ${secs(t0)} (model=${model}, dims=${values.length})`);
+          return values;
+        }
+        console.warn(`[GEMINI_EMBED] empty - ${secs(t0)} (model=${model}), trying next`);
+      } catch (e: any) {
+        // Each failed attempt here may itself hide up to 5 SDK-internal retries.
+        console.warn(`[GEMINI_EMBED] failed - ${secs(t0)} (model=${model}, cfg=${cfg ? "taskType" : "plain"}): ${e?.message || e}`);
+      }
+    }
+  }
+  console.warn(`[GEMINI_EMBED] gave up - ${secs(embedT0)} (all models/configs failed)`);
+  return null;
+}
+
+export function cosine(a: number[], b: number[]): number {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+}
+
+const STOPWORDS = new Set(
+  "a an the is are was were be of for to from in into on at with and or but what whats which who whom how why when where do does did explain define describe tell me about please give show find calculate solve simple simply detail short brief words word can you i my mean meaning concept topic kya hai hota hain ka ki ke ko ek mujhe batao samjhao".split(/\s+/)
+);
+
+/** Significant content tokens of a question (used to topic-gate the cache). */
+export function topicTokens(message: string): Set<string> {
+  return new Set(
+    (message || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
+  );
+}
+
+/**
+ * Whether two questions are about the SAME thing for cache-reuse purposes.
+ * Rule: one question's content tokens must be a subset of the other's. This
+ * allows paraphrases that only add filler ("process of photosynthesis" ⊇
+ * "photosynthesis") but blocks pairs that differ by a meaningful token
+ * ("newton FIRST law" vs "newton SECOND law", "KINETIC energy" vs "POTENTIAL
+ * energy"), which would otherwise be wrongly reused.
+ */
+export function topicCompatible(a: Set<string>, b: Set<string>): boolean {
+  if (a.size === 0 || b.size === 0) return a.size === b.size;
+  const [small, big] = a.size <= b.size ? [a, b] : [b, a];
+  for (const t of small) if (!big.has(t)) return false;
+  return true;
+}
+
+// Board-aware seed corpus. "General" facts are served to every board; the rest
+// carry board-appropriate framing. Expand this (or ingest real per-board
+// textbook content + pgvector) for production coverage.
+const SEED_CORPUS = [
+  { id: "k-newton2", subject: "Physics", topic: "Newton's Second Law", board: "General", grade: "11",
+    content: "Newton's Second Law: net force equals rate of change of momentum; for constant mass F = m·a. Force in newtons (N). The same force gives a lighter body a larger acceleration." },
+  { id: "k-newton1", subject: "Physics", topic: "Newton's First Law (Inertia)", board: "General", grade: "11",
+    content: "Newton's First Law (inertia): a body stays at rest or in uniform straight-line motion unless acted on by a net external force. Inertia increases with mass." },
+  { id: "k-kinematics", subject: "Physics", topic: "Equations of Motion", board: "General", grade: "11",
+    content: "For constant acceleration: v = u + a·t; s = u·t + ½·a·t²; v² = u² + 2·a·s. For a body thrown up, at the top v = 0 and a = -g (g ≈ 9.8 m/s², often 10 in problems)." },
+  { id: "k-ohm", subject: "Physics", topic: "Ohm's Law", board: "General", grade: "10",
+    content: "Ohm's Law: at constant temperature, V = I·R, current proportional to voltage; R in ohms (Ω). Does not hold for non-ohmic devices like diodes." },
+  { id: "k-photosynthesis", subject: "Biology", topic: "Photosynthesis", board: "General", grade: "11",
+    content: "Photosynthesis: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂, in chloroplasts. Light reactions in thylakoids make ATP/NADPH; the Calvin cycle fixes carbon in the stroma." },
+  { id: "k-mitosis", subject: "Biology", topic: "Mitosis vs Meiosis", board: "General", grade: "11",
+    content: "Mitosis → two identical diploid cells (growth/repair). Meiosis → four varied haploid gametes via two divisions; crossing over in prophase I creates variation." },
+  { id: "k-quadratic", subject: "Mathematics", topic: "Quadratic Equations", board: "General", grade: "10",
+    content: "ax² + bx + c = 0 (a≠0): roots x = (-b ± √(b²-4ac))/(2a). Discriminant D = b²-4ac: D>0 two distinct real, D=0 equal, D<0 no real roots. Sum = -b/a, product = c/a." },
+  { id: "k-bonding", subject: "Chemistry", topic: "Chemical Bonding & Valency", board: "General", grade: "11",
+    content: "Atoms bond to attain a stable (octet) configuration. Ionic bonds transfer electrons (metal+non-metal); covalent bonds share (non-metals). Valency = combining capacity." },
+  { id: "k-mole", subject: "Chemistry", topic: "Mole Concept", board: "General", grade: "11",
+    content: "One mole = 6.022×10²³ particles (Avogadro's number). Moles = mass / molar mass. Molar volume of an ideal gas at STP ≈ 22.4 L." },
+  { id: "k-trig", subject: "Mathematics", topic: "Trigonometric Ratios", board: "General", grade: "10",
+    content: "In a right triangle: sin θ = opposite/hypotenuse, cos θ = adjacent/hypotenuse, tan θ = opposite/adjacent. Identity: sin²θ + cos²θ = 1." },
+  { id: "k-refraction", subject: "Physics", topic: "Refraction of Light", board: "General", grade: "10",
+    content: "Refraction: light bends when it crosses into another medium because its speed changes; it bends toward the normal entering a denser medium (air to water/glass) and away from the normal when leaving. Refractive index n = c/v (no units). Snell's law: sin i / sin r is constant for a given pair of media. Everyday effects: a pencil or straw part-dipped in water looks bent at the surface; a coin at the bottom of water looks raised (apparent depth is less than real depth)." },
+  { id: "k-refraction-cbse", subject: "Physics", topic: "Refraction in the CBSE/NCERT syllabus", board: "CBSE", grade: "10",
+    content: "For CBSE/NCERT students, refraction of light is taught in the Class 10 Science chapter 'Light: Reflection and Refraction' (laws of refraction, refractive index, lenses) and returns in Class 12 Physics 'Ray Optics and Optical Instruments'. Class 11 physics does not revisit refraction, so a Class 11 student met it in Class 10 and will see it again in Class 12 and in JEE/NEET." },
+  { id: "k-ray-optics-12", subject: "Physics", topic: "Ray Optics (Class 12)", board: "CBSE", grade: "12",
+    content: "NCERT Class 12 Physics, chapter 'Ray Optics and Optical Instruments': refraction at plane and spherical surfaces, total internal reflection (critical angle, optical fibres), lens maker's formula 1/f = (n-1)(1/R₁ - 1/R₂), magnification, microscopes and telescopes. Builds directly on the Class 10 Light chapter." },
+  { id: "k-free-fall", subject: "Physics", topic: "Free Fall (Motion in a Straight Line)", board: "General", grade: "11",
+    content: "Free fall: motion under gravity alone. 'Dropped' means u = 0; then v = g·t, h = ½·g·t², v² = 2·g·h. g ≈ 9.8 m/s² (many problems use 10 for clean numbers, which slightly changes answers). Common traps: forgetting u = 0 for a dropped body, mixing sign conventions for upward vs downward motion, dropping units. In NCERT (CBSE) this sits in Class 11 Physics, chapter 'Motion in a Straight Line'." },
+  { id: "k-electricity-10", subject: "Physics", topic: "Electricity (circuits)", board: "General", grade: "10",
+    content: "Series circuit: the same current flows through every element and voltages add (R_eq = R₁ + R₂ + ...). Parallel circuit: the same voltage sits across each branch and currents add (1/R_eq = 1/R₁ + 1/R₂ + ...). Ohm's law V = I·R applies per element; power P = V·I = I²·R. In NCERT (CBSE) this is the Class 10 Science chapter 'Electricity'." },
+  // Board / exam-specific framing (accurate study guidance, not invented facts)
+  { id: "k-cbse", subject: "Study Guidance", topic: "CBSE approach", board: "CBSE", grade: "11",
+    content: "CBSE exams are closely based on NCERT textbooks. Answers should be clear and to the point, with stepwise marking; practise NCERT examples and back-exercise questions and previous years' papers." },
+  { id: "k-icse", subject: "Study Guidance", topic: "ICSE/ISC approach", board: "ICSE", grade: "10",
+    content: "ICSE (Class 10) and ISC (Class 11-12, CISCE board) reward detailed, well-explained answers and full derivations/working. Definitions should be precise and answers more descriptive than CBSE." },
+  { id: "k-jee", subject: "Study Guidance", topic: "JEE approach", board: "JEE", grade: "12",
+    content: "JEE rewards application and multi-concept problem solving (e.g. kinematics with calculus, vectors). Build speed and accuracy on numericals; understand derivations, don't just memorise formulae." },
+  { id: "k-neet", subject: "Study Guidance", topic: "NEET approach", board: "NEET", grade: "12",
+    content: "NEET Biology is fact-dense and high-yield (Botany + Zoology), tightly NCERT-based. Focus on diagrams, classifications, examples and exceptions; Physics/Chemistry need accurate formula application." },
+];
+
+/** Embed and store the seed corpus once (idempotent). */
+export async function ingestKnowledge(): Promise<void> {
+  try {
+    if (!apiKey) {
+      console.warn("[RAG] No GEMINI_API_KEY: skipping knowledge ingestion (RAG disabled).");
+      return;
+    }
+    const existing = await knowledgeCount(pool);
+    if (existing > 0) {
+      // Vectors only match when their dimensions agree, so rows embedded by a
+      // retired model (768-dim text-embedding-004) silently kill RAG and the
+      // semantic cache. Probe the live model once and re-ingest on mismatch.
+      const probe = await embed("dimension probe");
+      const rows = probe ? await knowledgeAll(pool) : [];
+      const stale = probe ? rows.some((r) => Array.isArray(r.embedding) && r.embedding.length !== probe.length) : false;
+      if (!stale) {
+        // Top up seed chunks added since this database was first ingested;
+        // without this, new corpus entries never land on an existing install.
+        const have = new Set(await knowledgeIds(pool));
+        const missing = SEED_CORPUS.filter((c) => !have.has(c.id));
+        if (missing.length > 0) {
+          let added = 0;
+          for (const c of missing) {
+            const e = await embed(c.content);
+            if (!e) continue;
+            await knowledgeInsert(pool, { ...c, embedding: e });
+            added++;
+          }
+          console.log(`[RAG] Topped up ${added}/${missing.length} new knowledge chunks (${existing} already present).`);
+        } else {
+          console.log(`[RAG] Knowledge base ready (${existing} chunks, multi-board).`);
+        }
+        return;
+      }
+      console.warn(`[RAG] Stored embeddings do not match the live model (${probe!.length} dims): re-ingesting the corpus and clearing mismatched cache vectors.`);
+      await knowledgeDeleteAll(pool);
+      try {
+        await cacheClearMismatchedEmbeddings(pool, probe!.length);
+      } catch {
+        /* engine without jsonb_array_length: harmless, stale vectors simply never match */
+      }
+    }
+    let ok = 0;
+    for (const c of SEED_CORPUS) {
+      const e = await embed(c.content);
+      if (!e) continue;
+      await knowledgeInsert(pool, { ...c, embedding: e });
+      ok++;
+    }
+    console.log(`[RAG] Ingested ${ok}/${SEED_CORPUS.length} knowledge chunks (CBSE/ICSE/JEE/NEET/General)${ok ? "" : " (embeddings unavailable)"}.`);
+  } catch (e: any) {
+    console.warn("[RAG] Ingestion skipped:", e.message);
+  }
+}
+
+/**
+ * Top relevant notes for a question (given its embedding), preferring the
+ * student's board and universal "General" facts. Returns null if nothing fits.
+ */
+export async function retrieveContext(
+  queryEmbedding: number[] | null,
+  board = "",
+  k = 2,
+  threshold = 0.6
+): Promise<string | null> {
+  if (!queryEmbedding) return null;
+  let rows;
+  try {
+    rows = await knowledgeAll(pool);
+  } catch {
+    return null;
+  }
+  const b = (board || "").toLowerCase();
+  const scored = rows
+    .filter((r) => Array.isArray(r.embedding))
+    .map((r) => {
+      const cb = (r.board || "").toLowerCase();
+      const boardMatch = cb === "general" || (b && cb === b);
+      return { r, s: cosine(queryEmbedding, r.embedding) + (boardMatch ? 0.05 : -0.05) };
+    })
+    .filter((x) => x.s >= threshold)
+    .sort((a, b2) => b2.s - a.s)
+    .slice(0, k);
+  if (!scored.length) return null;
+  // The class level travels with every note so the model can never honestly
+  // place a Class 10 chapter inside a Class 11 student's own book.
+  return scored
+    .map(
+      (x) =>
+        `• [${x.r.subject}: ${x.r.topic}${x.r.board && x.r.board !== "General" ? " · " + x.r.board : ""}${
+          x.r.grade ? ` · Class ${x.r.grade}` : ""
+        }] ${x.r.content}`
+    )
+    .join("\n\n");
+}
+
+export interface VerifyResult {
+  text: string;
+  /** True only when the examiner pass actually ran. False means the draft is
+   *  returned unverified (missing key or examiner call failed), and the caller
+   *  must surface that honestly rather than implying the answer was checked. */
+  verified: boolean;
+}
+
+/** Optional deep-verify: a meticulous examiner pass that corrects errors. */
+export async function verifyAnswer(question: string, answer: string): Promise<VerifyResult> {
+  if (!apiKey) {
+    console.warn("[Verify] Deep-check unavailable: GEMINI_API_KEY missing, returning the answer unverified.");
+    return { text: answer, verified: false };
+  }
+  const t0 = Date.now();
+  console.log(`[GEMINI_VERIFY] start (draft chars=${answer.length})`);
+  try {
+    const r = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text:
+                `Student's question:\n${question}\n\nDraft answer to review:\n${answer}\n\n` +
+                `Carefully check it for: (1) any factual error, wrong formula, or calculation mistake; ` +
+                `(2) any FALSE ABSOLUTE, a rule of thumb stated as "always", "never", "hamesha" or "kabhi nahi" that has real exceptions, which you must soften to "usually" or "in most cases" WITHOUT weakening a genuinely universal law; ` +
+                `(3) the MAIN worked solution left with only a method but no final numerical result, which you should finish. ` +
+                `CRITICAL: preserve exactly as-is the closing self-check question the tutor poses to the student. NEVER answer, solve, hint at, or complete that closing question; it must stay open and unanswered. Item (3) applies only to the main solution, never to the closing check. ` +
+                `If you find a real issue in (1) to (3), return a corrected version in the SAME format, language, and warm tone. ` +
+                `If it is fully correct, return it unchanged. Output ONLY the final answer.`,
+            },
+          ],
+        },
+      ],
+      config: {
+        temperature: 0.1,
+        systemInstruction:
+          "You are a meticulous subject examiner for Indian board/JEE/NEET material. You fix factual and mathematical errors, soften false absolutes that have real exceptions, and finish the main worked solution if it stops short of its numerical result, all while preserving the warm tone, the student's language, and any section/notebook formatting. You NEVER answer or complete the closing self-check question the tutor leaves for the student; that always stays open. Output only the (corrected) answer.",
+      },
+    });
+    // An empty examiner response means nothing was actually checked.
+    if (!r.text) {
+      console.warn(`[GEMINI_VERIFY] empty - ${secs(t0)}, treating the answer as unverified.`);
+      return { text: answer, verified: false };
+    }
+    console.log(`[GEMINI_VERIFY] end - ${secs(t0)} (chars=${r.text.length})`);
+    return { text: r.text, verified: true };
+  } catch (e: any) {
+    console.warn(`[GEMINI_VERIFY] failed - ${secs(t0)}, returning the answer unverified: ${e?.message || e}`);
+    return { text: answer, verified: false };
+  }
+}
