@@ -13,6 +13,9 @@ import { aiRouter, attachLiveWebSocket } from "./ai.js";
 // import { billingRouter, razorpayWebhookHandler } from "./billing.js";
 import { notebookRouter } from "./notebook.js";
 import { ingestKnowledge } from "./knowledge.js";
+// FAHIM accuracy engine + curriculum (FR1). Public read + ask for the pilot.
+import { curriculumRouter } from "./curriculum.js";
+import { tutorRouter } from "./tutor.js";
 
 const app = express();
 
@@ -44,6 +47,8 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true, db: dbMode }));
 app.use("/api", authRouter);
 // FAHIM(v2): app.use("/api", billingRouter);  // billing dormant, unmounted
+app.use("/api", curriculumRouter);
+app.use("/api", tutorRouter);
 app.use("/api", notebookRouter);
 app.use("/api", aiRouter);
 

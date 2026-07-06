@@ -19,7 +19,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import {
   initDb,
   pool,
@@ -61,7 +61,7 @@ interface Structure {
   keyTerms: { id: string; unitId: string; termEn: string; termAr: string }[];
 }
 
-async function seedStructure(): Promise<void> {
+export async function seedStructure(): Promise<void> {
   const s: Structure = JSON.parse(fs.readFileSync(STRUCT, "utf-8"));
   for (const g of s.grades) {
     await upsertGrade(pool, { gradeId: g.gradeId, board: g.board, labelAr: "", labelEn: g.labelEn, indiaEquiv: g.indiaEquiv });
@@ -109,7 +109,7 @@ interface CorpusRecord {
   sourceUri: string;
 }
 
-async function seedCorpusFile(file: string): Promise<{ chunks: number; embedded: number; unit: string }> {
+export async function seedCorpusFile(file: string, limit: number = Infinity): Promise<{ chunks: number; embedded: number; unit: string }> {
   const recs: CorpusRecord[] = fs
     .readFileSync(file, "utf-8")
     .split("\n")
@@ -157,7 +157,7 @@ async function seedCorpusFile(file: string): Promise<{ chunks: number; embedded:
     await insertCorpusRef(pool, { refId, unitId, sectionLabel, sourceUri: chunks[0].sourceUri });
 
     for (const c of chunks) {
-      if (total >= corpusLimit) break;
+      if (total >= limit) break;
       total++;
       const vec = await embed(c.text, "RETRIEVAL_DOCUMENT");
       if (vec) embedded++;
@@ -189,7 +189,7 @@ async function seedCorpus(): Promise<string> {
     const dir = path.join(CORPUS_DIR, board);
     if (!fs.statSync(dir).isDirectory()) continue;
     for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".jsonl"))) {
-      const res = await seedCorpusFile(path.join(dir, f));
+      const res = await seedCorpusFile(path.join(dir, f), corpusLimit);
       if (!firstUnit) firstUnit = res.unit;
       console.log(`[seed] corpus ${board}/${f}: ${res.embedded}/${res.chunks} chunks embedded -> unit ${res.unit}`);
     }
@@ -225,7 +225,12 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => {
-  console.error("[seed] failed:", e);
-  process.exit(1);
-});
+// Run as a CLI only when executed directly (so seedStructure/seedCorpusFile can
+// be imported by tests without triggering a full seed).
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  main().catch((e) => {
+    console.error("[seed] failed:", e);
+    process.exit(1);
+  });
+}
