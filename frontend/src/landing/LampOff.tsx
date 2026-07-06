@@ -47,7 +47,7 @@ export default function LampOff({ onAuth }: LampOffProps) {
           ))}
           <li className="flex items-end gap-3 py-1.5 text-left text-chalk/50">
             <span className="font-serif text-[15px] italic leading-snug">
-              <span lang="hi-Latn">kal</span>: rotational motion
+              tomorrow: rotational motion
             </span>
             <span aria-hidden="true" className="landing-leader mb-1.5 min-w-8 flex-1 opacity-50" />
             <span className="w-[15px] shrink-0" aria-hidden="true" />
@@ -75,7 +75,7 @@ export default function LampOff({ onAuth }: LampOffProps) {
           />
           <button
             onClick={() => onAuth("signup")}
-            className="relative rounded-full bg-sage-bright px-9 py-4 text-sm font-semibold text-night transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright"
+            className="relative rounded-full bg-sage-bright px-9 py-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright"
           >
             Start learning tonight
           </button>
@@ -105,11 +105,11 @@ export function LandingFooter({ onAuth }: LampOffProps) {
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-editorial-sage">
-            <span className="font-serif text-lg italic leading-none text-editorial-ivory">C</span>
+            <span className="font-serif text-lg italic leading-none text-editorial-ivory">ف</span>
           </div>
           <div>
-            <p className="font-serif text-lg italic tracking-tight text-chalk">Clarify.AI</p>
-            <p className="text-[13px] text-chalk-dim">A patient teacher for every student in India.</p>
+            <p className="font-serif text-lg italic tracking-tight text-chalk">فهيم</p>
+            <p className="text-[13px] text-chalk-dim">A patient teacher for every student in Bahrain.</p>
           </div>
         </div>
         <nav className="flex flex-wrap items-center gap-6" aria-label="Footer">
@@ -122,7 +122,7 @@ export function LandingFooter({ onAuth }: LampOffProps) {
         </nav>
       </div>
       <p className="mx-auto mt-8 max-w-6xl text-[12px] text-chalk-dim">
-        &copy; 2026 Clarify.AI &middot; Questions, payments, anything at all:{" "}
+        &copy; 2026 فهيم &middot; Questions, anything at all:{" "}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="text-chalk-dim underline underline-offset-2 transition-colors hover:text-chalk">
           {SUPPORT_EMAIL}
         </a>

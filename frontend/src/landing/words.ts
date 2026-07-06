@@ -2,7 +2,7 @@
  * The half-caught classroom phrases of the night. One of them, the story's
  * protagonist phrase, drifts through the hero; seven return in the finale's
  * index page, ticked. A sparse handful rest behind the filmstrip. Real
- * syllabus terms a student actually hears fly past in an Indian classroom.
+ * syllabus terms a student actually hears fly past in a Bahrain classroom.
  */
 export interface DriftWord {
   text: string;

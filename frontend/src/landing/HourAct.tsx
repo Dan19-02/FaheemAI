@@ -1,5 +1,5 @@
 /**
- * Act one: the hour. The page opens at 11:04 pm, the hour Clarify.AI was
+ * Act one: the hour. The page opens at 11:04 pm, the hour Fahim was
  * built for. One phrase, the story's protagonist, drifts across the dark;
  * a thin lamplight glow intrudes from the bottom edge, promising a light
  * source not yet seen. Then the filmstrip: the day that got the student
@@ -57,9 +57,9 @@ export default function HourAct({ onAuth }: HourActProps) {
         <header className="relative z-10 flex items-center justify-between gap-3 px-5 py-5 md:px-10">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-editorial-sage">
-              <span className="font-serif text-lg italic leading-none text-editorial-ivory">C</span>
+              <span className="font-serif text-lg italic leading-none text-editorial-ivory">ف</span>
             </div>
-            <span className="font-serif text-lg italic tracking-tight text-chalk">Clarify.AI</span>
+            <span className="font-serif text-lg italic tracking-tight text-chalk">فهيم</span>
           </div>
           <nav className="flex items-center gap-2 md:gap-6" aria-label="Main">
             <a href="#watch" className="hidden text-sm text-chalk-dim transition-colors hover:text-chalk focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sage-bright md:block">
@@ -76,7 +76,7 @@ export default function HourAct({ onAuth }: HourActProps) {
             </button>
             <button
               onClick={() => onAuth("signup")}
-              className="hidden rounded-full bg-sage-bright px-4 py-2 text-sm font-semibold text-night transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright sm:block"
+              className="hidden rounded-full bg-sage-bright px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright sm:block"
             >
               Start free
             </button>
@@ -126,22 +126,22 @@ export default function HourAct({ onAuth }: HourActProps) {
             >
               11:04 pm.
               <span className="sr-only">
-                {" "}The hour Clarify.AI was built for: a patient AI teacher and doubt solver for CBSE, ICSE, State boards, JEE and NEET.
+                {" "}The hour Fahim was built for: a patient AI teacher and doubt solver for Bahrain MoE, CBSE and Cambridge students in grades 9 to 12.
               </span>
             </motion.h1>
             <motion.p
               {...enter(0.95)}
               className="landing-pretty mt-6 max-w-xl text-base leading-relaxed text-chalk-dim md:text-lg"
             >
-              This is the hour Clarify.AI was built for: a patient AI teacher that
+              This is the hour Fahim was built for: a patient AI teacher that
               takes the exact sentence that flew past you in class and explains it
-              again, a different way each time, until it lands. CBSE, ICSE, State
-              boards, JEE and NEET, class 6 to 12.
+              again, a different way each time, until it lands. Bahrain MoE, CBSE
+              and Cambridge, grades 9 to 12.
             </motion.p>
             <motion.div {...enter(1.25)} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 onClick={() => onAuth("signup")}
-                className="w-full rounded-full bg-sage-bright px-8 py-3.5 text-sm font-semibold text-night transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright sm:w-auto"
+                className="w-full rounded-full bg-sage-bright px-8 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright sm:w-auto"
               >
                 Start free tonight
               </button>
@@ -153,7 +153,7 @@ export default function HourAct({ onAuth }: HourActProps) {
               </a>
             </motion.div>
             <motion.p {...enter(1.6)} className="mt-7 text-[13px] tracking-wide text-chalk-dim">
-              English &middot; Hinglish &middot; <span lang="hi" className="landing-devanagari">हिंदी</span>
+              <span lang="ar">العربية</span> &middot; English
             </motion.p>
           </div>
         </div>

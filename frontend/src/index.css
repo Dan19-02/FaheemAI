@@ -33,7 +33,10 @@
   --color-night-line: rgba(240, 238, 226, 0.14);
   --color-chalk: #f0eee2;
   --color-chalk-dim: rgba(240, 238, 226, 0.62);
-  --color-sage-bright: #b9b98d;
+  /* The landing's accent: Bahrain flag red (#CE1126), matching the app's
+     --editorial-sage. Used for CTAs (white text on this red), focus rings,
+     and the finale's ticked checkmarks, so highlights read as one family. */
+  --color-sage-bright: #CE1126;
 }
 
 /* Landing-only helpers */

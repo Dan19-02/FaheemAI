@@ -17,7 +17,7 @@ const RUNGS = [
   },
   {
     title: "A fresh analogy",
-    body: "A new comparison from your own world: cricket, cooking, shopping carts. Never the same one twice.",
+    body: "A new comparison from your own world: football, cooking, shopping carts. Never the same one twice.",
   },
   {
     title: "The smallest step, with a picture",
@@ -37,7 +37,7 @@ export default function LadderSection() {
   const calm = useCalm();
 
   return (
-    <section id="how" className="landing-cv landing-cv-ladder relative bg-night px-4 py-20 md:px-8 md:py-28" aria-label="How Clarify.AI stays until it lands">
+    <section id="how" className="landing-cv landing-cv-ladder relative bg-night px-4 py-20 md:px-8 md:py-28" aria-label="How Fahim stays until it lands">
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
           {/* The pitch, hanging in the dark while the proof glows beside it */}
@@ -46,7 +46,7 @@ export default function LadderSection() {
               It stays until it lands.
             </h2>
             <p className="landing-pretty mt-5 max-w-lg text-[15px] leading-relaxed text-chalk-dim md:text-base">
-              Understanding rarely arrives on the first try, and Clarify.AI is
+              Understanding rarely arrives on the first try, and Fahim is
               built around that truth. Under every answer sits one small button:
             </p>
             <span
@@ -72,19 +72,19 @@ export default function LadderSection() {
               </div>
             </motion.div>
             <motion.div {...sheetRise(calm)} className="flex flex-col items-start">
-              <div className="mb-1 text-[10px] text-chalk-dim">Clarify.AI &middot; unedited</div>
+              <div className="mb-1 text-[10px] text-chalk-dim">Fahim &middot; unedited</div>
               <div
                 tabIndex={0}
                 role="region"
-                aria-label="The real re-explanation from Clarify.AI, scrollable"
+                aria-label="The real re-explanation from Fahim, scrollable"
                 className="lit-sheet max-h-[460px] w-full min-w-0 overflow-y-auto rounded-2xl rounded-tl-sm bg-editorial-ivory p-4 text-sm leading-relaxed text-editorial-charcoal focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-bright md:p-5"
               >
                 <Markdown>{REAL_REEXPLANATION}</Markdown>
               </div>
             </motion.div>
             <p className="landing-pretty font-serif text-base italic leading-relaxed text-chalk-dim">
-              The real reply ends with a question: &ldquo;Want to try the cricket
-              ball question now...&rdquo; It will wait for your answer. It always waits.
+              The real reply ends with a question: &ldquo;Want to try the football
+              question now...&rdquo; It will wait for your answer. It always waits.
             </p>
           </div>
         </div>

@@ -2,7 +2,7 @@
  * Act four: the register. It is 11 pm and nobody is awake to check the
  * teacher's work, so the student's own doubt opens the act in her own words.
  * The honesty machinery answers as a chalk ledger on the blackboard surface,
- * the only tonal shift inside the night. A faint Devanagari word leaks in
+ * the only tonal shift inside the night. A faint Arabic word leaks in
  * at the ledger's foot: the next act arriving early.
  */
 import { motion } from "motion/react";
@@ -12,7 +12,7 @@ import { useCalm, fadeUp, drawX } from "./reveals";
 const ROWS = [
   {
     title: "The whole answer, or nothing",
-    body: "No word-by-word streaming theatre. Clarify.AI writes the complete answer, checks it, and only then shows it to the student, whole.",
+    body: "No word-by-word streaming theatre. Fahim writes the complete answer, checks it, and only then shows it to the student, whole.",
   },
   {
     title: "Deep-check, a second examiner",
@@ -33,10 +33,10 @@ export default function RegisterSection() {
   const calm = useCalm();
 
   return (
-    <section className="landing-cv landing-cv-register relative bg-night-soft px-4 py-20 md:px-8 md:py-28" aria-label="How Clarify.AI stays honest">
+    <section className="landing-cv landing-cv-register relative bg-night-soft px-4 py-20 md:px-8 md:py-28" aria-label="How Fahim stays honest">
       <div className="relative z-10 mx-auto max-w-6xl">
         <motion.p {...fadeUp(calm)} className="font-serif text-xl italic text-chalk md:text-2xl">
-          <span lang="hi-Latn">par yeh galat hua toh?</span>
+          <span lang="ar" dir="rtl" className="not-italic">وإذا أخطأ؟</span>
           <span className="ml-3 text-sm not-italic text-chalk-dim">But what if it gets it wrong?</span>
         </motion.p>
 
@@ -74,11 +74,13 @@ export default function RegisterSection() {
             ))}
             {/* The next act, leaking in early. */}
             <span
+              lang="ar"
+              dir="rtl"
               aria-hidden="true"
-              className="landing-devanagari pointer-events-none absolute -bottom-8 right-0 select-none font-serif text-2xl italic text-chalk/20"
+              className="pointer-events-none absolute -bottom-8 right-0 select-none font-serif text-2xl text-chalk/20"
               style={{ transform: "rotate(-2deg)" }}
             >
-              हिंदी
+              العربية
             </span>
           </div>
         </div>

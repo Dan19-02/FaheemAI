@@ -1,8 +1,8 @@
 /**
- * REAL product output, captured verbatim from a live Clarify.AI session.
+ * REAL product output, captured verbatim from a live Fahim session.
  *
  * Captured 2 July 2026 against the running backend (open-source teaching
- * model, standard mode, CBSE profile, Hinglish, Daily Life analogies).
+ * model, standard mode, Grade 10 profile, English, Daily Life analogies).
  * Nothing here was written or edited by hand: the landing page renders the
  * exact markdown the model returned, through the product's own renderer.
  *
@@ -11,7 +11,7 @@
  */
 
 export const REAL_QUESTION =
-  "Explain Newton's Second Law of Motion at a JEE exam level. Give me a good analogy!";
+  "Explain Newton's Second Law of Motion for grade 10. Give me a good analogy!";
 
 export const REAL_ANSWER = `📝 Exam-Ready Answer
 
@@ -49,7 +49,7 @@ Imagine you are pushing two shopping carts at a supermarket. One cart is **empty
 3. 📖 Simple Explanation
 "Momentum" (p) is mass times velocity, basically how much "motion stuff" a body has. If you apply a force, you are changing that motion stuff with time. The bigger your force, the faster the momentum changes. Simple.
 
-When mass does not change, the formula becomes the famous F = ma, which JEE loves.
+When mass does not change, the formula becomes the famous F = ma, the version you will use most in grade 10.
 
 4. 🖼 Visual Representation
 
@@ -92,17 +92,17 @@ $$a = \\frac{F}{m} = \\frac{3000 \\text{ N}}{1500 \\text{ kg}} = 2 \\text{ m/s}^
 - Treating F and a as scalars. They are vectors, so direction is part of the answer.
 
 8. 🎯 Quick Check Question
-A cricket ball of mass 0.15 kg is hit by a bat. The ball's velocity changes from 20 m/s towards the bowler to 30 m/s towards the fielder in 0.01 s. What is the average force on the ball? (Hint: think momentum change first.)
+A football of mass 0.45 kg is kicked. Its velocity changes from 5 m/s towards you to 15 m/s away from you in 0.02 s. What is the average force on the ball? (Hint: think momentum change first.)
 
 9. 📌 One-Line Summary
 Force is the rate of change of momentum, and for constant mass, force equals mass times acceleration.
 
 ---
 
-Take a shot at the Quick Check above, and we will work through it together. Cricket makes physics fun, doesn't it?`;
+Take a shot at the Quick Check above, and we will work through it together. A little football makes physics fun, doesn't it?`;
 
 export const REAL_CAPTURE_NOTE =
-  "Real answer, generated live by Clarify.AI on 2 July 2026. Unedited.";
+  "Real answer, generated live by Fahim on 2 July 2026. Unedited.";
 
 /** The one-tap signal the app sends when a student is still confused. */
 export const REAL_STILL_FUZZY_PROMPT =
@@ -111,34 +111,27 @@ export const REAL_STILL_FUZZY_PROMPT =
 /**
  * REAL language showcase, captured live on 2 July 2026: the same idea
  * (the gut feel of Newton's second law) asked to the running product with the
- * profile language set to English, Hinglish and Hindi. The English and
- * Hinglish lines are complete answers, verbatim. The Hindi line is the
- * central sentence of a slightly longer reply, verbatim (bold stripped).
+ * profile language set to Arabic and English. Both lines are complete answers,
+ * verbatim (the Arabic line has its bold stripped for the card).
  */
 export const REAL_VOICES = [
+  {
+    tag: "العربية",
+    lang: "ar",
+    line: "قانون نيوتن الثاني ببساطة: كلما دفعت شيئًا بقوة أكبر، ازدادت سرعته أسرع، وكلما كان أثقل، احتاج إلى قوة أكبر لتغيير حركته بالمقدار نفسه.",
+    scope: "complete answer",
+  },
   {
     tag: "English",
     lang: "en",
     line: "Newton's second law just says: the harder you push something, the faster it speeds up, and the heavier it is, the slower it speeds up for the same push.",
     scope: "complete answer",
   },
-  {
-    tag: "Hinglish",
-    lang: "hi-Latn",
-    line: "Jitna zyada force lagaoge, utna zyada object apni jagah se hilega, aur jitna heavy hoga object, utna zyada force chahiye same hilne ke liye.",
-    scope: "complete answer",
-  },
-  {
-    tag: "हिंदी",
-    lang: "hi",
-    line: "न्यूटन का दूसरा नियम कहता है कि किसी चीज़ पर जितना ज़्यादा बल लगाओगे, उतनी ही तेज़ी से वो तेज़ होगी, और अगर चीज़ भारी है तो उसे तेज़ करने में ज़्यादा बल लगेगा।",
-    scope: "the heart of a longer reply",
-  },
 ] as const;
 
 /**
  * REAL re-explanation, captured from the same live session: the answer
- * Clarify.AI gave after the student tapped "Still fuzzy? Explain differently"
+ * Fahim gave after the student tapped "Still fuzzy? Explain differently"
  * on the Newton's Second Law answer above. Verbatim, unedited.
  */
 export const REAL_REEXPLANATION = `Of course, let's slow down and try a completely different angle. No rush at all.
@@ -153,7 +146,7 @@ That's really it. Everything else is just math for that one sentence.
 
 Let's make it super concrete with something you do every day.
 
-**Think about kicking a football.** 🏏
+**Think about kicking a football.** ⚽
 
 Now imagine two situations:
 
@@ -177,4 +170,4 @@ See the pattern?
 
 That's the whole law. F = ma is just a compact way to say: "Force, mass, and acceleration are linked this way."
 
-Does that feel clearer? Want to try the cricket ball question now, or should I walk through one tiny example with you first?`;
+Does that feel clearer? Want to try the football question now, or should I walk through one tiny example with you first?`;

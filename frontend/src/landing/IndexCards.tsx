@@ -1,6 +1,6 @@
 /**
- * Act five: three index cards. The same physics idea, asked to the live
- * product three times, once in each language: pocket-sized paper in the
+ * Act five: two index cards. The same physics idea, asked to the live
+ * product twice, once in each language: pocket-sized paper in the
  * dark, slightly fanned. Boards and the ways in follow as quiet chalk rows.
  * The language showcase quotes REAL captured answers (see realAnswer.ts
  * for capture provenance).
@@ -10,7 +10,7 @@ import { Camera, Mic, Compass } from "lucide-react";
 import { REAL_VOICES } from "./realAnswer";
 import { useCalm, fadeUp, sheetRise } from "./reveals";
 
-const BOARDS = ["CBSE", "ICSE", "State Board", "JEE", "NEET", "General Study"];
+const BOARDS = ["Bahrain MoE", "CBSE", "Cambridge", "General Study"];
 
 const WAYS = [
   {
@@ -26,26 +26,26 @@ const WAYS = [
   {
     icon: Compass,
     title: "Your analogy world",
-    body: "Cricket brain? Cooking brain? Choose the world your examples come from.",
+    body: "Football brain? Cooking brain? Choose the world your examples come from.",
   },
 ];
 
-const FAN = ["lg:-rotate-[1.5deg]", "lg:rotate-0", "lg:rotate-[1.5deg]"];
+const FAN = ["lg:-rotate-[1.5deg]", "lg:rotate-[1.5deg]"];
 
 export default function IndexCards() {
   const calm = useCalm();
 
   return (
-    <section className="landing-cv landing-cv-cards relative bg-night px-4 pb-10 pt-20 md:px-8 md:pt-28" aria-label="Made for every Indian classroom">
+    <section className="landing-cv landing-cv-cards relative bg-night px-4 pb-10 pt-20 md:px-8 md:pt-28" aria-label="Made for every classroom in Bahrain">
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 className="landing-balance font-serif text-[clamp(2.1rem,5vw,3.25rem)] italic leading-tight tracking-[-0.01em] text-chalk">
             It knows which classroom you sit in.
           </h2>
           <p className="landing-pretty mt-5 text-[15px] leading-relaxed text-chalk-dim md:text-base">
-            Tell it your board, your class from 6 to 12, your language, and the
+            Tell it your board, your grade from 9 to 12, your language, and the
             analogies that make sense in your life. One physics idea, asked to
-            the live teacher three times on 2 July 2026, once in each language:
+            the live teacher twice on 2 July 2026, once in each language:
           </p>
         </div>
 
@@ -57,12 +57,17 @@ export default function IndexCards() {
               {...sheetRise(calm)}
               className={`lit-sheet flex-1 rounded-2xl bg-editorial-ivory p-6 md:p-7 ${FAN[i] ?? ""}`}
             >
-              <span lang={v.lang === "hi" ? "hi" : undefined} className={`text-xs font-semibold text-editorial-sage ${v.lang === "hi" ? "landing-devanagari" : ""}`}>
+              <span
+                lang={v.lang}
+                dir={v.lang === "ar" ? "rtl" : undefined}
+                className={`text-xs font-semibold text-editorial-sage ${v.lang === "ar" ? "block text-right" : ""}`}
+              >
                 {v.tag}
               </span>
               <p
                 lang={v.lang}
-                className={`landing-pretty mt-3 font-serif text-lg italic leading-relaxed text-editorial-charcoal md:text-xl ${v.lang === "hi" ? "landing-devanagari" : ""}`}
+                dir={v.lang === "ar" ? "rtl" : undefined}
+                className={`landing-pretty mt-3 font-serif text-lg leading-relaxed text-editorial-charcoal md:text-xl ${v.lang === "ar" ? "text-right not-italic" : "italic"}`}
               >
                 &ldquo;{v.line}&rdquo;
               </p>
@@ -70,9 +75,9 @@ export default function IndexCards() {
           ))}
         </div>
         <p className="mt-4 text-[13px] leading-relaxed text-chalk-dim">
-          One question, asked to the live teacher three times on 2 July 2026, once
-          in each language. The English and Hinglish lines are complete answers,
-          unedited; the Hindi line is the heart of a slightly longer reply.
+          One question, asked to the live teacher twice on 2 July 2026, once
+          in each language. Both the Arabic and English lines are complete
+          answers, unedited.
         </p>
 
         <div className="mt-14 flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-16">
