@@ -75,9 +75,10 @@ export async function groundQuery(
   const top = scored[0];
 
   if (top.s < RETRIEVAL_GATE()) {
-    // The grade has textbooks, but nothing matches: flag out-of-syllabus, do not
-    // fabricate a curriculum source (the answer, if any, is general knowledge).
-    return { reference: null, source: null, groundedness: top.s, outOfSyllabus: true, level: "none" };
+    // Nothing in the textbooks matches this question. We do NOT gate or flag it:
+    // the model answers normally (no curriculum source shown). Grounding is an
+    // optional aid that sharpens an answer where it fits, never a wall.
+    return NONE;
   }
 
   const picked = scored.slice(0, TOP_K);

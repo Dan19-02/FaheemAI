@@ -28,8 +28,8 @@ export function fadeUp(calm: boolean, delay = 0) {
     : {
         initial: { opacity: 0, y: 16 },
         whileInView: { opacity: 1, y: 0 },
-        viewport: { once: true, margin: "-12% 0px" },
-        transition: { duration: 0.7, delay, ease: EASE },
+        viewport: { once: true, amount: 0.2 },
+        transition: { duration: 0.6, delay, ease: EASE },
       };
 }
 
@@ -40,8 +40,8 @@ export function sheetRise(calm: boolean, delay = 0) {
     : {
         initial: { opacity: 0, y: 20, scale: 0.985 },
         whileInView: { opacity: 1, y: 0, scale: 1 },
-        viewport: { once: true, margin: "-8% 0px" },
-        transition: { duration: 0.7, delay, ease: EASE },
+        viewport: { once: true, amount: 0.15 },
+        transition: { duration: 0.6, delay, ease: EASE },
       };
 }
 
@@ -56,7 +56,7 @@ export function bubbleIn(calm: boolean, fromX = 18, delay = 0) {
     : {
         initial: { opacity: 0, x: fromX, y: 8 },
         whileInView: { opacity: 1, x: 0, y: 0 },
-        viewport: { once: true, margin: "-10% 0px" },
+        viewport: { once: true, amount: 0.2 },
         transition: { duration: 0.6, delay, ease: EASE },
       };
 }
@@ -71,7 +71,7 @@ export function springIn(calm: boolean, delay = 0) {
     : {
         initial: { opacity: 0, scale: 0.9 },
         whileInView: { opacity: 1, scale: 1 },
-        viewport: { once: true, margin: "-10% 0px" },
+        viewport: { once: true, amount: 0.2 },
         transition: { duration: 0.5, delay, ease: SPRING },
       };
 }
@@ -89,7 +89,7 @@ export function drawX(calm: boolean, rtl = true) {
     : {
         initial: { scaleX: 0 },
         whileInView: { scaleX: 1 },
-        viewport: { once: true, margin: "-10% 0px" },
+        viewport: { once: true, amount: 0.2 },
         transition: { duration: 0.55, ease: "easeOut" as const },
         style: { transformOrigin: rtl ? "right" : "left" } as const,
       };

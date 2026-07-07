@@ -13,9 +13,7 @@
  */
 import { motion } from "motion/react";
 import { BookMarked, CheckCircle2, Sparkles, Volume2 } from "lucide-react";
-import { parseTeachingSections } from "../utils";
 import { Markdown } from "../Markdown";
-import { NotebookViewer } from "../NotebookViewer";
 import {
   REAL_QUESTION,
   REAL_ANSWER,
@@ -23,8 +21,6 @@ import {
   REAL_CAPTURE_NOTE,
 } from "./realAnswer";
 import { useCalm, fadeUp, sheetRise, bubbleIn } from "./reveals";
-
-const parsed = parseTeachingSections(REAL_ANSWER);
 
 export default function ProofSection() {
   const calm = useCalm();
@@ -84,12 +80,7 @@ export default function ProofSection() {
               </div>
 
               <div className="text-sm leading-relaxed md:text-base">
-                {parsed.preamble && (
-                  <div className="mb-3">
-                    <Markdown>{parsed.preamble}</Markdown>
-                  </div>
-                )}
-                <NotebookViewer sections={parsed.sections} />
+                <Markdown>{REAL_ANSWER}</Markdown>
 
                 {/* The real deep-view action row (kept in step with the app).
                     "ما زال غير واضح؟" breathes: the page's one deliberate loop,
