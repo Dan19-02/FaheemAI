@@ -34,6 +34,14 @@ npm run dev                                          # uses in-memory DB if DATA
 cd frontend && npm install && npm run dev
 ```
 
+## Evaluation
+
+A blind, rubric-based **model bake-off** — 10 Bahraini student personas (Arabic /
+English / bilingual) on real MoE units, answered by 5 models as the Faheem tutor and
+graded by 5 expert personas (incl. a native Arabic teacher) across 250 gradings. The
+Opus 4.8 engine scored **9.0–9.1/10**. Full methodology, results, sample answers, and
+an honest testing-scenario disclaimer: **[EVALUATION.md](./EVALUATION.md)**.
+
 ## Deploy (Render)
 
 The repo ships a [`render.yaml`](./render.yaml) Blueprint that provisions the whole
