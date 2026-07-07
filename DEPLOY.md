@@ -30,7 +30,7 @@ every restart.
 
 ## 1. One-click Blueprint deploy
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/YOUR_GH_USERNAME/FaheemAI)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Dan19-02/FaheemAI)
 
 Or manually:
 
