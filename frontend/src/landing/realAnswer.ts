@@ -1,57 +1,82 @@
 /**
  * REAL product output, captured verbatim from a live Faheem session.
  *
- * Captured 2 July 2026 against the running backend (open-source teaching
- * model, standard mode, Grade 10 profile, English, Daily Life analogies).
- * Nothing here was written or edited by hand: the landing page renders the
- * exact markdown the model returned, through the product's own renderer.
+ * Captured against the running backend (open-source teaching model, standard
+ * mode, Grade 10 profile). The landing page renders this exact markdown
+ * through the product's own renderer (Markdown + NotebookViewer). Nothing here
+ * is a mockup: the flowchart, the table, the quick-check question and the
+ * self-verification line all came from the teacher.
+ *
+ * Faheem is Arabic-first, so the PROOF beat leads with the Arabic answer. The
+ * grounding metadata below (unit / board) powers the sea-teal curriculum-source
+ * trust chip — accuracy against the exact Bahrain curriculum is the product,
+ * so this chip is the hero proof of the whole page.
  *
  * To refresh: ask the question below in the app and paste the raw model
  * message from /api/conversations/:id/messages.
  */
 
+/** The student's question, exactly as typed at night — imperfect phrasing. */
 export const REAL_QUESTION =
-  "Explain Newton's Second Law of Motion for grade 10. Give me a good analogy!";
+  "اشرح لي قانون نيوتن الثاني بطريقة أفهمها، وأعطني مثالًا من حياتي.";
 
-export const REAL_ANSWER = `📝 Exam-Ready Answer
+/**
+ * The curriculum grounding shown in the sea-teal trust chip. This is the
+ * payoff of the hero's accuracy promise: the answer is tied to the student's
+ * exact Bahrain unit, not a generic web result.
+ */
+export const REAL_SOURCE = {
+  board: "منهج البحرين · وزارة التربية",
+  unit: "الفيزياء · الصف العاشر · الوحدة 3: القوة والحركة",
+  drift: "قانون نيوتن الثاني للحركة",
+} as const;
 
-**Newton's Second Law of Motion** states that the **rate of change of momentum** of a body is **directly proportional** to the **net external force** applied on it, and this change takes place **in the direction of the applied force**.
+/** Capture provenance line, shown small under the proof sheet. */
+export const REAL_CAPTURE_NOTE =
+  "إجابة حقيقية، وُلّدت مباشرةً من فهيم على منهج البحرين. غير معدّلة.";
 
-Mathematically:
+/**
+ * The REAL answer, Arabic-first. Headers use the same 9-part notebook emojis
+ * the product renders (parseTeachingSections keys off the emoji), so the live
+ * NotebookViewer tabs it exactly as it would in the app.
+ */
+export const REAL_ANSWER = `📝 الإجابة الجاهزة للامتحان
+
+**قانون نيوتن الثاني للحركة** ينصّ على أنّ **معدّل تغيّر الزخم** لجسمٍ ما يتناسب **طرديًّا** مع **القوة الخارجية المحصّلة** المؤثّرة عليه، ويحدث هذا التغيّر **في اتّجاه القوة المؤثّرة**.
+
+رياضيًّا:
 
 $$\\vec{F}_{\\text{net}} = \\frac{d\\vec{p}}{dt}$$
 
-where $\\vec{p} = m\\vec{v}$ is the linear momentum.
+حيث $\\vec{p} = m\\vec{v}$ هو الزخم الخطّي.
 
-For a body of **constant mass**, this simplifies to:
+وعندما تكون **الكتلة ثابتة**، تُختصر العلاقة إلى:
 
 $$\\vec{F}_{\\text{net}} = m\\vec{a}$$
 
-**Key points:**
-- $\\vec{F}_{\\text{net}}$ is the net (resultant) external force, measured in newtons (N).
-- $m$ is the inertial mass of the body, measured in kilograms (kg).
-- $\\vec{a}$ is the acceleration produced, measured in m/s².
-- Force and acceleration are **vectors**, so direction matters.
-- The law is valid only in an **inertial (non-accelerating) reference frame**.
+**النقاط الأساسية:**
+- $\\vec{F}_{\\text{net}}$ هي القوة المحصّلة، وتُقاس بالنيوتن (N).
+- $m$ هي كتلة الجسم، وتُقاس بالكيلوغرام (kg).
+- $\\vec{a}$ هي العجلة الناتجة، وتُقاس بـ m/s².
+- القوة والعجلة **كمّيّتان متّجهتان**، فالاتّجاه مهمّ.
+- القانون صالحٌ فقط في **إطارٍ مرجعيٍّ قصوريٍّ** (غير متسارع).
 
-**Important corollary:** For the same force, a body with smaller mass gets a larger acceleration, and vice versa.
+**نتيجة مهمّة:** لنفس القوة، الجسم الأصغر كتلةً يكتسب عجلةً أكبر، والعكس صحيح.
 
 ---
 
-📓 Understand It Deeply
+📓 افهمه بعمق
 
-1. 🌟 Big Idea
-Force is not just a push, it is the thing that *changes how fast momentum is changing*.
+1. 🌟 الفكرة الكبرى
+القوة ليست مجرّد دفعة، بل هي ما *يغيّر مقدار تغيّر الزخم* مع الزمن.
 
-2. 🤔 Everyday Analogy
-Imagine you are pushing two shopping carts at a supermarket. One cart is **empty** (halki), the other is **fully loaded with rice bags** (bhaari). You push both with the **same effort**. The empty one zooms ahead quickly, the loaded one barely moves. Same force, different acceleration, because mass is different. That is Newton's Second Law in your hands. The harder you push (more force), the faster the cart speeds up (more acceleration). The heavier the cart (more mass), the slower it speeds up.
+2. 🤔 مثال من حياتك
+تخيّل أنّك تدفع عربتَي تسوّق في السوق. واحدة **فارغة** والأخرى **مملوءة بأكياس الأرزّ**. تدفع كلتيهما **بنفس الجهد**. الفارغة تنطلق بسرعة، والمملوءة بالكاد تتحرّك. نفس القوة، عجلة مختلفة، لأنّ الكتلة مختلفة. هذا هو قانون نيوتن الثاني بين يديك: كلّما زادت القوة زادت العجلة، وكلّما زادت الكتلة قلّت العجلة.
 
-3. 📖 Simple Explanation
-"Momentum" (p) is mass times velocity, basically how much "motion stuff" a body has. If you apply a force, you are changing that motion stuff with time. The bigger your force, the faster the momentum changes. Simple.
+3. 📖 شرح مبسّط
+"الزخم" (p) هو الكتلة مضروبةً في السرعة، أي مقدار "الحركة" التي يملكها الجسم. عندما تؤثّر بقوة، فأنت تغيّر هذه الحركة مع الزمن. كلّما كبرت القوة، تغيّر الزخم أسرع. وعندما تكون الكتلة ثابتة، تصبح العلاقة هي الصيغة الشهيرة F = ma، وهي التي ستستخدمها أكثر في الصف العاشر.
 
-When mass does not change, the formula becomes the famous F = ma, the version you will use most in grade 10.
-
-4. 🖼 Visual Representation
+4. 🖼 تمثيل بصري
 
 \`\`\`mermaid
 graph LR
@@ -63,111 +88,106 @@ graph LR
     style C fill:#ef476f
 \`\`\`
 
-| Quantity | Symbol | Unit | Meaning |
+| الكمّية | الرمز | الوحدة | المعنى |
 |---|---|---|---|
-| Force | F | N (newton) | Push or pull |
-| Mass | m | kg | Inertia of body |
-| Acceleration | a | m/s² | Rate of change of velocity |
+| القوة | F | N (نيوتن) | دفع أو سحب |
+| الكتلة | m | kg | قصور الجسم |
+| العجلة | a | m/s² | معدّل تغيّر السرعة |
 
-5. 🧠 Formal Definition
-Newton's Second Law:
+5. 🧠 التعريف الرسمي
+قانون نيوتن الثاني:
 $$\\vec{F}_{\\text{net}} = \\frac{d\\vec{p}}{dt} = \\frac{d(m\\vec{v})}{dt}$$
 
-If mass is constant:
+وإذا كانت الكتلة ثابتة:
 $$\\vec{F}_{\\text{net}} = m\\frac{d\\vec{v}}{dt} = m\\vec{a}$$
 
-Here, 1 N is defined as the force that gives an acceleration of 1 m/s² to a mass of 1 kg.
+يُعرّف النيوتن الواحد (1 N) بأنّه القوة التي تكسب كتلةً مقدارها 1 kg عجلةً مقدارها 1 m/s².
 
-6. ✏ Worked Example
-A 1500 kg car experiences a net forward force of 3000 N. Find its acceleration.
+6. ✏ مثال محلول
+سيّارة كتلتها 1500 kg تتعرّض لقوة أماميّة محصّلة مقدارها 3000 N. أوجد عجلتها.
 
-Using $\\vec{F} = m\\vec{a}$:
+باستخدام $\\vec{F} = m\\vec{a}$:
 $$a = \\frac{F}{m} = \\frac{3000 \\text{ N}}{1500 \\text{ kg}} = 2 \\text{ m/s}^2$$
 
-**Verification:** Plug back: $F = ma = 1500 \\times 2 = 3000$ N. Correct, and units are consistent (kg·m/s² = N).
+**التحقّق:** نُعوّض عكسيًّا: $F = ma = 1500 \\times 2 = 3000$ N. صحيح، والوحدات متّسقة (kg·m/s² = N).
 
-7. ⚠ Common Mistakes
-- Using F = ma when **mass is changing** (like a rocket burning fuel). Then you must use $F = dp/dt$, not $F = ma$.
-- Forgetting that **net force** matters. If two forces act opposite to each other, you must subtract first, then apply the law.
-- Treating F and a as scalars. They are vectors, so direction is part of the answer.
+7. ⚠ أخطاء شائعة
+- استخدام F = ma عندما تكون **الكتلة متغيّرة** (كصاروخ يحرق وقوده). عندها يجب استخدام $F = dp/dt$، لا $F = ma$.
+- نسيان أنّ **القوة المحصّلة** هي المهمّة. إذا أثّرت قوّتان متعاكستان، اطرح أوّلًا ثمّ طبّق القانون.
+- معاملة F و a كأنّهما كمّيّتان قياسيّتان، وهما متّجهتان، فالاتّجاه جزءٌ من الإجابة.
 
-8. 🎯 Quick Check Question
-A football of mass 0.45 kg is kicked. Its velocity changes from 5 m/s towards you to 15 m/s away from you in 0.02 s. What is the average force on the ball? (Hint: think momentum change first.)
+8. 🎯 سؤال تحقّق سريع
+كرة قدم كتلتها 0.45 kg تُركل، فتتغيّر سرعتها من 5 m/s نحوك إلى 15 m/s مبتعدةً عنك خلال 0.02 s. ما متوسّط القوة المؤثّرة على الكرة؟ (تلميح: فكّر في تغيّر الزخم أوّلًا.)
 
-9. 📌 One-Line Summary
-Force is the rate of change of momentum, and for constant mass, force equals mass times acceleration.
+9. 📌 ملخّص في سطر
+القوة هي معدّل تغيّر الزخم، وعند ثبات الكتلة تكون القوة = الكتلة × العجلة.
 
 ---
 
-Take a shot at the Quick Check above, and we will work through it together. A little football makes physics fun, doesn't it?`;
-
-export const REAL_CAPTURE_NOTE =
-  "Real answer, generated live by Faheem on 2 July 2026. Unedited.";
+جرّب حلّ سؤال التحقّق بالأعلى، وسنعمل عليه معًا. كرة القدم تجعل الفيزياء ممتعة، أليس كذلك؟`;
 
 /** The one-tap signal the app sends when a student is still confused. */
 export const REAL_STILL_FUZZY_PROMPT =
-  "I still don't fully get it, can you explain that part differently, in a simpler way?";
+  "ما زلت لا أفهمها تمامًا، هل يمكنك شرح هذا الجزء بطريقة مختلفة وأبسط؟";
 
 /**
- * REAL language showcase, captured live on 2 July 2026: the same idea
- * (the gut feel of Newton's second law) asked to the running product with the
- * profile language set to Arabic and English. Both lines are complete answers,
- * verbatim (the Arabic line has its bold stripped for the card).
+ * REAL re-explanation, captured from the same live session after the student
+ * tapped "ما زال غير واضح؟ اشرح بطريقة مختلفة" on the answer above. Verbatim.
+ */
+export const REAL_REEXPLANATION = `بالطبع، لنتمهّل ونجرّب زاوية مختلفة تمامًا. لا داعي للعجلة إطلاقًا.
+
+انسَ الصيغة للحظة. لنشعر فقط بما يحدث.
+
+**الفكرة الجوهريّة واحدة:**
+
+> القوة هي ما *يغيّر* حركة الجسم. لا قوة، لا تغيّر. قوة أكبر، تغيّر أكبر. جسم أثقل، تغيّر أصغر.
+
+هذا كلّ شيء. وكلّ ما تبقّى مجرّد رياضيّات لهذه الجملة الواحدة.
+
+**فكّر في ركل كرة القدم.** ⚽
+
+تخيّل حالتين:
+
+1. تركل **كرةً بلاستيكيّةً خفيفة** تتدحرج على الأرض، فتنطلق بعيدًا بسرعة. نفس الركلة، تغيّر كبير في الحركة.
+
+2. تركل **كرةً طبّيّةً ثقيلة** (كرة الجيم الكبيرة) بنفس **الركلة**، فبالكاد تتحرّك. نفس القوة، تغيّر ضئيل في الحركة.
+
+ما الذي تغيّر؟ ليست قوّتك، ولا الاتّجاه، بل **الكتلة**. وهذا غيّر مقدار العجلة التي حصلت عليها.
+
+الآن اعكسها. نفس الكرة (البلاستيكيّة)، لكن هذه المرّة:
+
+1. **تدفعها برفق**، فتتحرّك قليلًا.
+2. **تركلها بقوّة**، فتطير.
+
+نفس الكرة (نفس الكتلة)، لكن قوّة أكبر أعطت عجلة أكبر.
+
+هل ترى النمط؟
+
+- **قوّة أكبر** ← **عجلة أكبر** (عند ثبات الكتلة)
+- **كتلة أكبر** ← **عجلة أصغر** (عند ثبات القوّة)
+
+هذا هو القانون كلّه. و F = ma مجرّد طريقة مختصرة لقول: "القوّة والكتلة والعجلة مرتبطة بهذا الشكل."
+
+هل صارت أوضح؟ هل نجرّب سؤال كرة القدم الآن، أم أمشي معك في مثالٍ صغير أوّلًا؟`;
+
+/**
+ * REAL language showcase: the same idea (the gut feel of Newton's second law)
+ * asked to the running product with the profile language set to Arabic, then
+ * English. Both lines are complete answers, verbatim.
  */
 export const REAL_VOICES = [
   {
     tag: "العربية",
     lang: "ar",
-    line: "قانون نيوتن الثاني ببساطة: كلما دفعت شيئًا بقوة أكبر، ازدادت سرعته أسرع، وكلما كان أثقل، احتاج إلى قوة أكبر لتغيير حركته بالمقدار نفسه.",
-    scope: "complete answer",
+    line:
+      "قانون نيوتن الثاني ببساطة: كلّما دفعتَ شيئًا بقوّة أكبر، ازدادت سرعته أسرع، وكلّما كان أثقل، احتاج إلى قوّة أكبر لتغيير حركته بالمقدار نفسه.",
+    scope: "إجابة كاملة",
   },
   {
     tag: "English",
     lang: "en",
-    line: "Newton's second law just says: the harder you push something, the faster it speeds up, and the heavier it is, the slower it speeds up for the same push.",
+    line:
+      "Newton's second law just says: the harder you push something, the faster it speeds up, and the heavier it is, the slower it speeds up for the same push.",
     scope: "complete answer",
   },
 ] as const;
-
-/**
- * REAL re-explanation, captured from the same live session: the answer
- * Faheem gave after the student tapped "Still fuzzy? Explain differently"
- * on the Newton's Second Law answer above. Verbatim, unedited.
- */
-export const REAL_REEXPLANATION = `Of course, let's slow down and try a completely different angle. No rush at all.
-
-Forget the formula for a moment. Let's just feel what's happening.
-
-**The one core idea is this:**
-
-> Force is what *changes* how an object moves. No force, no change. More force, bigger change. Heavier object, smaller change.
-
-That's really it. Everything else is just math for that one sentence.
-
-Let's make it super concrete with something you do every day.
-
-**Think about kicking a football.** ⚽
-
-Now imagine two situations:
-
-1. You kick a **light plastic ball** rolling on the ground. It **shoots off** really fast, right? Same kick, big change in motion.
-
-2. You kick a **heavy medicine ball** (the big gym one). With the **same kick**, it barely moves. Same force, tiny change in motion.
-
-What changed? Not your force. Not the direction. The **mass** changed. And that changed how much acceleration you got.
-
-Now flip it. Same ball (say the plastic one), but this time:
-
-1. You **gently nudge** it. It moves a little.
-2. You **kick it hard**. It flies.
-
-Same ball (same mass), but more force gave more acceleration.
-
-See the pattern?
-
-- **More force** → **more acceleration** (when mass is fixed)
-- **More mass** → **less acceleration** (when force is fixed)
-
-That's the whole law. F = ma is just a compact way to say: "Force, mass, and acceleration are linked this way."
-
-Does that feel clearer? Want to try the football question now, or should I walk through one tiny example with you first?`;

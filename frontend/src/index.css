@@ -1,140 +1,158 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Tiro+Devanagari+Hindi:ital@0;1&display=swap');
+/* Faheem design system — "Pearl & Ink".
+   A bespoke identity for Bahraini secondary students (Arabic-native, on phones,
+   studying at night, exam-anxious). Deliberately NOT the forked app's editorial
+   ivory + Latin serif-italic look. Arabic-forward type (Tajawal), a warm pearl
+   base with deep-sea ink, Bahrain red as energy, sea-teal as the TRUST colour
+   (grounded/verified), pearl-gold for warmth. Middle-leaning-energy motion. */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Lora", Georgia, serif;
+  /* Type: Arabic-forward. Tajawal (modern Gulf Arabic) leads everywhere; Inter
+     carries Latin/English technical terms; mono for code. The old Latin serif
+     (the forked app's signature) is intentionally gone. */
+  --font-arabic: "Tajawal", "IBM Plex Sans Arabic", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-sans: "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-latin: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Tajawal", "IBM Plex Sans Arabic", system-ui, sans-serif; /* neutralised: no more Lora italics */
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Arabic-capable UI stack for Faheem. Once a subsetted IBM Plex Sans Arabic
-     WOFF2 is dropped into public/fonts and @font-face-declared (see
-     public/fonts/README.md), it becomes the first choice; until then the
-     platform Arabic fonts below carry the app. NOT loaded via a CDN @import. */
-  --font-arabic: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  /* ---- Pearl & Ink palette ---- */
+  --color-pearl: #FBF6EC;        /* warm base surface */
+  --color-sand: #F1E7D6;         /* soft raised surface */
+  --color-ink: #12252F;          /* deep-sea ink: primary text/dark */
+  --color-ink-soft: #4A5C64;     /* secondary text */
+  --color-red: #CE1126;          /* Bahrain red: energy, primary CTA */
+  --color-red-deep: #A50E1F;     /* red pressed/hover */
+  --color-sea: #0E7C6E;          /* jewel sea-teal: TRUST / grounded / verified */
+  --color-sea-soft: #E1F0EC;     /* sea tint background for trust chips */
+  --color-gold: #C79A4A;         /* pearl-gold: warm accent */
+  --color-line: rgba(18, 37, 47, 0.11);
+  --color-line-soft: rgba(18, 37, 47, 0.06);
 
-  /* Bahrain palette: the flag's red (#CE1126) on a warm ivory white.
-     --editorial-sage is the app's single accent token (buttons, active
-     states, focus rings, ~50 uses); retheming it to Bahrain red re-skins the
-     whole workspace in one place. Backgrounds stay a calm warm ivory so the
-     red reads as a considered accent, never garish. Body text is charcoal for
-     strong contrast; red-on-white passes WCAG AA for the white-on-red buttons. */
-  --color-editorial-ivory: #FCFAF7;
-  --color-editorial-charcoal: #1A1A1A;
+  /* Night (dark reading + landing): a deep sea, not the old warm-olive night. */
+  --color-night: #0C1B24;
+  --color-night-soft: #123039;
+  --color-night-deep: #07141B;
+  --color-night-line: rgba(226, 240, 236, 0.14);
+  --color-chalk: #EAF1EE;
+  --color-chalk-dim: rgba(234, 241, 238, 0.60);
+
+  /* Back-compat: the forked app uses --color-editorial-* + --color-*-bright in
+     ~50 places. Remap them onto Pearl & Ink so every existing class re-skins at
+     once; new work should use the semantic names above. */
+  --color-editorial-ivory: #FBF6EC;
+  --color-editorial-charcoal: #12252F;
   --color-editorial-sage: #CE1126;
-  --color-editorial-stone: #F6F1EE;
-  --color-editorial-line: rgba(26, 26, 26, 0.1);
-  --color-editorial-line-light: rgba(26, 26, 26, 0.05);
-
-  /* Landing "night" palette: the dark classroom the story opens in.
-     Warm olive-cast darks so the night and the ivory day share one family. */
-  --color-night: #15150e;
-  --color-night-soft: #202016;
-  --color-night-deep: #100f0a;
-  --color-night-line: rgba(240, 238, 226, 0.14);
-  --color-chalk: #f0eee2;
-  --color-chalk-dim: rgba(240, 238, 226, 0.62);
-  /* The landing's accent: Bahrain flag red (#CE1126), matching the app's
-     --editorial-sage. Used for CTAs (white text on this red), focus rings,
-     and the finale's ticked checkmarks, so highlights read as one family. */
+  --color-editorial-stone: #F1E7D6;
+  --color-editorial-line: rgba(18, 37, 47, 0.11);
+  --color-editorial-line-light: rgba(18, 37, 47, 0.06);
   --color-sage-bright: #CE1126;
+
+  /* ---- Motion: middle-leaning-energy ---- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);       /* confident arrival */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);  /* light life on micro-moments */
+  --dur-fast: 160ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
 }
 
-/* Landing-only helpers */
-.landing-balance { text-wrap: balance; }
-.landing-pretty { text-wrap: pretty; }
+/* App root: Arabic-forward, and the forked app's Latin serif-italic signature is
+   neutralised so headings read as confident Arabic sans, not slanted Latin. */
+.fahim-app { font-family: var(--font-arabic); color: var(--color-ink); font-feature-settings: "lnum" 1; }
+.fahim-app .italic { font-style: normal; }               /* Arabic does not slant */
+.fahim-app .font-serif { font-family: var(--font-arabic); }
+/* Latin runs (English terms, code, digits) opt back into Inter for legibility. */
+.font-latin { font-family: var(--font-latin); }
 
-/* The Arabic-first app shell renders in the Arabic-capable stack. The landing
-   is intentionally LTR/Latin and keeps --font-sans, so this is scoped to the
-   app root (.fahim-app), never the marketing site. */
-.fahim-app { font-family: var(--font-arabic); }
+/* ---- Signature components (the identity lives here) ---- */
 
-/* Long display equations scroll instead of stretching their bubble. */
+/* The Faheem mark: a rounded pearl token carrying the Arabic ف, red on pearl or
+   a gold ring. Distinct, warm, unmistakably Arabic. */
+.faheem-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9999px; background: var(--color-red); color: #fff;
+  font-family: var(--font-arabic); font-weight: 800; line-height: 1;
+}
+
+/* Primary action (ask, sign up): Bahrain red, a light spring on press. */
+.faheem-btn {
+  background: var(--color-red); color: #fff; border-radius: 14px;
+  font-weight: 700; padding: 0.75rem 1.25rem;
+  transition: transform var(--dur-fast) var(--ease-spring), background var(--dur-fast) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+  box-shadow: 0 1px 0 rgba(18,37,47,0.04), 0 8px 20px -12px rgba(206,17,38,0.5);
+}
+.faheem-btn:hover { background: var(--color-red-deep); }
+.faheem-btn:active { transform: scale(0.97); }
+.faheem-btn-ghost {
+  background: transparent; color: var(--color-ink); border: 1px solid var(--color-line);
+  border-radius: 14px; font-weight: 600; padding: 0.7rem 1.15rem;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.faheem-btn-ghost:hover { background: var(--color-sand); border-color: var(--color-ink-soft); }
+
+/* Cards / answer surfaces: warm pearl, soft rounded, gentle depth. */
+.faheem-card {
+  background: #fff; border: 1px solid var(--color-line-soft);
+  border-radius: 20px; box-shadow: 0 1px 2px rgba(18,37,47,0.04), 0 18px 40px -28px rgba(18,37,47,0.28);
+}
+
+/* The TRUST moment: the grounded-source chip. Sea-teal, a book mark, and it
+   settles in (not just appears) — accuracy is the product, so this is a small
+   hero interaction, calm and confident. */
+.faheem-source {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: var(--color-sea-soft); color: var(--color-sea);
+  border-radius: 9999px; padding: 0.3rem 0.7rem; font-size: 0.72rem; font-weight: 700;
+  animation: faheem-settle var(--dur-slow) var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) { .faheem-source { animation: none; } }
+
+/* Chat bubbles. Student: sand, aligned to the start (RTL-aware via logical
+   props in the markup). Tutor: clean white card with a hairline edge. */
+.faheem-bubble-user { background: var(--color-sand); color: var(--color-ink); border-radius: 20px; }
+.faheem-bubble-tutor { background: #fff; color: var(--color-ink); border-radius: 20px; border: 1px solid var(--color-line-soft); }
+
+/* A quiet Gulf motif: a faint pearl-dot field for empty/hero surfaces. Painted
+   once, cheap on low-end phones, never competes with content. */
+.faheem-pattern {
+  background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ---- Motion keyframes ---- */
+@keyframes faheem-settle {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes faheem-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.faheem-rise { animation: faheem-rise var(--dur-slow) var(--ease-out) both; }
+@keyframes faheem-breathe { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: 0.85; } }
+
+/* ---- KaTeX bidi fix (unchanged, still critical) ---- */
 .clarify-prose .katex-display { overflow-x: auto; overflow-y: hidden; }
-
-/* --- CRITICAL: bidi-isolated math ---
-   KaTeX 0.17 has no `dir` option, and its .katex-html inherits dir=rtl from the
-   Arabic page, which mirrors and reorders every equation (fractions, exponents,
-   operators all flip). Force the math subtree back to LTR and isolate it from
-   the surrounding RTL run so notation matches the textbook. Markdown.tsx also
-   wraps each math node in a dir="ltr" isolate as belt-and-suspenders. */
 .katex,
-.katex-display > .katex > .katex-html {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
+.katex-display > .katex > .katex-html { direction: ltr; unicode-bidi: isolate; }
 .katex-display { text-align: start; }
-
-/* Western (Latin) numerals in math so digits read like standard notation even
-   when the surrounding UI/body would otherwise render Arabic-Indic digits. */
 .katex { font-feature-settings: "lnum" 1, "tnum" 1; }
 
-/* Devanagari lines on the landing get a bookish serif that matches Lora's
-   voice where the system fallback breaks it. Google Fonts serves the family
-   with unicode-range, so the file only downloads when Hindi glyphs paint. */
-.landing-devanagari { font-family: "Tiro Devanagari Hindi", "Lora", Georgia, serif; }
-
-/* Pools of lamplight. Pre-composited radial gradients painted once; any
-   later animation on them is transform and opacity only, so a low-end phone
-   never re-rasterizes a blur. */
+/* ---- Landing helpers (kept; the landing redesign restyles on top) ---- */
+.landing-balance { text-wrap: balance; }
+.landing-pretty { text-wrap: pretty; }
 .lamp-pool {
-  background: radial-gradient(
-    closest-side,
-    rgba(240, 238, 226, 0.13),
-    rgba(240, 238, 226, 0.05) 55%,
-    transparent 78%
-  );
+  background: radial-gradient(closest-side, rgba(226,240,236,0.13), rgba(226,240,236,0.05) 55%, transparent 78%);
 }
-
-/* Paper held up in the dark: the warm bloom around the lit ivory sheets. */
-.lit-sheet {
-  box-shadow:
-    0 0 90px 12px rgba(240, 238, 226, 0.08),
-    0 0 28px 2px rgba(240, 238, 226, 0.06);
-}
-
-/* The half-caught words drifting across the night classroom. Pure CSS so the
-   hero stays cheap on low-end phones. Each span sets its own --dx/--dy/--dur. */
-@keyframes landing-drift {
-  0%   { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
-  50%  { transform: translate3d(var(--dx, 14px), var(--dy, -20px), 0) rotate(var(--rot, 0deg)); }
-  100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
-}
-.landing-drift {
-  animation: landing-drift var(--dur, 18s) ease-in-out var(--delay, 0s) infinite;
-}
-
-/* The page's one deliberate loop: the Still fuzzy chip, breathing. */
-@keyframes landing-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-.landing-breathe { animation: landing-breathe 4s ease-in-out infinite; }
-
-/* The loading gate's monogram: a slow, patient breath. Driven by CSS (not a
-   motion/react loop) so a motion-safe: variant fully halts it for reduced
-   motion, including the opacity, which MotionConfig would keep pulsing. */
-@keyframes clarify-breathe {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.04); opacity: 0.85; }
-}
-
-/* Acts far below the fold skip layout and paint until the visitor nears.
-   Each section reserves a placeholder close to its real rendered height, so
-   the first reveal does not pop the scrollbar/scroll position. */
+.lit-sheet { box-shadow: 0 0 90px 12px rgba(226,240,236,0.08), 0 0 28px 2px rgba(226,240,236,0.06); }
 .landing-cv { content-visibility: auto; }
 .landing-cv-ladder { contain-intrinsic-size: auto 1850px; }
 .landing-cv-register { contain-intrinsic-size: auto 950px; }
 .landing-cv-cards { contain-intrinsic-size: auto 1100px; }
 .landing-cv-pricing { contain-intrinsic-size: auto 1150px; }
 .landing-cv-finale { contain-intrinsic-size: auto 1300px; }
+.landing-leader { border-bottom: 2px dotted rgba(226,240,236,0.26); }
 
-/* Dotted leaders for the finale's index page. */
-.landing-leader { border-bottom: 2px dotted rgba(240, 238, 226, 0.26); }
-
-@media (prefers-reduced-motion: no-preference) {
-  html { scroll-behavior: smooth; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-drift, .landing-breathe { animation: none !important; }
-}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+@media (prefers-reduced-motion: reduce) { .faheem-rise { animation: none !important; } }

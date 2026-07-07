@@ -1,0 +1,130 @@
+/* ============================================================================
+   Faheem landing — scoped styles (imported ONLY by Landing.tsx)
+   ---------------------------------------------------------------------------
+   Bespoke, Arabic-first (RTL) marketing surface. This file NEVER touches the
+   shared index.css tokens; it only consumes them (--color-*, --font-arabic,
+   --ease-*). Everything here is namespaced under .fh-landing so it cannot leak
+   into the app shell. Middle-leaning-energy motion: crisp scroll reveals, a
+   light spring on interactive bits, calm at the proof moment. Reduced-motion
+   is honoured everywhere.
+   ========================================================================== */
+
+.fh-landing {
+  font-family: var(--font-arabic);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Latin/technical runs (English terms, formulae, digits) opt into Inter and
+   are always isolated LTR so they never disrupt the Arabic bidi flow. */
+.fh-landing .fh-latin {
+  font-family: var(--font-latin);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Confident bold Arabic display headings. Tajawal 800, tight leading. */
+.fh-display {
+  font-family: var(--font-arabic);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.fh-pretty { text-wrap: pretty; }
+
+/* --------------------------------------------------------------------------
+   The Gulf / pearl motif. A faint dot field plus a soft radial "pearl glow"
+   from the leading (right, in RTL) edge — a horizon of light over a calm sea.
+   Painted once, cheap on low-end phones, always behind content.
+   -------------------------------------------------------------------------- */
+.fh-pearl-field {
+  background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.fh-hero-wash {
+  /* Warm dawn-over-the-Gulf: pearl-gold bloom drifting from the top-start. */
+  background:
+    radial-gradient(1100px 620px at 88% -8%, rgba(199, 154, 74, 0.16), transparent 60%),
+    radial-gradient(760px 520px at 6% 4%, rgba(14, 124, 110, 0.08), transparent 62%);
+}
+/* The night proof surface gets a cooler sea-glow instead. */
+.fh-night-wash {
+  background:
+    radial-gradient(900px 560px at 84% 0%, rgba(14, 124, 110, 0.22), transparent 60%),
+    radial-gradient(700px 520px at 8% 96%, rgba(199, 154, 74, 0.10), transparent 62%);
+}
+
+/* A single pearl — a soft luminous bead used as a quiet Gulf ornament. */
+.fh-pearl {
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 34% 30%, #ffffff 0%, #FBF6EC 26%, #EAD9BC 62%, #C79A4A 100%);
+  box-shadow:
+    inset 0 -2px 6px rgba(18, 37, 47, 0.16),
+    0 10px 30px -12px rgba(199, 154, 74, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+   Scroll reveals — crisp --ease-out arrival. Elements start shifted a touch
+   along the *block* axis (translateY) and settle. JS (motion) drives most of
+   the page, but these classes cover the CSS-only bits so the page still has
+   life if a component opts out of framer.
+   -------------------------------------------------------------------------- */
+@keyframes fh-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fh-rise { animation: fh-rise var(--dur-slow) var(--ease-out) both; }
+
+/* The curriculum-source trust chip: it does not just appear, it *settles in*.
+   Accuracy is the product, so this is a small hero interaction — calm and
+   confident, a gentle sea-teal bead of proof. */
+@keyframes fh-settle {
+  from { opacity: 0; transform: translateY(7px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.fh-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-sea-soft);
+  color: var(--color-sea);
+  border: 1px solid rgba(14, 124, 110, 0.18);
+  border-radius: 9999px;
+  padding: 0.34rem 0.72rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  animation: fh-settle var(--dur-slow) var(--ease-out) both;
+}
+
+/* A soft, slow breath for the one deliberate loop (the "still unclear?" chip),
+   signalling it is tappable without ever competing with the answer. */
+@keyframes fh-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+.fh-breathe { animation: fh-breathe 3.4s var(--ease-out) infinite; }
+
+/* --------------------------------------------------------------------------
+   Performance: content-visibility for the below-the-fold acts. Mirrors the
+   pattern the old landing used, sized to the new sections so the browser can
+   skip offscreen layout without the scrollbar jumping.
+   -------------------------------------------------------------------------- */
+.fh-cv { content-visibility: auto; }
+.fh-cv-proof    { contain-intrinsic-size: auto 1200px; }
+.fh-cv-reexplain{ contain-intrinsic-size: auto 900px; }
+.fh-cv-reach    { contain-intrinsic-size: auto 800px; }
+.fh-cv-cta      { contain-intrinsic-size: auto 700px; }
+
+/* --------------------------------------------------------------------------
+   Reduced motion: freeze every entrance/loop at its resting state.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .fh-rise,
+  .fh-source-chip,
+  .fh-breathe {
+    animation: none !important;
+  }
+}

@@ -43,6 +43,7 @@ import {
 } from "./utils";
 import { useAuth } from "./AuthContext";
 import { api, getToken, ApiError } from "./api";
+import { useLocale, type TranslateFn } from "./i18n/LocaleContext";
 import { DEFAULT_CHAPTERS, makeDefaultProfile, SUPPORT_EMAIL } from "./defaults";
 import { Markdown } from "./Markdown";
 import { NotebookViewer } from "./NotebookViewer";
@@ -54,29 +55,34 @@ import PreExamNotebook from "./PreExamNotebook";
 const Landing = lazy(() => import("./landing/Landing"));
 import { STUDY_FACTS, FALLBACK_STUDY_FACT, pickFirstFactIndex } from "./facts";
 
+// The empty-state prompt gallery. Keys resolve through the active locale at
+// render time, so the labels/hints load in Arabic by default; the `prompt` is
+// the actual question sent to the tutor.
 const SUGGESTED_QUERIES = [
-  { label: "Explain Photosynthesis", prompt: "Can you explain photosynthesis simply?", hint: "Start with a plain, everyday walk-through." },
-  { label: "Newton's 2nd Law", prompt: "Explain Newton's Second Law of Motion at an exam level. Give me a good analogy!", hint: "Exam-level, with an analogy you will remember." },
-  { label: "Cell Division", prompt: "What is the difference between mitosis and meiosis? Explain it clearly for my exam.", hint: "The comparison, side by side." },
-  { label: "Quadratic Equations", prompt: "How do I find the roots of a quadratic equation?", hint: "The method, worked out step by step." }
-];
+  { key: "photosynthesis" },
+  { key: "newton" },
+  { key: "cell" },
+  { key: "quadratic" }
+] as const;
 
 const MAX_ATTACHMENTS = 6;
 
 // One-tap "I'm still lost" signal. The student often can't articulate WHAT they
 // don't get, this lets them say "go again, differently" with a single tap, and
 // the backend's comprehension loop climbs the re-explain ladder (gut feel →
-// fresh analogy → smallest step + picture → worked example → pinpoint).
-const STILL_CONFUSED_PROMPT =
-  "I still don't fully get it, can you explain that part differently, in a simpler way?";
+// fresh analogy → smallest step + picture → worked example → pinpoint). The
+// literal text follows the UI language (key: reexplain.prompt).
+const STILL_CONFUSED_KEY = "reexplain.prompt";
 
+// Pearl & Ink action pills. Utilities settle on sand; the trust/verify actions
+// borrow the sea-teal accent. A light spring lives on the tap.
 const ACTION_PILL =
-  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs transition-all bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-sage border border-editorial-line-light disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
+  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all bg-[var(--color-sand)] hover:bg-[var(--color-sea-soft)] text-[var(--color-ink-soft)] hover:text-[var(--color-sea)] border border-[var(--color-line-soft)] disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
 
 // The stay-until-it-lands loop is the product's heart, so its one-tap retry is
-// the warmest, most inviting action in the row, distinct from the utilities.
+// the warmest, most inviting action in the row: it carries the Bahrain red.
 const STILL_FUZZY_PILL =
-  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all bg-editorial-sage/12 text-editorial-sage border border-editorial-sage/30 hover:bg-editorial-sage/20 disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
+  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all bg-[var(--color-red)]/10 text-[var(--color-red)] border border-[var(--color-red)]/25 hover:bg-[var(--color-red)]/16 disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
 
 type MobileView = "study" | "chat";
 
@@ -92,19 +98,19 @@ function canAskNew(sub?: Subscription): boolean {
 }
 
 // Client mirror of the server's paywallMessage, for the instant soft-block.
-function blockedReason(sub?: Subscription): string {
-  if (!sub) return "Please choose a plan to keep learning.";
-  if (sub.state === "trial")
-    return "That is all 10 free questions for today. They refresh tomorrow morning, or you can unlock a plan to keep going right now.";
+// Localised: takes the active translator so the soft-block reads in Arabic.
+function blockedReason(t: TranslateFn, sub?: Subscription): string {
+  if (!sub) return t("paywall.choosePlan");
+  if (sub.state === "trial") return t("paywall.trial");
   if (sub.state === "active")
-    return `You have used all ${sub.limit} questions on your ${sub.planName} plan this month. Upgrade any time to keep learning.`;
-  if (sub.state === "plan_expired")
-    return `Your ${sub.planName} pass has ended. Renew it to pick up right where you left off.`;
-  return "Your free week is complete. Choose a plan to keep your patient teacher going, at any hour, as many times as you need.";
+    return t("paywall.active", { limit: sub.limit ?? 0, plan: sub.planName });
+  if (sub.state === "plan_expired") return t("paywall.expired", { plan: sub.planName });
+  return t("paywall.trialOver");
 }
 
 export default function App() {
   const { account, loading: authLoading, logout, applySubscription, refreshSubscription } = useAuth();
+  const { t, lang, setLang } = useLocale();
   const subscription = account?.subscription;
 
   // Paywall / plan chooser.
@@ -207,19 +213,19 @@ export default function App() {
     if (savingSelection) return; // a double tap must never save twice
     const target = selSave && (!explicitMsgId || selSave.msgId === explicitMsgId) ? selSave : null;
     if (!target) {
-      showToast("Select the lines you like in the answer first, then tap Save lines.");
+      showToast(t("save.selectFirst"));
       return;
     }
     const idx = chatHistory.findIndex((m) => m.id === target.msgId);
     const msg = chatHistory[idx];
     if (!msg || msg.role !== "model") {
-      showToast("Select lines inside an answer to save them.");
+      showToast(t("save.insideAnswer"));
       return;
     }
     // Never save a draft the examiner is still reviewing: the corrected final
     // answer replaces it, and a wrong fact must not enter the revision shelf.
     if (msg.streaming || msg.verification === "checking") {
-      showToast("One moment: Deep-check is still reviewing this answer. Save once it settles.");
+      showToast(t("save.stillChecking"));
       return;
     }
     // Snapshot taken; clear synchronously so repeat taps have nothing to save.
@@ -233,9 +239,9 @@ export default function App() {
         messageId: msg.id,
         conversationId: activeId || undefined
       });
-      showToast("Saved to your Pre-exam notebook. It files itself under the right chapter.");
+      showToast(t("save.done"));
     } catch (e: any) {
-      showToast(e?.message || "Could not save that. Please select the lines again and retry.");
+      showToast(e?.message || t("save.failed"));
     } finally {
       setSavingSelection(false);
     }
@@ -413,7 +419,7 @@ export default function App() {
       // device or by the payment webhook): the refreshed usage re-renders the
       // modal's status line, and the next attempt passes if access returned.
       refreshSubscription().catch(() => {});
-      setUpgradeReason(blockedReason(subscription));
+      setUpgradeReason(blockedReason(t, subscription));
       setShowUpgrade(true);
       return;
     }
@@ -464,7 +470,7 @@ export default function App() {
     const handlePaywall = (sub: Subscription | undefined, message: string) => {
       if (sub) applySubscription(sub);
       else refreshSubscription();
-      setUpgradeReason(message || blockedReason(sub));
+      setUpgradeReason(message || blockedReason(t, sub));
       setShowUpgrade(true);
       if (activeIdRef.current === convId) {
         setChatHistory((prev) => prev.filter((m) => m.id !== streamId && m.id !== userMsgId));
@@ -606,7 +612,7 @@ export default function App() {
         const errorMsg: ChatMessage = {
           id: `err-${Date.now()}`,
           role: "model",
-          text: "I could not finish that one just now. This is on my side, not yours. Give it a moment and ask me again, and I will pick it right back up.",
+          text: t("chat.errorMessage"),
           timestamp: new Date().toLocaleTimeString(),
           isError: true
         };
@@ -676,7 +682,7 @@ export default function App() {
     setChapters((prev) => [newCh, ...prev]);
     setNewChapterName("");
     setIsAddingChapter(false);
-    handleSendMessage(`Teach me "${newCh.name}" in depth.`, { deep: true });
+    handleSendMessage(`اشرح لي «${newCh.name}» بعمق.`, { deep: true });
   };
 
   const handleUpdateMastery = (id: string, newMastery: "weak" | "developing" | "strong") => {
@@ -698,7 +704,7 @@ export default function App() {
   // ---- Live voice ----
   const startLiveSession = async () => {
     try {
-      setLiveStatus("Initializing microphone...");
+      setLiveStatus(t("live.initMic"));
       const playCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       playCtxRef.current = playCtx;
       nextPlayTimeRef.current = playCtx.currentTime;
@@ -707,7 +713,7 @@ export default function App() {
       // Microphone needs a secure context (HTTPS, or localhost). Fail clearly
       // instead of throwing a cryptic error when the page is served over http://.
       if (!navigator.mediaDevices?.getUserMedia) {
-        setLiveStatus("Microphone needs a secure page. Open the app over HTTPS (or localhost) and allow mic access.");
+        setLiveStatus(t("live.micInsecure"));
         setIsLiveActive(false);
         return;
       }
@@ -728,7 +734,7 @@ export default function App() {
       setIsLiveActive(true);
 
       ws.onopen = () => {
-        setLiveStatus("Connected. Say hello to Faheem!");
+        setLiveStatus(t("live.connected"));
         ws.send(JSON.stringify({ type: "start" }));
       };
 
@@ -736,7 +742,7 @@ export default function App() {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === "ready") {
-            setLiveStatus("Faheem is listening to your voice!");
+            setLiveStatus(t("live.listening"));
           } else if (msg.type === "audio") {
             if (liveInterruptedRef.current) return;
             playLiveAudioChunk(base64ToFloat32PCM(msg.audio));
@@ -744,7 +750,7 @@ export default function App() {
             liveInterruptedRef.current = true;
             nextPlayTimeRef.current = playCtxRef.current?.currentTime || 0;
           } else if (msg.type === "error") {
-            setLiveStatus(`Error: ${msg.error}`);
+            setLiveStatus(t("live.error", { error: msg.error }));
             stopLiveSession();
           }
         } catch (e) {
@@ -753,11 +759,11 @@ export default function App() {
       };
 
       ws.onclose = () => {
-        setLiveStatus("Closed");
+        setLiveStatus(t("live.closed"));
         stopLiveSession();
       };
       ws.onerror = (err) => {
-        setLiveStatus("Socket Error");
+        setLiveStatus(t("live.socketError"));
         console.error("Live WebSocket Error", err);
       };
 
@@ -776,14 +782,14 @@ export default function App() {
       };
     } catch (err: any) {
       console.error(err);
-      setLiveStatus("Microphone permission denied. Please allow mic access and try again.");
+      setLiveStatus(t("live.micDenied"));
       setIsLiveActive(false);
     }
   };
 
   const stopLiveSession = () => {
     setIsLiveActive(false);
-    setLiveStatus("Disconnected");
+    setLiveStatus(t("live.disconnected"));
     if (liveWsRef.current) {
       liveWsRef.current.close();
       liveWsRef.current = null;
@@ -827,7 +833,7 @@ export default function App() {
   const questionBefore = (idx: number): string => {
     for (let i = idx - 1; i >= 0; i--) {
       const m = chatHistory[i];
-      if (m.role === "user" && m.text.trim() && m.text !== STILL_CONFUSED_PROMPT) return m.text;
+      if (m.role === "user" && m.text.trim() && m.text !== t(STILL_CONFUSED_KEY)) return m.text;
     }
     return chatHistory[idx]?.text.slice(0, 200) || "";
   };
@@ -870,10 +876,10 @@ export default function App() {
       return (
         <>
           {preamble && (
-            <div className="mb-4 pb-3 border-b border-editorial-line-light">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-editorial-sage">
-                <span className="h-px w-4 bg-editorial-sage/50" />
-                Exam-ready answer
+            <div className="mb-4 pb-3 border-b border-[var(--color-line-soft)]">
+              <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-[var(--color-sea)]">
+                <span className="h-px w-4 bg-[var(--color-sea)]/50" />
+                {t("tutor.examReady")}
               </div>
               <Markdown>{preamble}</Markdown>
             </div>
@@ -888,13 +894,11 @@ export default function App() {
   // --- Gated rendering ---
   if (authLoading || (account && dataLoading)) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-editorial-ivory text-editorial-charcoal px-6 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage motion-safe:animate-[clarify-breathe_2.2s_ease-in-out_infinite]">
-          <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
-        </div>
+      <div className="fahim-app flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-[var(--color-pearl)] text-[var(--color-ink)] px-6 text-center">
+        <div className="faheem-mark h-16 w-16 text-3xl motion-safe:animate-[faheem-breathe_2.2s_ease-in-out_infinite]">ف</div>
         <div>
-          <p className="text-sm font-medium text-editorial-sage">Preparing your study desk</p>
-          <p className="mt-1 text-xs text-editorial-charcoal/60">One moment. Your notebook and study log are loading.</p>
+          <p className="text-sm font-bold text-[var(--color-ink)]">{t("loading.desk")}</p>
+          <p className="mt-1 text-xs text-[var(--color-ink-soft)]">{t("loading.deskHint")}</p>
         </div>
       </div>
     );
@@ -904,10 +908,8 @@ export default function App() {
     return (
       <Suspense
         fallback={
-          <div className="flex min-h-[100dvh] items-center justify-center bg-night">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-editorial-sage">
-              <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
-            </div>
+          <div className="fahim-app flex min-h-[100dvh] items-center justify-center bg-[var(--color-night)]">
+            <div className="faheem-mark h-14 w-14 text-2xl">ف</div>
           </div>
         }
       >
@@ -927,35 +929,45 @@ export default function App() {
     {/* fahim-app: applies the Arabic-capable font stack (var(--font-arabic)).
         dir is inherited from <html> (set by LocaleProvider), so the whole shell
         mirrors via logical properties without a hardcoded dir here. */}
-    <div className="fahim-app h-[100dvh] bg-editorial-ivory text-editorial-charcoal font-sans flex flex-col antialiased">
+    <div className="fahim-app h-[100dvh] bg-[var(--color-pearl)] text-[var(--color-ink)] font-sans flex flex-col antialiased">
       {/* Header */}
-      <nav className="flex justify-between items-center px-4 py-3 md:px-8 border-b border-editorial-line bg-editorial-ivory">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-editorial-sage flex items-center justify-center shrink-0">
-            <span className="text-editorial-ivory font-serif italic text-lg leading-none">F</span>
-          </div>
-          <span className="font-serif italic text-xl tracking-tight text-editorial-charcoal">فهيم</span>
+      <nav className="flex justify-between items-center px-4 py-3 md:px-8 border-b border-[var(--color-line)] bg-[var(--color-pearl)]">
+        <div className="flex items-center gap-2.5">
+          <span className="faheem-mark w-9 h-9 text-lg shrink-0" aria-hidden="true">ف</span>
+          <span className="font-bold text-[22px] leading-none tracking-tight text-[var(--color-ink)]">{t("app.name")}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden md:block text-xs text-editorial-charcoal/70 me-1">
+          <span className="hidden md:block text-xs text-[var(--color-ink-soft)] me-1">
             {profile.name} · {profile.board}
           </span>
           <UsagePill
+            t={t}
             subscription={subscription}
             onClick={() => {
               setUpgradeReason("");
               setShowUpgrade(true);
             }}
           />
+          {/* Language toggle: Arabic loads by default; students may flip to
+              English. Kept compact, shows the language they'd switch TO. */}
+          <button
+            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+            title={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
+            aria-label={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
+            className="h-9 px-3 rounded-full border border-[var(--color-line)] flex items-center justify-center text-xs font-bold text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-ink)] transition-all cursor-pointer shrink-0"
+            id="btn-lang-toggle"
+          >
+            <span className="font-latin">{lang === "ar" ? "EN" : "ع"}</span>
+          </button>
           <button
             onClick={() => setNotebookOpen(true)}
-            title="Pre-exam notebook"
-            aria-label="Pre-exam notebook"
+            title={t("nav.preExamNotebook")}
+            aria-label={t("nav.preExamNotebook")}
             /* Below lg the bottom nav carries a Notebook tab, so this header
                button would be a redundant, crowding duplicate: show it only on
                desktop where there is no bottom nav. */
-            className="w-9 h-9 rounded-full border border-editorial-line hidden lg:flex items-center justify-center text-editorial-charcoal/60 hover:bg-editorial-stone hover:text-editorial-sage transition-all cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full border border-[var(--color-line)] hidden lg:flex items-center justify-center text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)] transition-all cursor-pointer shrink-0"
             id="btn-notebook"
           >
             <BookMarked size={15} />
@@ -965,17 +977,17 @@ export default function App() {
               setEditProfileForm({ ...profile });
               setIsEditingProfile(true);
             }}
-            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-editorial-line text-xs hover:bg-editorial-stone transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-[var(--color-line)] text-xs font-semibold text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
             id="btn-settings-profile"
           >
             <Settings size={14} />
-            <span className="hidden sm:inline">Preferences</span>
+            <span className="hidden sm:inline">{t("nav.preferences")}</span>
           </button>
           <button
             onClick={() => logout()}
-            title="Sign out"
-            aria-label="Sign out"
-            className="w-9 h-9 rounded-full border border-editorial-line flex items-center justify-center text-editorial-charcoal/60 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all cursor-pointer shrink-0"
+            title={t("nav.signOut")}
+            aria-label={t("nav.signOut")}
+            className="w-9 h-9 rounded-full border border-[var(--color-line)] flex items-center justify-center text-[var(--color-ink-soft)] hover:bg-[var(--color-red)]/8 hover:text-[var(--color-red)] hover:border-[var(--color-red)]/25 transition-all cursor-pointer shrink-0"
             id="btn-logout"
           >
             <LogOut size={15} />
@@ -991,33 +1003,33 @@ export default function App() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
-          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-e border-[color:rgba(206,17,38,0.14)] p-4 md:p-5 flex-col gap-4 bg-editorial-ivory overflow-y-auto`}
+          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-e border-[var(--color-line)] p-4 md:p-5 flex-col gap-4 bg-[var(--color-pearl)] overflow-y-auto`}
         >
 
-          {/* New chat */}
+          {/* New chat: primary red action. */}
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-editorial-charcoal text-white text-sm font-medium hover:bg-editorial-charcoal/90 transition-colors cursor-pointer shadow-sm"
+            className="faheem-btn w-full flex items-center justify-center gap-2 !py-2.5 text-sm"
             id="btn-new-chat"
           >
             <Plus size={16} />
-            New chat
+            {t("chat.newChat")}
           </button>
 
-          {/* Profile details: quiet context, so it grounds on stone and casts
+          {/* Profile details: quiet context, so it grounds on sand and casts
               no shadow (shadow + white are reserved for actions/active state). */}
-          <div className="bg-editorial-stone border border-editorial-line-light rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-[var(--color-sand)] border border-[var(--color-line-soft)] rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-editorial-sage/15 flex items-center justify-center text-editorial-sage shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[var(--color-sea-soft)] flex items-center justify-center text-[var(--color-sea)] shrink-0">
                 <User size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-editorial-charcoal truncate">{profile.name}</h3>
-                <p className="text-xs text-editorial-charcoal/60">{profile.grade} · {profile.language}</p>
+                <h3 className="text-sm font-bold text-[var(--color-ink)] truncate">{profile.name}</h3>
+                <p className="text-xs text-[var(--color-ink-soft)]">{profile.grade} · {profile.language}</p>
               </div>
             </div>
-            <p className="text-xs text-editorial-charcoal/70 font-serif italic border-t border-editorial-line-light pt-2.5">
-              "{profile.examGoals || "Learn deeply with real analogies"}"
+            <p className="text-xs text-[var(--color-ink-soft)] border-t border-[var(--color-line-soft)] pt-2.5">
+              «{profile.examGoals || t("study.defaultGoal")}»
             </p>
           </div>
 
@@ -1025,13 +1037,14 @@ export default function App() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <MessageSquare size={14} className="text-editorial-sage" />
-                <h3 className="text-sm font-semibold text-editorial-sage">My Study Log</h3>
+                <MessageSquare size={14} className="text-[var(--color-sea)]" />
+                <h3 className="text-sm font-bold text-[var(--color-ink)]">{t("study.myLog")}</h3>
               </div>
               <button
                 onClick={handleNewChat}
-                title="Start a new chat"
-                className="w-6 h-6 rounded-full bg-editorial-sage/10 text-editorial-sage hover:bg-editorial-sage/20 flex items-center justify-center transition-colors cursor-pointer"
+                title={t("study.startNew")}
+                aria-label={t("study.startNew")}
+                className="w-6 h-6 rounded-full bg-[var(--color-red)]/10 text-[var(--color-red)] hover:bg-[var(--color-red)]/16 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Plus size={13} />
               </button>
@@ -1039,7 +1052,7 @@ export default function App() {
 
             <div className="flex flex-col gap-1.5">
               {conversations.length === 0 && (
-                <p className="text-xs text-editorial-charcoal/70 px-1 py-2">No chats yet. Start one above.</p>
+                <p className="text-xs text-[var(--color-ink-soft)] px-1 py-2">{t("chat.emptyLog")}</p>
               )}
               {conversations.map((c) => (
                 <div
@@ -1047,17 +1060,17 @@ export default function App() {
                   onClick={() => openConversation(c.id)}
                   className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                     activeId === c.id
-                      ? "bg-editorial-sage/10 border-s-2 border-editorial-sage shadow-[0_1px_2px_rgba(26,26,26,0.05)]"
-                      : "bg-transparent border-s-2 border-transparent hover:bg-editorial-stone"
+                      ? "bg-[var(--color-sea-soft)] border-s-2 border-[var(--color-sea)] shadow-[0_1px_2px_rgba(18,37,47,0.05)]"
+                      : "bg-transparent border-s-2 border-transparent hover:bg-[var(--color-sand)]"
                   }`}
                 >
-                  <MessageSquare size={13} className={activeId === c.id ? "text-editorial-sage shrink-0" : "text-editorial-charcoal/50 shrink-0"} />
-                  <span className={`flex-1 text-xs truncate ${activeId === c.id ? "font-medium text-editorial-charcoal" : "text-editorial-charcoal/85"}`}>{c.title || "New chat"}</span>
+                  <MessageSquare size={13} className={activeId === c.id ? "text-[var(--color-sea)] shrink-0" : "text-[var(--color-ink-soft)] shrink-0"} />
+                  <span className={`flex-1 text-xs truncate ${activeId === c.id ? "font-bold text-[var(--color-ink)]" : "text-[var(--color-ink)]/85"}`}>{c.title || t("chat.newChat")}</span>
                   <button
                     onClick={(e) => handleDeleteConversation(c.id, e)}
-                    title="Delete chat"
-                    aria-label="Delete chat"
-                    className="opacity-40 lg:opacity-0 lg:group-hover:opacity-100 text-editorial-charcoal/50 hover:text-red-700 transition-all shrink-0"
+                    title={t("chat.deleteChat")}
+                    aria-label={t("chat.deleteChat")}
+                    className="opacity-40 lg:opacity-0 lg:group-hover:opacity-100 text-[var(--color-ink-soft)] hover:text-[var(--color-red)] transition-all shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1067,40 +1080,40 @@ export default function App() {
           </div>
 
           {/* Chapter mastery, collapsible, secondary */}
-          <div className="flex flex-col gap-2 border-t border-editorial-line pt-3 mt-auto">
+          <div className="flex flex-col gap-2 border-t border-[var(--color-line)] pt-3 mt-auto">
             <button
               onClick={() => setShowChapters((v) => !v)}
-              className="flex items-center justify-between px-1 cursor-pointer text-editorial-sage"
+              className="flex items-center justify-between px-1 cursor-pointer text-[var(--color-ink)]"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex items-center gap-2 text-sm font-bold">
                 {showChapters ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                Chapter mastery
+                {t("study.chapterMastery")}
               </span>
-              <span className="text-[10px] text-editorial-charcoal/60">{chapters.length}</span>
+              <span className="text-[10px] text-[var(--color-ink-soft)] font-latin">{chapters.length}</span>
             </button>
 
             {showChapters && (
               <>
                 <button
                   onClick={() => setIsAddingChapter((v) => !v)}
-                  className="flex items-center gap-1.5 self-start px-2.5 py-1 text-[11px] text-editorial-sage hover:bg-editorial-sage/10 rounded-full transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 self-start px-2.5 py-1 text-[11px] font-semibold text-[var(--color-sea)] hover:bg-[var(--color-sea-soft)] rounded-full transition-colors cursor-pointer"
                 >
-                  <Plus size={12} /> Add chapter
+                  <Plus size={12} /> {t("study.addChapter")}
                 </button>
 
                 {isAddingChapter && (
-                  <form onSubmit={handleAddChapter} className="bg-white border border-editorial-line p-3 rounded-xl flex flex-col gap-2">
+                  <form onSubmit={handleAddChapter} className="bg-white border border-[var(--color-line)] p-3 rounded-xl flex flex-col gap-2">
                     <input
                       type="text"
                       required
-                      placeholder="Chapter / topic name…"
+                      placeholder={t("study.chapterPlaceholder")}
                       value={newChapterName}
                       onChange={(e) => setNewChapterName(e.target.value)}
-                      className="px-3 py-1.5 border border-editorial-line rounded-lg text-xs bg-editorial-ivory/50 focus:outline-none focus:ring-1 focus:ring-editorial-sage placeholder-editorial-charcoal/35"
+                      className="px-3 py-1.5 border border-[var(--color-line)] rounded-lg text-xs bg-[var(--color-pearl)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] placeholder-[var(--color-ink-soft)]/60"
                     />
                     <div className="flex justify-end gap-1.5">
-                      <button type="button" onClick={() => setIsAddingChapter(false)} className="px-2.5 py-1 text-[10px] text-editorial-charcoal/60 hover:bg-editorial-stone rounded">Cancel</button>
-                      <button type="submit" className="px-3 py-1 text-[10px] bg-editorial-sage text-white rounded font-medium">Add & study</button>
+                      <button type="button" onClick={() => setIsAddingChapter(false)} className="px-2.5 py-1 text-[10px] text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] rounded">{t("common.cancel")}</button>
+                      <button type="submit" className="px-3 py-1 text-[10px] bg-[var(--color-sea)] text-white rounded font-bold">{t("study.addAndStudy")}</button>
                     </div>
                   </form>
                 )}
@@ -1109,16 +1122,16 @@ export default function App() {
                   {chapters.map((ch) => (
                     <div
                       key={ch.id}
-                      onClick={() => handleSendMessage(`Teach me "${ch.name}" in depth.`, { deep: true })}
-                      className="group bg-editorial-stone border border-editorial-line-light p-3 rounded-xl flex flex-col gap-2 hover:border-editorial-sage/40 hover:bg-editorial-sage/[0.05] transition-all cursor-pointer relative"
+                      onClick={() => handleSendMessage(`اشرح لي «${ch.name}» بعمق.`, { deep: true })}
+                      className="group bg-[var(--color-sand)] border border-[var(--color-line-soft)] p-3 rounded-xl flex flex-col gap-2 hover:border-[var(--color-sea)]/40 hover:bg-[var(--color-sea-soft)]/60 transition-all cursor-pointer relative"
                     >
                       <div className="flex justify-between items-start gap-1">
-                        <h4 className="text-xs font-medium text-editorial-charcoal leading-tight pe-4">{ch.name}</h4>
-                        <button onClick={(e) => handleDeleteChapter(ch.id, e)} className="opacity-0 group-hover:opacity-100 absolute top-2 end-2 text-editorial-charcoal/40 hover:text-red-700 transition-opacity">
+                        <h4 className="text-xs font-bold text-[var(--color-ink)] leading-tight pe-4">{ch.name}</h4>
+                        <button onClick={(e) => handleDeleteChapter(ch.id, e)} className="opacity-0 group-hover:opacity-100 absolute top-2 end-2 text-[var(--color-ink-soft)] hover:text-[var(--color-red)] transition-opacity">
                           <Trash2 size={11} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1 text-[9px] font-semibold">
+                      <div className="flex items-center gap-1 text-[9px] font-bold">
                         {(["weak", "developing", "strong"] as const).map((m) => (
                           <button
                             key={m}
@@ -1126,17 +1139,17 @@ export default function App() {
                               e.stopPropagation();
                               handleUpdateMastery(ch.id, m);
                             }}
-                            className={`px-2 py-0.5 rounded-full transition-colors capitalize ${
+                            className={`px-2 py-0.5 rounded-full transition-colors ${
                               ch.mastery === m
                                 ? m === "weak"
-                                  ? "bg-red-50 text-red-800 border border-red-200"
+                                  ? "bg-[var(--color-red)]/10 text-[var(--color-red)] border border-[var(--color-red)]/25"
                                   : m === "developing"
-                                  ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                                  : "bg-emerald-50/70 text-emerald-800 border border-emerald-200"
-                                : "text-editorial-charcoal/60 hover:bg-editorial-stone"
+                                  ? "bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/30"
+                                  : "bg-[var(--color-sea-soft)] text-[var(--color-sea)] border border-[var(--color-sea)]/25"
+                                : "text-[var(--color-ink-soft)] hover:bg-[var(--color-pearl)]"
                             }`}
                           >
-                            {m === "developing" ? "Dev" : m}
+                            {m === "weak" ? t("study.masteryWeak") : m === "developing" ? t("study.masteryDevShort") : t("study.masteryStrong")}
                           </button>
                         ))}
                       </div>
@@ -1158,16 +1171,16 @@ export default function App() {
 
           {/* Live status strip */}
           {isLiveActive && (
-            <div className="mb-3 flex items-center gap-3 px-4 py-2 rounded-xl bg-editorial-stone/80 border border-editorial-sage/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-editorial-sage motion-safe:animate-pulse shrink-0" />
-              <span className="text-xs text-editorial-charcoal/70 flex-1 truncate">{liveStatus}</span>
+            <div className="mb-3 flex items-center gap-3 px-4 py-2 rounded-xl bg-[var(--color-sea-soft)] border border-[var(--color-sea)]/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-sea)] motion-safe:animate-pulse shrink-0" />
+              <span className="text-xs text-[var(--color-ink-soft)] flex-1 truncate">{liveStatus}</span>
               <div className="flex items-center gap-0.5">
                 {[3, 6, 9, 6, 3].map((val, idx) => (
                   <motion.div
                     key={idx}
                     animate={{ height: [4, val * 2, 4] }}
                     transition={{ duration: 0.9 + idx * 0.1, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-0.5 bg-editorial-sage rounded-full"
+                    className="w-0.5 bg-[var(--color-sea)] rounded-full"
                   />
                 ))}
               </div>
@@ -1175,35 +1188,35 @@ export default function App() {
           )}
 
           {/* Messages */}
-          <div ref={messagesRef} className="flex-1 bg-editorial-ivory border border-editorial-line-light rounded-2xl p-3 md:p-5 overflow-y-auto flex flex-col gap-5 min-h-[280px]">
+          <div ref={messagesRef} className="flex-1 bg-[var(--color-pearl)] border border-[var(--color-line-soft)] rounded-2xl p-3 md:p-5 overflow-y-auto flex flex-col gap-5 min-h-[280px]">
             {chatHistory.length === 0 && !isGenerating && (
-              <div className="m-auto w-full max-w-lg rounded-3xl border border-editorial-line bg-editorial-stone/30 px-6 py-8 md:px-9 md:py-10 text-center flex flex-col items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage shrink-0">
-                  <span className="font-serif text-2xl italic leading-none text-editorial-ivory">F</span>
-                </div>
+              <div className="faheem-pattern faheem-rise m-auto w-full max-w-lg rounded-3xl border border-[var(--color-line)] bg-[var(--color-sand)]/40 px-6 py-8 md:px-9 md:py-10 text-center flex flex-col items-center gap-4">
+                <div className="faheem-mark h-16 w-16 text-3xl shrink-0" aria-hidden="true">ف</div>
                 <div>
-                  <h2 className="font-serif italic text-2xl md:text-[26px] leading-snug text-editorial-charcoal">
-                    What are we working through today{profile.name ? `, ${profile.name.split(" ")[0]}` : ""}?
+                  <h2 className="font-bold text-2xl md:text-[27px] leading-snug text-[var(--color-ink)]">
+                    {profile.name
+                      ? t("chat.startTitleNamed", { name: profile.name.split(" ")[0] })
+                      : t("chat.startTitle")}
                   </h2>
-                  <p className="mt-2.5 text-sm leading-relaxed text-editorial-sage">
-                    Ask it once, ask it ten times. I will explain it a fresh way each time, until it lands.
+                  <p className="mt-2.5 text-sm leading-relaxed text-[var(--color-ink-soft)]">
+                    {t("chat.startSubtitle")}
                   </p>
                 </div>
                 <div className="w-full mt-2">
-                  <p className="mb-2 text-start font-serif italic text-sm text-editorial-charcoal/70">Not sure where to start?</p>
+                  <p className="mb-2 text-start font-bold text-sm text-[var(--color-ink)]">{t("chat.notSureWhere")}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {SUGGESTED_QUERIES.map((q, idx) => (
+                    {SUGGESTED_QUERIES.map((q) => (
                       <button
-                        key={idx}
-                        onClick={() => selectSuggestedPrompt(q.prompt)}
-                        className="group flex items-start gap-3 text-start px-4 py-3 rounded-2xl border border-editorial-line bg-white hover:border-editorial-sage/50 hover:bg-editorial-sage/[0.06] motion-safe:hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                        key={q.key}
+                        onClick={() => selectSuggestedPrompt(t(`suggest.${q.key}.prompt`))}
+                        className="group flex items-start gap-3 text-start px-4 py-3 rounded-2xl border border-[var(--color-line)] bg-white hover:border-[var(--color-sea)]/50 hover:bg-[var(--color-sea-soft)]/50 motion-safe:hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                       >
-                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-sea-soft)] text-[var(--color-sea)]">
                           <BookOpen size={15} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-sm font-medium text-editorial-charcoal">{q.label}</span>
-                          <span className="mt-0.5 block text-[11px] leading-relaxed text-editorial-charcoal/60">{q.hint}</span>
+                          <span className="block text-sm font-bold text-[var(--color-ink)]">{t(`suggest.${q.key}.label`)}</span>
+                          <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--color-ink-soft)]">{t(`suggest.${q.key}.hint`)}</span>
                         </span>
                       </button>
                     ))}
@@ -1220,19 +1233,19 @@ export default function App() {
                 transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }}
                 className={`flex flex-col max-w-[92%] md:max-w-[85%] ${message.role === "user" ? "self-end items-end" : "self-start items-start"}`}
               >
-                <div className="flex items-center gap-2 mb-1 text-[10px] text-editorial-charcoal/70">
-                  <span>{message.role === "user" ? "You" : "فهيم"}</span>
+                <div className="flex items-center gap-2 mb-1 text-[10px] text-[var(--color-ink-soft)]">
+                  <span className="font-bold">{message.role === "user" ? t("chat.you") : t("app.name")}</span>
                   <span>·</span>
-                  <span>{message.timestamp}</span>
+                  <span className="font-latin">{message.timestamp}</span>
                 </div>
 
                 <div
-                  className={`p-4 md:p-5 relative border ${
+                  className={`p-4 md:p-5 relative ${
                     message.role === "user"
-                      ? "bg-editorial-stone/70 border-editorial-line-light rounded-2xl rounded-se-sm text-editorial-charcoal text-sm md:text-base"
+                      ? "faheem-bubble-user rounded-se-sm text-sm md:text-base"
                       : message.isError
-                      ? "bg-editorial-stone/60 border-editorial-line-light rounded-2xl rounded-ss-sm text-editorial-charcoal/85 text-sm md:text-base leading-relaxed"
-                      : "bg-editorial-ivory border-editorial-line border-s-[3px] border-s-editorial-sage/40 rounded-2xl rounded-ss-sm text-editorial-charcoal text-sm md:text-base leading-relaxed shadow-[0_1px_2px_rgba(26,26,26,0.05)]"
+                      ? "bg-[var(--color-sand)]/60 border border-[var(--color-line-soft)] rounded-2xl rounded-ss-sm text-[var(--color-ink-soft)] text-sm md:text-base leading-relaxed"
+                      : "faheem-card faheem-bubble-tutor rounded-ss-sm border-s-[3px] border-s-[var(--color-sea)]/45 text-sm md:text-base leading-relaxed"
                   }`}
                   id={`msg-bubble-${message.id}`}
                 >
@@ -1247,10 +1260,10 @@ export default function App() {
                             key={i}
                             href={att.dataUrl}
                             download={att.name}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-editorial-line-light text-xs text-editorial-charcoal hover:bg-editorial-stone"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[var(--color-line-soft)] text-xs text-[var(--color-ink)] hover:bg-[var(--color-sand)]"
                           >
-                            <FileText size={14} className="text-editorial-sage" />
-                            <span className="truncate max-w-40">{att.name}</span>
+                            <FileText size={14} className="text-[var(--color-sea)]" />
+                            <span className="truncate max-w-40 font-latin">{att.name}</span>
                           </a>
                         )
                       )}
@@ -1267,16 +1280,16 @@ export default function App() {
                     ))}
 
                   {/* Deep-check state: honest at every stage. The passed state
-                      earns a quiet sage seal; checking and unavailable stay
+                      earns a quiet sea seal; checking and unavailable stay
                       plain (a seal on an unverified answer would be dishonest). */}
                   {message.role === "model" && message.verification && (
                     <div
                       className={`mt-3 flex items-center gap-1.5 text-[11px] ${
                         message.verification === "passed"
-                          ? "inline-flex rounded-full bg-editorial-sage/10 px-2.5 py-1 font-medium text-editorial-sage"
+                          ? "inline-flex rounded-full bg-[var(--color-sea-soft)] px-2.5 py-1 font-bold text-[var(--color-sea)]"
                           : message.verification === "unavailable"
-                          ? "text-amber-800"
-                          : "text-editorial-sage"
+                          ? "text-[var(--color-gold)]"
+                          : "text-[var(--color-sea)]"
                       }`}
                     >
                       {message.verification === "checking" ? (
@@ -1287,39 +1300,43 @@ export default function App() {
                         <AlertTriangle size={12} />
                       )}
                       {message.verification === "checking"
-                        ? "Deep-check is reviewing this answer…"
+                        ? t("verify.checking")
                         : message.verification === "passed"
-                        ? "Deep-checked: a second examiner pass reviewed this answer."
-                        : "Deep-check could not run this time, so this answer is shown unverified."}
+                        ? t("verify.passed")
+                        : t("verify.unavailable")}
                     </div>
                   )}
 
-                  {/* Curriculum source (Faheem): which MoE/curriculum unit grounded this answer. */}
+                  {/* Curriculum source (Faheem): which curriculum unit grounded
+                      this answer. This is the product's TRUST moment — the
+                      sea-teal source chip, self-settling in. */}
                   {message.role === "model" && message.grounding && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-editorial-sage/10 px-2.5 py-1 text-[11px] font-medium text-editorial-sage">
-                      <BookOpen size={12} className="shrink-0" />
-                      <span dir="ltr" style={{ unicodeBidi: "isolate" }}>
-                        {message.grounding.unitTitle}
-                        {message.grounding.section ? ` · ${message.grounding.section}` : ""}
+                    <div className="mt-3">
+                      <span className="faheem-source">
+                        <BookOpen size={12} className="shrink-0" />
+                        <span dir="ltr" style={{ unicodeBidi: "isolate" }} className="font-latin">
+                          {message.grounding.unitTitle}
+                          {message.grounding.section ? ` · ${message.grounding.section}` : ""}
+                        </span>
                       </span>
                     </div>
                   )}
                   {/* Honest flag: the question fell outside the grade's textbooks. */}
                   {message.role === "model" && message.outOfSyllabus && !message.grounding && (
-                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-800">
+                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--color-gold)]">
                       <AlertTriangle size={12} className="shrink-0" />
-                      <span>خارج نطاق مقرّرك — هذه الإجابة من معرفة عامة وليست من منهجك.</span>
+                      <span>{t("grounding.outOfSyllabus")}</span>
                     </div>
                   )}
 
                   {/* Sources */}
                   {message.sources && message.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-editorial-line-light flex flex-wrap gap-2 items-center">
-                      <span className="text-[10px] text-editorial-charcoal/70 flex items-center gap-1">
-                        <Search size={10} className="text-editorial-sage" /> Sources:
+                    <div className="mt-3 pt-3 border-t border-[var(--color-line-soft)] flex flex-wrap gap-2 items-center">
+                      <span className="text-[10px] text-[var(--color-ink-soft)] flex items-center gap-1">
+                        <Search size={10} className="text-[var(--color-sea)]" /> {t("chat.sources")}
                       </span>
                       {message.sources.map((src, sIdx) => (
-                        <a key={sIdx} href={src.uri} target="_blank" rel="noreferrer" className="text-[10px] bg-[#FAF9F6] text-editorial-sage px-2.5 py-1 rounded-full border border-editorial-line-light flex items-center gap-1 hover:bg-editorial-sage/10">
+                        <a key={sIdx} href={src.uri} target="_blank" rel="noreferrer" className="text-[10px] bg-[var(--color-sea-soft)] text-[var(--color-sea)] px-2.5 py-1 rounded-full border border-[var(--color-sea)]/20 flex items-center gap-1 hover:bg-[var(--color-sea)]/12 font-latin">
                           {src.title}
                           <ExternalLink size={8} />
                         </a>
@@ -1333,16 +1350,16 @@ export default function App() {
                       wrapping raggedly. Listen only floats right once there is
                       room for it (sm+); on a phone it joins the same wrap. */}
                   {message.role === "model" && message.text && !message.streaming && (
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-editorial-line-light pt-2.5">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--color-line-soft)] pt-2.5">
                       {message.text.length > 200 && (
                         <button
-                          onClick={() => handleSendMessage(STILL_CONFUSED_PROMPT)}
+                          onClick={() => handleSendMessage(t(STILL_CONFUSED_KEY))}
                           disabled={isGenerating}
                           className={STILL_FUZZY_PILL}
                           id={`btn-reexplain-${message.id}`}
-                          title="Explain it again, a different way, as many times as you need"
+                          title={t("action.stillFuzzyTitle")}
                         >
-                          <Sparkles size={12} className="shrink-0" /> Still fuzzy?
+                          <Sparkles size={12} className="shrink-0" /> {t("chat.stillFuzzy")}
                         </button>
                       )}
                       {canGoDeep(message) && (
@@ -1351,9 +1368,9 @@ export default function App() {
                           disabled={isGenerating}
                           className={ACTION_PILL}
                           id={`btn-deepdive-${message.id}`}
-                          title="Open the full study view: the exam-ready answer plus the nine-part notebook"
+                          title={t("action.goDeeperTitle")}
                         >
-                          <BookOpen size={12} className="shrink-0" /> Go deeper
+                          <BookOpen size={12} className="shrink-0" /> {t("chat.goDeeper")}
                         </button>
                       )}
                       {message.text.length > 200 && message.verification !== "passed" && message.verification !== "checking" && (
@@ -1362,9 +1379,9 @@ export default function App() {
                           disabled={isGenerating}
                           className={ACTION_PILL}
                           id={`btn-deepcheck-${message.id}`}
-                          title="A second examiner pass double-checks the facts and calculations in this answer"
+                          title={t("action.deepCheckTitle")}
                         >
-                          <CheckCircle2 size={12} className="shrink-0" /> Deep-check
+                          <CheckCircle2 size={12} className="shrink-0" /> {t("chat.deepCheck")}
                         </button>
                       )}
                       {message.verification !== "checking" && (
@@ -1374,19 +1391,19 @@ export default function App() {
                           disabled={savingSelection}
                           className={ACTION_PILL}
                           id={`btn-savelines-${message.id}`}
-                          title="Select the lines that made it click, then save them to your Pre-exam notebook"
+                          title={t("action.saveLinesTitle")}
                         >
-                          <BookMarked size={12} className="shrink-0" /> Save lines
+                          <BookMarked size={12} className="shrink-0" /> {t("chat.saveLines")}
                         </button>
                       )}
                       <button
                         onClick={() => handleSpeak(message.id, message.text)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-all shrink-0 cursor-pointer sm:ms-auto ${
-                          playingMessageId === message.id ? "bg-editorial-sage text-white" : "bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-sage border border-editorial-line-light"
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer sm:ms-auto ${
+                          playingMessageId === message.id ? "bg-[var(--color-sea)] text-white" : "bg-[var(--color-sand)] hover:bg-[var(--color-sea-soft)] text-[var(--color-sea)] border border-[var(--color-line-soft)]"
                         }`}
                         id={`btn-tts-${message.id}`}
                       >
-                        {playingMessageId === message.id ? <><VolumeX size={12} className="shrink-0" /> Mute</> : <><Volume2 size={12} className="shrink-0" /> Listen</>}
+                        {playingMessageId === message.id ? <><VolumeX size={12} className="shrink-0" /> {t("chat.mute")}</> : <><Volume2 size={12} className="shrink-0" /> {t("chat.listen")}</>}
                       </button>
                     </div>
                   )}
@@ -1396,7 +1413,7 @@ export default function App() {
 
             {/* Facts fill the wait until the first streamed token arrives. */}
             {isGenerating && !chatHistory.some((m) => m.streaming || m.verification === "checking") && (
-              <SmartFactsLoader seedMessage={[...chatHistory].reverse().find((m) => m.role === "user")?.text || ""} />
+              <SmartFactsLoader t={t} seedMessage={[...chatHistory].reverse().find((m) => m.role === "user")?.text || ""} />
             )}
 
             <div ref={chatEndRef} />
@@ -1408,17 +1425,18 @@ export default function App() {
               {attachments.map((att, i) => (
                 <div key={i} className="relative group">
                   {att.isImage ? (
-                    <img src={att.dataUrl} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-editorial-line" />
+                    <img src={att.dataUrl} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-[var(--color-line)]" />
                   ) : (
-                    <div className="h-16 w-16 flex flex-col items-center justify-center gap-1 rounded-lg border border-editorial-line bg-white text-editorial-sage px-1">
+                    <div className="h-16 w-16 flex flex-col items-center justify-center gap-1 rounded-lg border border-[var(--color-line)] bg-white text-[var(--color-sea)] px-1">
                       <FileText size={18} />
-                      <span className="text-[8px] text-editorial-charcoal/60 truncate w-full text-center">{att.name}</span>
+                      <span className="text-[8px] text-[var(--color-ink-soft)] truncate w-full text-center font-latin">{att.name}</span>
                     </div>
                   )}
                   <button
                     onClick={() => removeAttachment(i)}
-                    className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-editorial-charcoal text-white flex items-center justify-center hover:bg-red-700 transition-colors"
-                    title="Remove"
+                    className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-[var(--color-ink)] text-white flex items-center justify-center hover:bg-[var(--color-red)] transition-colors"
+                    title={t("input.remove")}
+                    aria-label={t("input.remove")}
                   >
                     <X size={11} />
                   </button>
@@ -1436,25 +1454,25 @@ export default function App() {
               // still reviewing: the corrected final answer replaces it.
               return m?.role === "model" && !m.streaming && m.verification !== "checking";
             })() && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-editorial-sage/40 bg-editorial-sage/5 px-4 py-2.5">
-                <p className="min-w-0 flex-1 truncate text-xs italic text-editorial-charcoal/70">
-                  "{selSave.text.slice(0, 90)}
-                  {selSave.text.length > 90 ? "…" : ""}"
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-sea)]/40 bg-[var(--color-sea-soft)] px-4 py-2.5">
+                <p className="min-w-0 flex-1 truncate text-xs text-[var(--color-ink-soft)]">
+                  «{selSave.text.slice(0, 90)}
+                  {selSave.text.length > 90 ? "…" : ""}»
                 </p>
                 <button
                   onMouseDown={(e) => e.preventDefault() /* keep the selection alive */}
                   onClick={() => saveSelectionToNotebook()}
                   disabled={savingSelection}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-editorial-sage px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 cursor-pointer motion-safe:active:scale-[0.97]"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--color-sea)] px-4 py-2 text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-60 cursor-pointer motion-safe:active:scale-[0.97]"
                   id="btn-save-selection"
                 >
-                  <BookMarked size={13} /> {savingSelection ? "Saving…" : "Save lines"}
+                  <BookMarked size={13} /> {savingSelection ? t("common.saving") : t("common.saveLines")}
                 </button>
               </div>
             )}
 
           {/* Input */}
-          <div className="mt-3 bg-white border border-editorial-line rounded-2xl p-2 flex items-center gap-1.5 shadow-sm focus-within:border-editorial-sage focus-within:ring-1 focus-within:ring-editorial-sage/30 transition-all">
+          <div className="mt-3 bg-white border border-[var(--color-line)] rounded-2xl p-2 flex items-center gap-1.5 shadow-sm focus-within:border-[var(--color-sea)] focus-within:ring-1 focus-within:ring-[var(--color-sea)]/30 transition-all">
             <input
               ref={fileInputRef}
               type="file"
@@ -1466,8 +1484,9 @@ export default function App() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isGenerating || attachments.length >= MAX_ATTACHMENTS}
-              title="Upload an image or file"
-              className="w-11 h-11 flex items-center justify-center rounded-full text-editorial-charcoal/50 hover:bg-editorial-stone hover:text-editorial-sage transition-colors shrink-0 disabled:opacity-30 cursor-pointer motion-safe:active:scale-[0.96]"
+              title={t("input.upload")}
+              aria-label={t("input.upload")}
+              className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)] transition-colors shrink-0 disabled:opacity-30 cursor-pointer motion-safe:active:scale-[0.96]"
               id="btn-upload"
             >
               <Paperclip size={18} />
@@ -1478,19 +1497,19 @@ export default function App() {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               onPaste={handlePaste}
-              placeholder="Ask anything, or paste / upload a photo of a question…"
-              className="flex-1 px-2 py-2 bg-transparent text-editorial-charcoal focus:outline-none text-sm md:text-base placeholder-editorial-charcoal/30"
+              placeholder={t("chat.placeholder")}
+              className="flex-1 px-2 py-2 bg-transparent text-[var(--color-ink)] focus:outline-none text-sm md:text-base placeholder-[var(--color-ink-soft)]/50"
               disabled={isGenerating}
               id="input-chat"
             />
             <button
               onClick={isLiveActive ? stopLiveSession : startLiveSession}
-              title={isLiveActive ? "Stop the voice session" : "Talk to Faheem with your voice"}
-              aria-label={isLiveActive ? "Stop the voice session" : "Talk to Faheem with your voice"}
+              title={isLiveActive ? t("input.voiceStop") : t("input.voiceStart")}
+              aria-label={isLiveActive ? t("input.voiceStop") : t("input.voiceStart")}
               className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors shrink-0 cursor-pointer motion-safe:active:scale-[0.96] ${
                 isLiveActive
-                  ? "bg-editorial-sage text-white hover:bg-editorial-sage/90"
-                  : "text-editorial-charcoal/50 hover:bg-editorial-stone hover:text-editorial-sage"
+                  ? "bg-[var(--color-sea)] text-white hover:bg-[var(--color-sea)]/90"
+                  : "text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)]"
               }`}
               id="btn-voice"
             >
@@ -1498,10 +1517,12 @@ export default function App() {
             </button>
             <button
               onClick={() => handleSendMessage()}
-              className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 cursor-pointer motion-safe:transition-all motion-safe:active:scale-[0.96] ${
+              title={t("common.send")}
+              aria-label={t("common.send")}
+              className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 cursor-pointer motion-safe:transition-transform motion-safe:active:scale-[0.96] ${
                 isGenerating
-                  ? "bg-editorial-sage/70 text-white"
-                  : "bg-editorial-sage hover:bg-editorial-sage/90 text-white disabled:bg-transparent disabled:text-editorial-sage/40 disabled:border disabled:border-editorial-sage/25"
+                  ? "bg-[var(--color-red)]/70 text-white"
+                  : "bg-[var(--color-red)] hover:bg-[var(--color-red-deep)] text-white disabled:bg-transparent disabled:text-[var(--color-red)]/40 disabled:border disabled:border-[var(--color-red)]/25"
               }`}
               disabled={isGenerating || (!inputText.trim() && attachments.length === 0)}
               id="btn-send-chat"
@@ -1513,31 +1534,31 @@ export default function App() {
       </div>
 
       {/* Mobile bottom nav: 2 view tabs + the Pre-exam notebook overlay */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-editorial-line bg-editorial-ivory/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-[var(--color-line)] bg-[var(--color-pearl)]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
         {([
-          { k: "study", label: "Study Log", icon: <MessageSquare size={18} /> },
-          { k: "chat", label: "Chat", icon: <Sparkles size={18} /> }
-        ] as const).map((t) => (
+          { k: "study", label: t("nav.studyLog"), icon: <MessageSquare size={18} /> },
+          { k: "chat", label: t("nav.chat"), icon: <Sparkles size={18} /> }
+        ] as const).map((tab) => (
           <button
-            key={t.k}
-            onClick={() => setMobileView(t.k)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium border-t-2 transition-colors ${
-              mobileView === t.k
-                ? "text-editorial-sage border-editorial-sage bg-editorial-sage/8"
-                : "text-editorial-charcoal/70 border-transparent hover:text-editorial-charcoal"
+            key={tab.k}
+            onClick={() => setMobileView(tab.k)}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold border-t-2 transition-colors ${
+              mobileView === tab.k
+                ? "text-[var(--color-red)] border-[var(--color-red)] bg-[var(--color-red)]/8"
+                : "text-[var(--color-ink-soft)] border-transparent hover:text-[var(--color-ink)]"
             }`}
           >
-            {t.icon}
-            {t.label}
+            {tab.icon}
+            {tab.label}
           </button>
         ))}
         <button
           onClick={() => setNotebookOpen(true)}
-          className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium border-t-2 border-transparent text-editorial-charcoal/70 hover:text-editorial-charcoal transition-colors"
+          className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold border-t-2 border-transparent text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors"
           id="tab-notebook"
         >
           <BookMarked size={18} />
-          Notebook
+          {t("nav.notebook")}
         </button>
       </nav>
 
@@ -1563,7 +1584,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0, x: "-50%" }}
             exit={{ opacity: 0, y: -8, x: "-50%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-editorial-charcoal px-5 py-2.5 text-center text-xs text-white shadow-lg"
+            className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-[var(--color-ink)] px-5 py-2.5 text-center text-xs text-[var(--color-chalk)] shadow-lg"
           >
             {toast}
           </motion.div>
@@ -1589,45 +1610,45 @@ export default function App() {
       {/* Preferences modal */}
       <AnimatePresence>
         {isEditingProfile && (
-          <div className="fixed inset-0 bg-[#1e1e1a]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-[var(--color-night)]/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
-              className="bg-editorial-ivory border border-editorial-line w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
+              className="bg-[var(--color-pearl)] border border-[var(--color-line)] w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
-                  <Settings size={18} className="text-editorial-sage" />
-                  <h3 className="text-base font-serif font-medium text-editorial-charcoal">Study Preferences</h3>
+                  <Settings size={18} className="text-[var(--color-sea)]" />
+                  <h3 className="text-base font-bold text-[var(--color-ink)]">{t("prefs.title")}</h3>
                 </div>
-                <button onClick={() => setIsEditingProfile(false)} className="text-editorial-charcoal/40 hover:text-editorial-charcoal text-2xl cursor-pointer leading-none">&times;</button>
+                <button onClick={() => setIsEditingProfile(false)} aria-label={t("common.close")} className="text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] text-2xl cursor-pointer leading-none">&times;</button>
               </div>
 
               <form onSubmit={handleSaveProfile} className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-editorial-charcoal/70">My name</label>
+                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.myName")}</label>
                   <input
                     type="text"
                     required
                     value={editProfileForm.name}
                     onChange={(e) => setEditProfileForm({ ...editProfileForm, name: e.target.value })}
-                    className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-editorial-sage text-editorial-charcoal"
+                    className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] text-[var(--color-ink)]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Board / Exam</label>
-                    <select value={editProfileForm.board} onChange={(e) => setEditProfileForm({ ...editProfileForm, board: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
+                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.boardExam")}</label>
+                    <select value={editProfileForm.board} onChange={(e) => setEditProfileForm({ ...editProfileForm, board: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
                       <option value="Bahrain MoE">Bahrain MoE</option>
                       <option value="CBSE">CBSE</option>
                       <option value="Cambridge">Cambridge</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Grade / Level</label>
-                    <select value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
+                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.gradeLevel")}</label>
+                    <select value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
                       <option value="Grade 9">Grade 9</option>
                       <option value="Grade 10">Grade 10</option>
                       <option value="Grade 11">Grade 11</option>
@@ -1638,29 +1659,29 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Language</label>
-                    <select value={editProfileForm.language} onChange={(e) => setEditProfileForm({ ...editProfileForm, language: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
-                      <option value="Arabic">Arabic</option>
-                      <option value="English">English</option>
+                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.language")}</label>
+                    <select value={editProfileForm.language} onChange={(e) => setEditProfileForm({ ...editProfileForm, language: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
+                      <option value="Arabic">{t("lang.ar")}</option>
+                      <option value="English">{t("lang.en")}</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Preferred analogy</label>
-                    <select value={editProfileForm.preferredAnalogy} onChange={(e) => setEditProfileForm({ ...editProfileForm, preferredAnalogy: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none text-editorial-charcoal">
-                      <option value="Daily Life">Daily Life / Everyday objects</option>
-                      <option value="Sports">Sports / Cricket / Football</option>
-                      <option value="Cooking">Cooking & Kitchen recipes</option>
-                      <option value="Bicycles & Trains">Bicycles, Trains & Transportation</option>
-                      <option value="Mobile Phones & Tech">Mobile Phones, Games & Apps</option>
+                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.preferredAnalogy")}</label>
+                    <select value={editProfileForm.preferredAnalogy} onChange={(e) => setEditProfileForm({ ...editProfileForm, preferredAnalogy: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
+                      <option value="Daily Life">{t("analogy.dailyLife")}</option>
+                      <option value="Sports">{t("analogy.sports")}</option>
+                      <option value="Cooking">{t("analogy.cooking")}</option>
+                      <option value="Bicycles & Trains">{t("analogy.transport")}</option>
+                      <option value="Mobile Phones & Tech">{t("analogy.tech")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-editorial-charcoal/70">Voice (for spoken answers)</label>
+                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.voice")}</label>
                   <div className="grid grid-cols-5 gap-1.5">
                     {(["Kore", "Zephyr", "Puck", "Charon", "Fenrir"] as const).map((vc) => (
-                      <button key={vc} type="button" onClick={() => setSelectedVoice(vc)} className={`py-2 px-1 rounded-full text-[11px] font-medium text-center border transition-colors cursor-pointer ${selectedVoice === vc ? "bg-editorial-sage border-editorial-sage text-white" : "bg-white border-editorial-line-light hover:bg-editorial-stone text-editorial-charcoal"}`}>
+                      <button key={vc} type="button" onClick={() => setSelectedVoice(vc)} className={`py-2 px-1 rounded-full text-[11px] font-medium text-center border transition-colors cursor-pointer font-latin ${selectedVoice === vc ? "bg-[var(--color-sea)] border-[var(--color-sea)] text-white" : "bg-white border-[var(--color-line-soft)] hover:bg-[var(--color-sand)] text-[var(--color-ink)]"}`}>
                         {vc}
                       </button>
                     ))}
@@ -1668,21 +1689,21 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-editorial-charcoal/70">Exam goals</label>
-                  <textarea rows={2} value={editProfileForm.examGoals} onChange={(e) => setEditProfileForm({ ...editProfileForm, examGoals: e.target.value })} className="px-4 py-3 border border-editorial-line rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-editorial-sage resize-none text-editorial-charcoal" />
+                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.examGoals")}</label>
+                  <textarea rows={2} value={editProfileForm.examGoals} onChange={(e) => setEditProfileForm({ ...editProfileForm, examGoals: e.target.value })} className="px-4 py-3 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] resize-none text-[var(--color-ink)]" />
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2">
-                  <button type="button" onClick={() => setIsEditingProfile(false)} className="px-5 py-2.5 border border-editorial-line text-editorial-charcoal hover:bg-editorial-stone rounded-full text-sm transition-colors cursor-pointer">Cancel</button>
-                  <button type="submit" className="px-5 py-2.5 bg-editorial-charcoal hover:bg-editorial-charcoal/90 text-white rounded-full text-sm transition-colors cursor-pointer">Save changes</button>
+                  <button type="button" onClick={() => setIsEditingProfile(false)} className="faheem-btn-ghost px-5 py-2.5 text-sm">{t("common.cancel")}</button>
+                  <button type="submit" className="faheem-btn px-5 py-2.5 text-sm">{t("common.saveChanges")}</button>
                 </div>
 
-                <p className="border-t border-editorial-line-light pt-3 text-center text-[11px] text-editorial-charcoal/70">
-                  Need help with anything, including payments? Write to{" "}
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-editorial-sage underline underline-offset-2 hover:text-editorial-charcoal">
+                <p className="border-t border-[var(--color-line-soft)] pt-3 text-center text-[11px] text-[var(--color-ink-soft)]">
+                  {t("prefs.supportLine")}{" "}
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--color-sea)] underline underline-offset-2 hover:text-[var(--color-ink)] font-latin">
                     {SUPPORT_EMAIL}
                   </a>
-                  . It is the only address we answer.
+                  {t("prefs.supportOnly")}
                 </p>
               </form>
             </motion.div>
@@ -1699,39 +1720,39 @@ export default function App() {
 // out, so the state is honest at a glance without ever nagging. Rendered on
 // EVERY screen size (phones are the primary audience) with a shorter label on
 // small screens, because this is the only voluntary path to plans and usage.
-function UsagePill({ subscription, onClick }: { subscription?: Subscription; onClick: () => void }) {
-  let label = "Plans";
-  let shortLabel = "Plans";
+function UsagePill({ t, subscription, onClick }: { t: TranslateFn; subscription?: Subscription; onClick: () => void }) {
+  let label = t("usage.plans");
+  let shortLabel = t("usage.plans");
   let alert = false;
   if (subscription) {
     const { state, planName, remaining } = subscription;
     if (state === "trial") {
       const left = remaining ?? 0;
-      label = `Trial · ${left} left today`;
-      shortLabel = `${left} today`;
+      label = t("usage.trialLabel", { n: left });
+      shortLabel = t("usage.trialShort", { n: left });
       alert = left <= 0;
     } else if (state === "active") {
-      label = remaining == null ? `${planName} · Unlimited` : `${planName} · ${remaining} left`;
-      shortLabel = remaining == null ? "Unlimited" : `${remaining} left`;
+      label = remaining == null ? t("usage.planUnlimited", { plan: planName }) : t("usage.planLeft", { plan: planName, n: remaining });
+      shortLabel = remaining == null ? t("usage.unlimited") : t("usage.leftShort", { n: remaining });
       alert = remaining != null && remaining <= 0;
     } else {
-      label = state === "plan_expired" ? "Renew plan" : "Choose a plan";
-      shortLabel = state === "plan_expired" ? "Renew" : "Plans";
+      label = state === "plan_expired" ? t("usage.renew") : t("usage.choosePlan");
+      shortLabel = state === "plan_expired" ? t("usage.renewShort") : t("usage.plans");
       alert = true;
     }
   }
   return (
     <button
       onClick={onClick}
-      title="View plans and usage"
+      title={t("usage.viewPlans")}
       id="btn-usage-plan"
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
+      className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
         alert
-          ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-          : "border-editorial-line text-editorial-charcoal/70 hover:bg-editorial-stone"
+          ? "border-[var(--color-gold)]/40 bg-[var(--color-gold)]/12 text-[var(--color-gold)] hover:bg-[var(--color-gold)]/18"
+          : "border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)]"
       }`}
     >
-      <Sparkles size={13} className={alert ? "text-amber-600" : "text-editorial-sage"} />
+      <Sparkles size={13} className={alert ? "text-[var(--color-gold)]" : "text-[var(--color-sea)]"} />
       <span className="whitespace-nowrap hidden md:inline">{label}</span>
       <span className="whitespace-nowrap md:hidden">{shortLabel}</span>
     </button>
@@ -1741,23 +1762,23 @@ function UsagePill({ subscription, onClick }: { subscription?: Subscription; onC
 // Engaging loader: rotates curated "Did you know?" facts (client-only, no model
 // call) while the answer generates. Facts auto-change every 10s and stay until
 // the full answer has been generated.
-function SmartFactsLoader({ seedMessage }: { seedMessage: string }) {
+function SmartFactsLoader({ seedMessage, t }: { seedMessage: string; t: TranslateFn }) {
   const [idx, setIdx] = useState(() => pickFirstFactIndex(seedMessage));
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % STUDY_FACTS.length), 10000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIdx((i) => (i + 1) % STUDY_FACTS.length), 10000);
+    return () => clearInterval(timer);
   }, []);
   const fact = STUDY_FACTS[idx] || FALLBACK_STUDY_FACT;
   return (
     <div className="self-start max-w-[92%] md:max-w-[85%] flex flex-col items-start">
-      <div className="flex items-center gap-2 mb-1.5 text-[11px] text-editorial-sage">
-        <span className="flex h-1.5 w-1.5 rounded-full bg-editorial-sage motion-safe:animate-pulse shrink-0" />
-        Working it out carefully, and checking it before I show you.
+      <div className="flex items-center gap-2 mb-1.5 text-[11px] text-[var(--color-sea)]">
+        <span className="flex h-1.5 w-1.5 rounded-full bg-[var(--color-sea)] motion-safe:animate-pulse shrink-0" />
+        {t("loading.working")}
       </div>
-      <div className="p-4 rounded-2xl bg-editorial-stone/40 border border-editorial-line-light rounded-ss-sm max-w-md">
-        <div className="flex items-center gap-1.5 mb-2 text-editorial-sage">
+      <div className="p-4 rounded-2xl bg-[var(--color-sand)]/50 border border-[var(--color-line-soft)] rounded-ss-sm max-w-md">
+        <div className="flex items-center gap-1.5 mb-2 text-[var(--color-sea)]">
           <Sparkles size={12} />
-          <span className="font-serif italic text-xs">Did you know?</span>
+          <span className="font-bold text-xs">{t("chat.didYouKnow")}</span>
         </div>
         <AnimatePresence mode="wait">
           <motion.p
@@ -1766,7 +1787,7 @@ function SmartFactsLoader({ seedMessage }: { seedMessage: string }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.4 }}
-            className="text-sm text-editorial-charcoal/80 font-serif italic leading-relaxed"
+            className="text-sm text-[var(--color-ink)]/85 leading-relaxed"
           >
             {fact.text}
           </motion.p>

@@ -1,16 +1,18 @@
 /**
- * The landing page's entire motion vocabulary: four reveal treatments,
- * rotated across the acts so no single one repeats often enough to become
- * wallpaper. Everything is transform and opacity, except the four short
- * timestamps which sharpen from a small blur.
+ * The landing page's motion vocabulary. Middle-leaning-energy: crisp
+ * --ease-out reveals on scroll, a light --ease-spring on interactive/proof
+ * accents, calm at the proof moment. Everything is transform + opacity.
  *
  * Reduced-motion visitors and hidden-at-mount renders (useStaticStart) get
- * every element at its final state: the story must read as a static comic.
+ * every element at its final state: the story must read as a static page.
  */
 import { useReducedMotion } from "motion/react";
 import { useStaticStart } from "./useStaticStart";
 
+/** Confident arrival — mirrors --ease-out in index.css. */
 export const EASE = [0.22, 1, 0.36, 1] as const;
+/** Light life on micro-moments — mirrors --ease-spring. */
+export const SPRING = [0.34, 1.4, 0.64, 1] as const;
 
 /** True when the page should skip all entrance choreography. */
 export function useCalm(): boolean {
@@ -24,45 +26,71 @@ export function fadeUp(calm: boolean, delay = 0) {
   return calm
     ? {}
     : {
-        initial: { opacity: 0, y: 14 },
+        initial: { opacity: 0, y: 16 },
         whileInView: { opacity: 1, y: 0 },
         viewport: { once: true, margin: "-12% 0px" },
         transition: { duration: 0.7, delay, ease: EASE },
       };
 }
 
-/** Lit paper: the sheet settles into place while its glow blooms with it. */
-export function sheetRise(calm: boolean) {
+/** A proof surface (the answer sheet / cards) settling into place. */
+export function sheetRise(calm: boolean, delay = 0) {
   return calm
     ? {}
     : {
-        initial: { opacity: 0, y: 12, scale: 0.985 },
+        initial: { opacity: 0, y: 20, scale: 0.985 },
         whileInView: { opacity: 1, y: 0, scale: 1 },
         viewport: { once: true, margin: "-8% 0px" },
-        transition: { duration: 0.6, ease: EASE },
+        transition: { duration: 0.7, delay, ease: EASE },
       };
 }
 
-/** The clock spine: a timestamp arrives out of focus and sharpens. */
-export function stamp(calm: boolean) {
+/**
+ * A chat bubble arriving from its own side. In RTL the tutor sits at the
+ * start (right) and the student replies from the end (left); pass the sign so
+ * each bubble slides in from its own edge along the *inline* axis.
+ */
+export function bubbleIn(calm: boolean, fromX = 18, delay = 0) {
   return calm
     ? {}
     : {
-        initial: { opacity: 0, filter: "blur(4px)" },
-        whileInView: { opacity: 1, filter: "blur(0px)" },
-        viewport: { once: true, margin: "-15% 0px" },
-        transition: { duration: 0.8, ease: "easeOut" as const },
+        initial: { opacity: 0, x: fromX, y: 8 },
+        whileInView: { opacity: 1, x: 0, y: 0 },
+        viewport: { once: true, margin: "-10% 0px" },
+        transition: { duration: 0.6, delay, ease: EASE },
       };
 }
 
-/** Ledger hairlines draw themselves in from the left. */
-export function drawX(calm: boolean) {
+/**
+ * A light spring for interactive / accent beats (the source chip landing, a
+ * number popping). Calm at proof moments means we use this sparingly.
+ */
+export function springIn(calm: boolean, delay = 0) {
   return calm
     ? {}
+    : {
+        initial: { opacity: 0, scale: 0.9 },
+        whileInView: { opacity: 1, scale: 1 },
+        viewport: { once: true, margin: "-10% 0px" },
+        transition: { duration: 0.5, delay, ease: SPRING },
+      };
+}
+
+/**
+ * A hairline that draws itself in along the inline axis. RTL-aware: pass
+ * rtl=true so the origin is the leading (right) edge and it grows toward the
+ * end, matching how the eye scans an Arabic line.
+ */
+export function drawX(calm: boolean, rtl = true) {
+  return calm
+    ? {
+        style: { transformOrigin: rtl ? "right" : "left" } as const,
+      }
     : {
         initial: { scaleX: 0 },
         whileInView: { scaleX: 1 },
         viewport: { once: true, margin: "-10% 0px" },
-        transition: { duration: 0.5, ease: "easeOut" as const },
+        transition: { duration: 0.55, ease: "easeOut" as const },
+        style: { transformOrigin: rtl ? "right" : "left" } as const,
       };
 }
