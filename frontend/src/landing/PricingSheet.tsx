@@ -33,7 +33,7 @@ export default function PricingSheet({ onAuth }: PricingSheetProps) {
             Free while Bahrain teaches us how to teach.
           </h2>
           <p className="landing-pretty mt-5 max-w-2xl text-[15px] leading-relaxed text-editorial-charcoal/70 md:text-base">
-            Fahim is in an open pilot for students in Bahrain, and during the
+            Faheem is in an open pilot for students in Bahrain, and during the
             pilot it costs nothing. No card, no plan to choose, no counting your
             questions. We would rather earn your trust first and worry about the
             rest later.
@@ -70,7 +70,7 @@ export default function PricingSheet({ onAuth }: PricingSheetProps) {
 
           <p className="landing-pretty mt-8 max-w-2xl text-[15px] leading-relaxed text-editorial-charcoal/75">
             For the parent reading this: there is nothing to pay and nothing to
-            cancel. Fahim is free for the length of the pilot. If we ever
+            cancel. Faheem is free for the length of the pilot. If we ever
             introduce a plan, it will be clearly announced, never switched on
             quietly, and never with a countdown offer.
           </p>

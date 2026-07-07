@@ -1,5 +1,5 @@
 /**
- * The Fahim accuracy engine (FR3/FR4 + Section 6), wired into an ask endpoint.
+ * The Faheem accuracy engine (FR3/FR4 + Section 6), wired into an ask endpoint.
  *
  * Flow for one doubt:
  *   1. Resolve the unit + subject (accuracy_type drives the pipeline).
@@ -153,7 +153,7 @@ function buildSystem(subject: CurriculumSubject, grade: string, language: "ar" |
     D: "This is a sensitive subject and must not be answered here.",
   };
   return [
-    `You are Fahim, a patient tutor for a Bahrain school student in grade ${grade || "secondary"}.`,
+    `You are Faheem, a patient tutor for a Bahrain school student in grade ${grade || "secondary"}.`,
     `Teach in ${lang}. Teach the CONCEPT step by step, do not just state the answer.`,
     `Surface important technical terms in English in parentheses after the ${language === "en" ? "term" : "Arabic term"}.`,
     `Ground your explanation ONLY in the REFERENCE MATERIAL provided. Frame the concept the way the curriculum frames it.`,
@@ -174,7 +174,7 @@ const OUT_OF_SYLLABUS_MSG: Record<"ar" | "en", string> = {
 };
 const TYPE_D_MSG: Record<"ar" | "en", string> = {
   ar: "هذه المادة قيد المراجعة من مختص مؤهل ولم تُفعّل بعد. لا يقدّم فهيم أحكامًا أو آراء مستقلة.",
-  en: "This subject is pending review by a qualified specialist and is not enabled yet. Fahim does not give independent rulings or opinions.",
+  en: "This subject is pending review by a qualified specialist and is not enabled yet. Faheem does not give independent rulings or opinions.",
 };
 
 async function logEvent(input: AskInput, subject: CurriculumSubject, r: { groundedness: number | null; verification: Verification; outOfSyllabus: boolean; confidence: Confidence; text: string; latencyMs: number }) {

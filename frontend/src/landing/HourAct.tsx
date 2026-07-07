@@ -1,5 +1,5 @@
 /**
- * Act one: the hour. The page opens at 11:04 pm, the hour Fahim was
+ * Act one: the hour. The page opens at 11:04 pm, the hour Faheem was
  * built for. One phrase, the story's protagonist, drifts across the dark;
  * a thin lamplight glow intrudes from the bottom edge, promising a light
  * source not yet seen. Then the filmstrip: the day that got the student
@@ -126,14 +126,14 @@ export default function HourAct({ onAuth }: HourActProps) {
             >
               11:04 pm.
               <span className="sr-only">
-                {" "}The hour Fahim was built for: a patient AI teacher and doubt solver for Bahrain MoE, CBSE and Cambridge students in grades 9 to 12.
+                {" "}The hour Faheem was built for: a patient AI teacher and doubt solver for Bahrain MoE, CBSE and Cambridge students in grades 9 to 12.
               </span>
             </motion.h1>
             <motion.p
               {...enter(0.95)}
               className="landing-pretty mt-6 max-w-xl text-base leading-relaxed text-chalk-dim md:text-lg"
             >
-              This is the hour Fahim was built for: a patient AI teacher that
+              This is the hour Faheem was built for: a patient AI teacher that
               takes the exact sentence that flew past you in class and explains it
               again, a different way each time, until it lands. Bahrain MoE, CBSE
               and Cambridge, grades 9 to 12.

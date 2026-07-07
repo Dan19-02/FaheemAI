@@ -28,7 +28,7 @@ export interface ChatMessage {
    *  only); "passed" = the examiner pass ran; "unavailable" = it could not
    *  run, so the answer is shown unverified and the UI says so. */
   verification?: "checking" | "passed" | "unavailable";
-  /** Curriculum grounding (Fahim): the MoE/curriculum unit this answer was
+  /** Curriculum grounding (Faheem): the MoE/curriculum unit this answer was
    *  built from, surfaced as a source chip so trust is visible. */
   grounding?: { unitTitle: string; section: string; level: string; groundednessScore: number };
   /** True when the question fell outside the grade's textbook coverage (the

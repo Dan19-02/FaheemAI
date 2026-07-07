@@ -728,7 +728,7 @@ export default function App() {
       setIsLiveActive(true);
 
       ws.onopen = () => {
-        setLiveStatus("Connected. Say hello to Fahim!");
+        setLiveStatus("Connected. Say hello to Faheem!");
         ws.send(JSON.stringify({ type: "start" }));
       };
 
@@ -736,7 +736,7 @@ export default function App() {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === "ready") {
-            setLiveStatus("Fahim is listening to your voice!");
+            setLiveStatus("Faheem is listening to your voice!");
           } else if (msg.type === "audio") {
             if (liveInterruptedRef.current) return;
             playLiveAudioChunk(base64ToFloat32PCM(msg.audio));
@@ -1294,7 +1294,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Curriculum source (Fahim): which MoE/curriculum unit grounded this answer. */}
+                  {/* Curriculum source (Faheem): which MoE/curriculum unit grounded this answer. */}
                   {message.role === "model" && message.grounding && (
                     <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-editorial-sage/10 px-2.5 py-1 text-[11px] font-medium text-editorial-sage">
                       <BookOpen size={12} className="shrink-0" />
@@ -1485,8 +1485,8 @@ export default function App() {
             />
             <button
               onClick={isLiveActive ? stopLiveSession : startLiveSession}
-              title={isLiveActive ? "Stop the voice session" : "Talk to Fahim with your voice"}
-              aria-label={isLiveActive ? "Stop the voice session" : "Talk to Fahim with your voice"}
+              title={isLiveActive ? "Stop the voice session" : "Talk to Faheem with your voice"}
+              aria-label={isLiveActive ? "Stop the voice session" : "Talk to Faheem with your voice"}
               className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors shrink-0 cursor-pointer motion-safe:active:scale-[0.96] ${
                 isLiveActive
                   ? "bg-editorial-sage text-white hover:bg-editorial-sage/90"

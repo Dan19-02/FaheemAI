@@ -384,7 +384,7 @@ CURRENT-INFORMATION MODE, this question asks for a real-world fact that can chan
 
 /** Build the full teaching system prompt (used by /chat and /chat/stream). */
 // The Arabic moat: when the student's language is Arabic, the entire reply must
-// be excellent Modern Standard Arabic. This is Fahim's core quality requirement.
+// be excellent Modern Standard Arabic. This is Faheem's core quality requirement.
 const ARABIC_QUALITY = `
 
 LANGUAGE — ARABIC (this is critical and non-negotiable):

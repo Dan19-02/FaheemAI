@@ -6,7 +6,7 @@
   --font-serif: "Lora", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Arabic-capable UI stack for Fahim. Once a subsetted IBM Plex Sans Arabic
+  /* Arabic-capable UI stack for Faheem. Once a subsetted IBM Plex Sans Arabic
      WOFF2 is dropped into public/fonts and @font-face-declared (see
      public/fonts/README.md), it becomes the first choice; until then the
      platform Arabic fonts below carry the app. NOT loaded via a CDN @import. */

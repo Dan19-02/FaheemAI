@@ -12,7 +12,7 @@ import { useCalm, fadeUp, drawX } from "./reveals";
 const ROWS = [
   {
     title: "The whole answer, or nothing",
-    body: "No word-by-word streaming theatre. Fahim writes the complete answer, checks it, and only then shows it to the student, whole.",
+    body: "No word-by-word streaming theatre. Faheem writes the complete answer, checks it, and only then shows it to the student, whole.",
   },
   {
     title: "Deep-check, a second examiner",
@@ -33,7 +33,7 @@ export default function RegisterSection() {
   const calm = useCalm();
 
   return (
-    <section className="landing-cv landing-cv-register relative bg-night-soft px-4 py-20 md:px-8 md:py-28" aria-label="How Fahim stays honest">
+    <section className="landing-cv landing-cv-register relative bg-night-soft px-4 py-20 md:px-8 md:py-28" aria-label="How Faheem stays honest">
       <div className="relative z-10 mx-auto max-w-6xl">
         <motion.p {...fadeUp(calm)} className="font-serif text-xl italic text-chalk md:text-2xl">
           <span lang="ar" dir="rtl" className="not-italic">وإذا أخطأ؟</span>

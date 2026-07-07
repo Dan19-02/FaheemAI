@@ -1,5 +1,5 @@
 /**
- * Locale + direction provider for Fahim (Arabic-first tutor).
+ * Locale + direction provider for Faheem (Arabic-first tutor).
  *
  * Holds the active UI language ('ar' | 'en') and its writing direction, exposes
  * a flat-key translator `t`, and mirrors the choice onto <html lang> / <html dir>

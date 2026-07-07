@@ -1,5 +1,5 @@
 {
-  "app.name": "Fahim",
+  "app.name": "Faheem",
   "app.tagline": "Your patient teacher, any hour",
 
   "nav.studyLog": "Study Log",
@@ -48,7 +48,7 @@
   "chat.notSureWhere": "Not sure where to start?",
 
   "input.upload": "Upload an image or file",
-  "input.voiceStart": "Talk to Fahim with your voice",
+  "input.voiceStart": "Talk to Faheem with your voice",
   "input.voiceStop": "Stop the voice session",
 
   "study.myLog": "My Study Log",
@@ -70,7 +70,7 @@
   "prefs.voice": "Voice (for spoken answers)",
   "prefs.examGoals": "Exam goals",
 
-  "tutor.title": "Fahim Tutor",
+  "tutor.title": "Faheem Tutor",
   "tutor.subtitle": "Pick your board and unit, then ask. Answers are grounded in the syllabus.",
   "tutor.board": "Board",
   "tutor.grade": "Grade",

@@ -1,4 +1,4 @@
-# Fahim
+# Faheem
 
 Arabic-first, RTL, mobile-first AI tutor grounded in Bahrain's Ministry of Education (MoE)
 national curriculum (grades 7–12), student-facing only. **Accuracy is the product**: every
