@@ -43,15 +43,21 @@
   background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+/* NOTE: these washes use `background-image` (NOT the `background` shorthand) on
+   purpose. The shorthand resets background-color to transparent, which would
+   wipe the section's `bg-[var(--color-night)]` / pearl base and let the light
+   page show through — rendering the "night" sections light and making the
+   near-white chalk text invisible. Layering the glow as background-image keeps
+   the solid base colour underneath. */
 .fh-hero-wash {
   /* Warm dawn-over-the-Gulf: pearl-gold bloom drifting from the top-start. */
-  background:
+  background-image:
     radial-gradient(1100px 620px at 88% -8%, rgba(199, 154, 74, 0.16), transparent 60%),
     radial-gradient(760px 520px at 6% 4%, rgba(14, 124, 110, 0.08), transparent 62%);
 }
 /* The night proof surface gets a cooler sea-glow instead. */
 .fh-night-wash {
-  background:
+  background-image:
     radial-gradient(900px 560px at 84% 0%, rgba(14, 124, 110, 0.22), transparent 60%),
     radial-gradient(700px 520px at 8% 96%, rgba(199, 154, 74, 0.10), transparent 62%);
 }
