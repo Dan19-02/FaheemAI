@@ -281,16 +281,28 @@ The student wants a clear answer NOW. Reply short, precise, and warm:
 
 // The full study view, generated only when the student asks for it (the
 // "Deep understanding" button, or a Chapter Mastery study session).
-const DEEP_MODE_INSTRUCTION = `HOW TO RESPOND (FULLER EXPLANATION MODE)
-The student tapped for more depth. Give a complete but STILL SIMPLE explanation they can revise from later. No rigid template, no "Part A / Part B", no numbered emoji sections, no "Exam-Ready Answer" heading. Write it as one clean, human explanation that naturally covers, in a sensible order:
-- the core idea in one clear line,
-- a plain, step-by-step explanation (define hard words as they appear),
-- ONE everyday example, or a small diagram/table, only if it truly makes it click,
-- the key formula(e) in LaTeX with each symbol and its unit defined, if the topic has any,
-- one fully worked example with real numbers, double-checked, if the topic is computable,
-- the one or two mistakes students usually make here, named kindly,
-- a one-line summary to remember it by.
-Keep it breathable: short paragraphs, **bold** key terms, and a small Markdown table only for a comparison. It must feel easy and complete, never a wall of text. End with ONE real check question the student answers with a thought (never a yes/no "do you understand").`;
+const DEEP_MODE_INSTRUCTION = `HOW TO RESPOND (DEEP UNDERSTANDING MODE, the full study notebook)
+The student tapped for the complete study view. Give TWO things, in this exact order: first the EXAM-READY ANSWER (Part A), then the CONCEPT NOTEBOOK (Part B, nine sections). Keep every part SIMPLE and in the student's language, but use this structure exactly.
+
+PART A: THE EXAM-READY ANSWER (first)
+Begin with the heading "📝" followed by a short title in the student's language (for Arabic: "الإجابة الجاهزة للامتحان"). Then write the complete model answer the student would reproduce in the exam: a precise definition or statement, the key points or steps as a clean list, every formula in LaTeX with each symbol and its unit, and for numericals a fully worked, double-checked solution. Put the key exam terms in **bold**. Board-appropriate, but still clear and simple.
+
+Then a horizontal rule on its own line: ---
+
+PART B: THE CONCEPT NOTEBOOK (second)
+Begin with the heading "📓" and a short title in the student's language (for Arabic: "افهمه بعمق"). Then write these NINE sections, each on its own line, in this EXACT order. KEEP THE NUMBER AND THE EMOJI EXACTLY AS SHOWN (they drive the app's tabbed notebook view); write the short section title in the student's language right after the emoji:
+
+1. 🌟 (Big Idea) one elegant sentence capturing the essence.
+2. 🤔 (Everyday Analogy) one everyday analogy from a Bahraini / Gulf teenager's life that carries the MECHANISM; map each part of the analogy to the concept. If none truly fits, keep the header and walk the smallest concrete case instead.
+3. 📖 (Simple Explanation) plain language, no jargon; define any hard word the moment you use it.
+4. 🖼 (Visual) a Mermaid flowchart in a \`\`\`mermaid block, OR a Markdown table, OR clean labelled ASCII. Follow the diagram rules: plain ASCII arrows (A --> B, never a unicode arrow), every node label in double quotes, keep labels short.
+5. 🧠 (Formal Definition) the proper definition or statement, made accessible. Use LaTeX for ALL math.
+6. ✏ (Worked Example) one fully solved example, each step with its reason, then verify the final answer (units, recompute or plug back).
+7. ⚠ (Common Mistakes) the two or three misconceptions students usually have here, named kindly.
+8. 🎯 (Quick Check Question) ONE question the student must actively answer (never "do you understand?").
+9. 📌 (One-Line Summary) one memorable takeaway sentence.
+
+Never add anything after section 9. Keep every section short and simple: this is a notebook to revise from, not a wall of text.`;
 
 // Heuristic auto-routing: pick the best path when the student leaves it on
 // "Standard" (most never switch). Math/derivations → reasoning ("thinking");

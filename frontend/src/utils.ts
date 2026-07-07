@@ -116,29 +116,34 @@ export interface ParsedTeaching {
 }
 
 export function parseTeachingSections(text: string): ParsedTeaching {
-  // The 9 Clarify notebook sections, identified by emoji + title.
+  // The 9 notebook sections are identified by their EMOJI alone, which is
+  // language-agnostic: the model teaches in Arabic (or English) and titles the
+  // sections in that language, but the emoji is the stable key. Each carries a
+  // fallback label for when the header is just the bare emoji.
   const defs = [
-    { emoji: "🌟", title: "Big Idea" },
-    { emoji: "🤔", title: "Everyday Analogy" },
-    { emoji: "📖", title: "Simple Explanation" },
-    { emoji: "🖼", title: "Visual Representation" },
-    { emoji: "🧠", title: "Formal Definition" },
-    { emoji: "✏", title: "Worked Example" },
-    { emoji: "⚠", title: "Common Mistakes" },
-    { emoji: "🎯", title: "Quick Check Question" },
-    { emoji: "📌", title: "One-Line Summary" }
+    { emoji: "🌟", label: "الفكرة الكبرى" },
+    { emoji: "🤔", label: "مثال من حياتك" },
+    { emoji: "📖", label: "شرح مبسّط" },
+    { emoji: "🖼", label: "تمثيل بصري" },
+    { emoji: "🧠", label: "التعريف الرسمي" },
+    { emoji: "✏", label: "مثال محلول" },
+    { emoji: "⚠", label: "أخطاء شائعة" },
+    { emoji: "🎯", label: "سؤال تحقّق" },
+    { emoji: "📌", label: "ملخّص" },
   ];
 
-  // Locate each header tolerantly: allow optional markdown prefixes (#, *),
-  // optional numbering ("1.", "1)"), surrounding whitespace, and an optional
-  // emoji variation selector. This way the tabbed notebook still renders even
-  // when a model wraps headers in **bold** or ## headings.
+  // Locate each header by its emoji, tolerantly: allow optional markdown prefix
+  // (#, *), optional numbering ("1.", "1)"), whitespace, and an optional emoji
+  // variation selector. Capture the rest of that header line as the section
+  // title (whatever language the model wrote it in), so the tab shows the
+  // Arabic title, not a hardcoded English one.
   const found: { idx: number; headerEnd: number; emoji: string; title: string }[] = [];
   for (const def of defs) {
-    const re = new RegExp(`[#*>\\s]*\\d*\\s*[.)]?\\s*${def.emoji}\\uFE0F?\\s*\\**${def.title}\\**`, "i");
+    const re = new RegExp(`[#*>\\s]*\\d*[.)]?\\s*${def.emoji}\\uFE0F?[ \\t]*([^\\n]*)`);
     const m = re.exec(text);
     if (m) {
-      found.push({ idx: m.index, headerEnd: m.index + m[0].length, emoji: def.emoji, title: def.title });
+      const rawTitle = (m[1] || "").replace(/[*#:>\-=\s]+$/, "").replace(/\*\*/g, "").trim();
+      found.push({ idx: m.index, headerEnd: m.index + m[0].length, emoji: def.emoji, title: rawTitle || def.label });
     }
   }
 

@@ -37,14 +37,16 @@ export default function SiteFooter({ onAuth }: SiteFooterProps) {
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-[12px] leading-relaxed text-[var(--color-chalk-dim)]">
-        © 2026 فهيم <span aria-hidden="true">·</span> لأيّ سؤال، مهما كان:{" "}
+        © 2026 فهيم <span aria-hidden="true">·</span> فهيم منتَجٌ من{" "}
+        <span className="fh-latin font-semibold text-[var(--color-chalk)]">Clarify.AI</span>{" "}
+        <span aria-hidden="true">·</span> لأيّ سؤال أو استفسار، راسلنا على{" "}
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
           className="fh-latin text-[var(--color-chalk-dim)] underline underline-offset-2 transition-colors hover:text-[var(--color-chalk)]"
         >
           {SUPPORT_EMAIL}
-        </a>{" "}
-        — العنوان الوحيد الذي نردّ منه.
+        </a>
+        .
       </p>
     </footer>
   );

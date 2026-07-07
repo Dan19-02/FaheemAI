@@ -21,9 +21,9 @@ export function NotebookViewer({ sections }: NotebookViewerProps) {
       <div className="bg-editorial-stone border border-editorial-line-light border-t-2 border-t-editorial-sage/40 p-3 rounded-xl flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BookOpen size={15} className="text-editorial-sage shrink-0" />
-          <span className="text-xs font-semibold text-editorial-charcoal">Study Notebook</span>
+          <span className="text-xs font-bold text-editorial-charcoal">دفتر المذاكرة</span>
         </div>
-        <span className="text-[10px] text-white font-medium bg-editorial-sage px-2.5 py-0.5 rounded-full">{sections.length} parts</span>
+        <span className="text-[10px] text-white font-medium bg-editorial-sage px-2.5 py-0.5 rounded-full">{sections.length} أجزاء</span>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 items-stretch min-h-[240px] max-w-full">
@@ -33,7 +33,7 @@ export function NotebookViewer({ sections }: NotebookViewerProps) {
               key={idx}
               aria-pressed={activeTabIdx === idx}
               onClick={() => setActiveTabIdx(idx)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-full text-left text-xs font-medium transition-all shrink-0 md:w-full border cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-full text-start text-xs font-medium transition-all shrink-0 md:w-full border cursor-pointer ${
                 activeTabIdx === idx ? "bg-editorial-sage text-white border-editorial-sage" : "bg-transparent text-editorial-charcoal/70 hover:text-editorial-charcoal hover:bg-editorial-stone/50 border-editorial-line-light"
               }`}
             >
@@ -63,10 +63,10 @@ export function NotebookViewer({ sections }: NotebookViewerProps) {
               </div>
 
               <div className="mt-5 pt-3 border-t border-editorial-line-light flex items-center justify-between text-[10px] text-editorial-charcoal/65">
-                <span>Part {activeTabIdx + 1} of {sections.length}</span>
+                <span>الجزء {activeTabIdx + 1} من {sections.length}</span>
                 <div className="flex gap-1.5">
-                  <button disabled={activeTabIdx === 0} onClick={() => setActiveTabIdx((p) => p - 1)} className="px-3 py-1 rounded-full bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-charcoal hover:text-editorial-sage border border-editorial-line-light text-[11px] disabled:opacity-30 cursor-pointer transition-colors">Prev</button>
-                  <button disabled={activeTabIdx === sections.length - 1} onClick={() => setActiveTabIdx((p) => p + 1)} className="px-3 py-1 rounded-full bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-charcoal hover:text-editorial-sage border border-editorial-line-light text-[11px] disabled:opacity-30 cursor-pointer transition-colors">Next</button>
+                  <button disabled={activeTabIdx === 0} onClick={() => setActiveTabIdx((p) => p - 1)} className="px-3 py-1 rounded-full bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-charcoal hover:text-editorial-sage border border-editorial-line-light text-[11px] disabled:opacity-30 cursor-pointer transition-colors">السابق</button>
+                  <button disabled={activeTabIdx === sections.length - 1} onClick={() => setActiveTabIdx((p) => p + 1)} className="px-3 py-1 rounded-full bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-charcoal hover:text-editorial-sage border border-editorial-line-light text-[11px] disabled:opacity-30 cursor-pointer transition-colors">التالي</button>
                 </div>
               </div>
             </motion.div>
