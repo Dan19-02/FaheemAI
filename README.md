@@ -36,11 +36,13 @@ cd frontend && npm install && npm run dev
 
 ## Evaluation
 
-A blind, rubric-based **model bake-off** — 10 Bahraini student personas (Arabic /
-English / bilingual) on real MoE units, answered by 5 models as the Faheem tutor and
-graded by 5 expert personas (incl. a native Arabic teacher) across 250 gradings. The
-Opus 4.8 engine scored **9.0–9.1/10**. Full methodology, results, sample answers, and
-an honest testing-scenario disclaimer: **[EVALUATION.md](./EVALUATION.md)**.
+A blind, rubric-based **head-to-head** — 10 Bahraini student personas (Arabic / English /
+bilingual) on real MoE units, answered by Faheem and by **real frontier models** (Google
+Gemini 3.1 Pro & 2.5 Pro via live API, Claude Opus 4.8), graded blind by 5 expert
+personas (incl. a native Arabic teacher) — 200 gradings. **Faheem ranked #1 (9.0/10),
+winning 43 of 50 gradings** (+1.35 over Gemini 3.1 Pro), leading on curriculum fit,
+pedagogy, sourcing, and Arabic — accuracy was a tie. Full methodology, honest caveats,
+and disclaimer: **[EVALUATION.md](./EVALUATION.md)**.
 
 ## Deploy (Render)
 

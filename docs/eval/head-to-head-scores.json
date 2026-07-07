@@ -1,0 +1,201 @@
+{
+  "leaderboard": [
+    {
+      "sys": "FAHEEM",
+      "name": "Faheem AI (grounded)",
+      "overall": 8.96,
+      "dims": {
+        "accuracy": 9.2,
+        "curriculumAlignment": 9.3,
+        "languageQuality": 8.8,
+        "pedagogy": 9.4,
+        "trustAndSourcing": 8.2
+      },
+      "ar": 9.2,
+      "en": 8.7,
+      "bi": 8.9,
+      "T1": 9.0,
+      "wins": 43
+    },
+    {
+      "sys": "RAW_OPUS",
+      "name": "Claude Opus 4.8 (raw)",
+      "overall": 8.32,
+      "dims": {
+        "accuracy": 9.3,
+        "curriculumAlignment": 8.1,
+        "languageQuality": 8.6,
+        "pedagogy": 8.5,
+        "trustAndSourcing": 7.0
+      },
+      "ar": 8.3,
+      "en": 8.6,
+      "bi": 8.0,
+      "T1": 8.2,
+      "wins": 6
+    },
+    {
+      "sys": "GEMINI_25_PRO",
+      "name": "Gemini 2.5 Pro (raw)",
+      "overall": 8.0,
+      "dims": {
+        "accuracy": 9.2,
+        "curriculumAlignment": 7.8,
+        "languageQuality": 8.3,
+        "pedagogy": 8.0,
+        "trustAndSourcing": 6.7
+      },
+      "ar": 8.2,
+      "en": 7.9,
+      "bi": 7.6,
+      "T1": 8.1,
+      "wins": 1
+    },
+    {
+      "sys": "GEMINI_31_PRO",
+      "name": "Gemini 3.1 Pro (raw)",
+      "overall": 7.61,
+      "dims": {
+        "accuracy": 9.0,
+        "curriculumAlignment": 7.4,
+        "languageQuality": 8.3,
+        "pedagogy": 7.0,
+        "trustAndSourcing": 6.4
+      },
+      "ar": 7.5,
+      "en": 8.2,
+      "bi": 7.1,
+      "T1": 7.7,
+      "wins": 0
+    }
+  ],
+  "perStudent": {
+    "S1": {
+      "FAHEEM": 9.7,
+      "GEMINI_31_PRO": 7.0,
+      "GEMINI_25_PRO": 8.3,
+      "RAW_OPUS": 8.6
+    },
+    "S2": {
+      "FAHEEM": 8.9,
+      "GEMINI_31_PRO": 7.0,
+      "GEMINI_25_PRO": 7.5,
+      "RAW_OPUS": 8.1
+    },
+    "S3": {
+      "FAHEEM": 8.6,
+      "GEMINI_31_PRO": 7.6,
+      "GEMINI_25_PRO": 8.2,
+      "RAW_OPUS": 7.2
+    },
+    "S4": {
+      "FAHEEM": 9.6,
+      "GEMINI_31_PRO": 7.7,
+      "GEMINI_25_PRO": 8.6,
+      "RAW_OPUS": 8.7
+    },
+    "S5": {
+      "FAHEEM": 9.1,
+      "GEMINI_31_PRO": 8.0,
+      "GEMINI_25_PRO": 8.4,
+      "RAW_OPUS": 8.7
+    },
+    "S6": {
+      "FAHEEM": 9.1,
+      "GEMINI_31_PRO": 7.6,
+      "GEMINI_25_PRO": 7.8,
+      "RAW_OPUS": 8.1
+    },
+    "S7": {
+      "FAHEEM": 8.7,
+      "GEMINI_31_PRO": 8.6,
+      "GEMINI_25_PRO": 8.3,
+      "RAW_OPUS": 9.0
+    },
+    "S8": {
+      "FAHEEM": 8.2,
+      "GEMINI_31_PRO": 8.3,
+      "GEMINI_25_PRO": 7.8,
+      "RAW_OPUS": 8.7
+    },
+    "S9": {
+      "FAHEEM": 8.9,
+      "GEMINI_31_PRO": 6.8,
+      "GEMINI_25_PRO": 7.6,
+      "RAW_OPUS": 8.4
+    },
+    "S10": {
+      "FAHEEM": 8.8,
+      "GEMINI_31_PRO": 7.3,
+      "GEMINI_25_PRO": 7.6,
+      "RAW_OPUS": 7.6
+    }
+  },
+  "deltas": {
+    "g31": 1.35,
+    "g25": 0.96
+  },
+  "labelMapping": {
+    "S1": {
+      "A": "FAHEEM",
+      "B": "GEMINI_31_PRO",
+      "C": "GEMINI_25_PRO",
+      "D": "RAW_OPUS"
+    },
+    "S2": {
+      "A": "GEMINI_31_PRO",
+      "B": "GEMINI_25_PRO",
+      "C": "RAW_OPUS",
+      "D": "FAHEEM"
+    },
+    "S3": {
+      "A": "GEMINI_25_PRO",
+      "B": "RAW_OPUS",
+      "C": "FAHEEM",
+      "D": "GEMINI_31_PRO"
+    },
+    "S4": {
+      "A": "RAW_OPUS",
+      "B": "FAHEEM",
+      "C": "GEMINI_31_PRO",
+      "D": "GEMINI_25_PRO"
+    },
+    "S5": {
+      "A": "FAHEEM",
+      "B": "GEMINI_31_PRO",
+      "C": "GEMINI_25_PRO",
+      "D": "RAW_OPUS"
+    },
+    "S6": {
+      "A": "GEMINI_31_PRO",
+      "B": "GEMINI_25_PRO",
+      "C": "RAW_OPUS",
+      "D": "FAHEEM"
+    },
+    "S7": {
+      "A": "GEMINI_25_PRO",
+      "B": "RAW_OPUS",
+      "C": "FAHEEM",
+      "D": "GEMINI_31_PRO"
+    },
+    "S8": {
+      "A": "RAW_OPUS",
+      "B": "FAHEEM",
+      "C": "GEMINI_31_PRO",
+      "D": "GEMINI_25_PRO"
+    },
+    "S9": {
+      "A": "FAHEEM",
+      "B": "GEMINI_31_PRO",
+      "C": "GEMINI_25_PRO",
+      "D": "RAW_OPUS"
+    },
+    "S10": {
+      "A": "GEMINI_31_PRO",
+      "B": "GEMINI_25_PRO",
+      "C": "RAW_OPUS",
+      "D": "FAHEEM"
+    }
+  },
+  "note": "Faheem=Opus4.8+product spec; Gemini via live Google API (gemini-3.1-pro-preview, gemini-2.5-pro); blind rotated packets; 5 teacher personas; 200 gradings."
+}
