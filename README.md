@@ -34,6 +34,14 @@ npm run dev                                          # uses in-memory DB if DATA
 cd frontend && npm install && npm run dev
 ```
 
+## Deploy (Render)
+
+The repo ships a [`render.yaml`](./render.yaml) Blueprint that provisions the whole
+stack — PostgreSQL + Node API + static SPA — in one step. See **[DEPLOY.md](./DEPLOY.md)**
+for the full walkthrough (required `GEMINI_API_KEY`, URL wiring, and curriculum
+seeding). Quick version: Render Dashboard → **New → Blueprint** → connect this repo →
+**Apply**, then set `GEMINI_API_KEY` on the backend.
+
 ## Accuracy engine (in progress)
 
 - **Grounding:** unit-scoped RAG over the real MoE corpus, hard-filtered by a stable `unit_id`.
