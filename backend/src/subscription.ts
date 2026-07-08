@@ -6,10 +6,10 @@
  * again. There is no auto-debit. The Razorpay wiring lives in billing.ts.
  *
  * The trial: every account joins on a 'trial' plan good for 7 days, with 10
- * questions a day (reset at midnight IST), never more. After the trial they
- * must hold an active paid pass to keep asking. Buying ANY plan ends the free
- * tier immediately and permanently (activatePlan clamps trial_ends_at): from
- * that moment the paid plan is the only quota.
+ * questions a day (reset at midnight Bahrain time), never more. After the
+ * trial they must hold an active paid pass to keep asking. Buying ANY plan
+ * ends the free tier immediately and permanently (activatePlan clamps
+ * trial_ends_at): from that moment the paid plan is the only quota.
  *
  * Metering: one *new* question costs one credit. Follow-ups in the same thread,
  * "still fuzzy" re-explains, "deep understanding" notebooks, and deep-checks are
@@ -23,17 +23,17 @@ export type PlanId = "trial" | "starter" | "regular" | "unlimited";
 export interface PlanDef {
   id: Exclude<PlanId, "trial">;
   name: string;
-  price: number; // rupees, for display
-  amountPaise: number; // what Razorpay charges
+  price: number; // Bahraini dinar (BHD) per month, for display
+  amountFils: number; // smallest unit a processor charges (1 BHD = 1000 fils)
   monthlyQueries: number | null; // null = unlimited
   blurb: string;
 }
 
 /** The three paid plans (must match the landing page PricingSection). */
 export const PLANS: PlanDef[] = [
-  { id: "starter", name: "Starter", price: 199, amountPaise: 19_900, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
-  { id: "regular", name: "Regular", price: 499, amountPaise: 49_900, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
-  { id: "unlimited", name: "Unlimited", price: 999, amountPaise: 99_900, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
+  { id: "starter", name: "Starter", price: 1.9, amountFils: 1_900, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
+  { id: "regular", name: "Regular", price: 3.9, amountFils: 3_900, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
+  { id: "unlimited", name: "Unlimited", price: 5.9, amountFils: 5_900, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
 ];
 
 export const PLAN_BY_ID: Record<string, PlanDef> = Object.fromEntries(PLANS.map((p) => [p.id, p]));
@@ -45,18 +45,18 @@ export const PASS_DAYS = 30;
 export const RENEW_WINDOW_DAYS = 3;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // India is UTC+5:30, no DST.
+const BAHRAIN_OFFSET_MS = 3 * 60 * 60 * 1000; // Bahrain is UTC+3, no DST.
 
-/** Today's calendar date in India (YYYY-MM-DD), so the daily reset is IST midnight. */
-export function istDateKey(nowMs = Date.now()): string {
-  return new Date(nowMs + IST_OFFSET_MS).toISOString().slice(0, 10);
+/** Today's calendar date in Bahrain (YYYY-MM-DD), so the daily reset is Bahrain midnight. */
+export function bahrainDateKey(nowMs = Date.now()): string {
+  return new Date(nowMs + BAHRAIN_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** ISO timestamp of the next IST midnight (when the daily trial quota refreshes). */
-export function nextIstMidnight(nowMs = Date.now()): string {
-  const shifted = new Date(nowMs + IST_OFFSET_MS);
-  shifted.setUTCHours(24, 0, 0, 0); // next midnight, read in the shifted (IST) frame
-  return new Date(shifted.getTime() - IST_OFFSET_MS).toISOString();
+/** ISO timestamp of the next Bahrain midnight (when the daily trial quota refreshes). */
+export function nextBahrainMidnight(nowMs = Date.now()): string {
+  const shifted = new Date(nowMs + BAHRAIN_OFFSET_MS);
+  shifted.setUTCHours(24, 0, 0, 0); // next midnight, read in the shifted (Bahrain) frame
+  return new Date(shifted.getTime() - BAHRAIN_OFFSET_MS).toISOString();
 }
 
 export type SubState = "trial" | "active" | "trial_expired" | "plan_expired";
@@ -129,8 +129,8 @@ export function resolveEntitlement(row: any, used: number, nowMs = Date.now()): 
       used,
       remaining: remainingOf(TRIAL_DAILY_QUERIES, used),
       periodType: "day",
-      periodKey: `d:${istDateKey(nowMs)}`,
-      resetAt: nextIstMidnight(nowMs),
+      periodKey: `d:${bahrainDateKey(nowMs)}`,
+      resetAt: nextBahrainMidnight(nowMs),
       trialEndsAt: iso(trialEnds),
       planExpiresAt: iso(planExpires),
     };
@@ -232,12 +232,18 @@ function chargedRecently(userId: number, message: string): boolean {
   return Boolean(exp && exp > Date.now());
 }
 function markCharged(userId: number, message: string): void {
-  const now = Date.now();
-  recentlyCharged.set(dedupKey(userId, message), now + DEDUP_TTL_MS);
-  if (recentlyCharged.size > 5000) {
-    for (const [k, v] of recentlyCharged) if (v <= now) recentlyCharged.delete(k);
-  }
+  recentlyCharged.set(dedupKey(userId, message), Date.now() + DEDUP_TTL_MS);
 }
+
+// Every charged question adds a key that only the size-guard used to evict,
+// so a long-lived process leaked the map slowly. Sweep expired entries on a
+// timer instead; unref() keeps the timer from holding the process open.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, expiresAt] of recentlyCharged) {
+    if (expiresAt <= now) recentlyCharged.delete(key);
+  }
+}, 10 * 60_000).unref();
 
 /**
  * Gate a NEW question and charge one credit. Callers must only invoke this for a

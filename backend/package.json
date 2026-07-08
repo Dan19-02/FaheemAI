@@ -7,14 +7,16 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.cjs",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/index.cjs",
-    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "npm run test:unit && npm run test:db && npm run test:subscription",
+    "test:unit": "node --import tsx --test \"src/*.spec.ts\"",
     "test:db": "tsx src/db.test.ts",
     "test:subscription": "tsx src/subscription.test.ts",
     "seed:curriculum": "tsx scripts/curriculum/seed.ts"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
-    "axios": "^1.6.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -25,16 +27,19 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.0",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.1",
+    "eslint": "^10.6.0",
     "pg-mem": "^3.0.14",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0"
   }
 }

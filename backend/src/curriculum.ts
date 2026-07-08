@@ -1,10 +1,11 @@
 /**
- * FR1 — student context selection, served from the curriculum spine.
+ * FR1: student context selection, served from the curriculum spine.
  * Read-only, unauthenticated for the pilot (no student data here, just the
  * public curriculum tree). Cascades: board -> grade -> subject -> unit.
  */
 import express from "express";
 import { pool, listGrades, listSubjects, listUnits, corpusChunkCountForUnit } from "./db.js";
+import { sendServerError } from "./logger.js";
 
 const BOARD_LABELS: Record<string, string> = {
   moe: "Bahrain MoE (National)",
@@ -25,7 +26,7 @@ curriculumRouter.get("/curriculum/boards", async (_req, res) => {
       .map((b) => ({ board: b, label: BOARD_LABELS[b] || b }));
     res.json({ boards });
   } catch (e: any) {
-    res.status(500).json({ error: e?.message || "failed" });
+    sendServerError(res, e, "curriculum.boards", "Could not load the boards. Please try again.");
   }
 });
 
@@ -36,7 +37,7 @@ curriculumRouter.get("/curriculum/grades", async (req, res) => {
     const grades = (await listGrades(pool, board)).map((g) => ({ gradeId: g.gradeId, labelEn: g.labelEn, indiaEquiv: g.indiaEquiv }));
     res.json({ grades });
   } catch (e: any) {
-    res.status(500).json({ error: e?.message || "failed" });
+    sendServerError(res, e, "curriculum.grades", "Could not load the grades. Please try again.");
   }
 });
 
@@ -53,7 +54,7 @@ curriculumRouter.get("/curriculum/subjects", async (req, res) => {
     }));
     res.json({ subjects });
   } catch (e: any) {
-    res.status(500).json({ error: e?.message || "failed" });
+    sendServerError(res, e, "curriculum.subjects", "Could not load the subjects. Please try again.");
   }
 });
 
@@ -74,6 +75,6 @@ curriculumRouter.get("/curriculum/units", async (req, res) => {
     );
     res.json({ units: withCorpus });
   } catch (e: any) {
-    res.status(500).json({ error: e?.message || "failed" });
+    sendServerError(res, e, "curriculum.units", "Could not load the units. Please try again.");
   }
 });

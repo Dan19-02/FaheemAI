@@ -1,6 +1,6 @@
 /**
  * Phase 3 end-to-end test: prove the accuracy engine works on real corpus.
- *   1. Unit-test the deterministic verifier (verify.ts) — no API.
+ *   1. Unit-test the deterministic verifier (verify.ts), no API.
  *   2. Seed structure + NCERT Class-10-Science chapter 1 (with embeddings).
  *   3. askTutor on a GROUNDED question (Arabic) -> grounded, sourced, verified.
  *   4. askTutor on an OFF-SYLLABUS question -> flagged, not answered.

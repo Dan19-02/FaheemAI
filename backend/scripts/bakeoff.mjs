@@ -1,16 +1,17 @@
 /**
  * Bake-off regression harness: sends the same student questions through the
- * REAL local backend (auth → /api/chat → RAG → auto-routing → MiniMax), and
- * optionally through raw models with no teaching prompt, so any prompt change
- * can be judged against "every other AI" before it ships.
+ * REAL local backend (auth → /api/chat → grounding → auto-routing → Gemini),
+ * and optionally through raw Gemini with no teaching prompt, so any prompt
+ * change can be judged against "every other AI" before it ships.
  *
  * Usage:
- *   node scripts/bakeoff.mjs            # Clarify answers via the local server
- *   node scripts/bakeoff.mjs --raw      # also raw MiniMax / Gemini baselines
+ *   node scripts/bakeoff.mjs            # answers via the local server
+ *   node scripts/bakeoff.mjs --raw      # also the raw Gemini baseline
  *   node scripts/bakeoff.mjs --tag v2   # label the output files
  *
  * Requires the backend running locally (npm run dev) and backend/.env keys.
  * Output: scripts/bakeoff-out/<tag>--<label>.md (one file per answer).
+ * The archived evidence from past runs lives in docs/eval/bakeoff-out/.
  */
 import fs from "fs";
 import path from "path";
@@ -102,21 +103,6 @@ async function login() {
   }
 }
 
-async function callRawNim(model, question, signal) {
-  const resp = await fetch(`${env.OPENSOURCE_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.OPENSOURCE_API_KEY}` },
-    body: JSON.stringify({ model, messages: [{ role: "user", content: question }], max_tokens: 8192, stream: false }),
-    signal,
-  });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).slice(0, 300)}`);
-  const data = await resp.json();
-  const msg = data.choices?.[0]?.message;
-  const text = msg?.content || msg?.reasoning_content;
-  if (!text) throw new Error("empty response");
-  return text;
-}
-
 async function callRawGemini(question, signal) {
   const resp = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
@@ -145,12 +131,17 @@ const jobs = CASES.map((c) =>
   })
 );
 if (RAW) {
-  for (const [qKey, q] of [
-    ["q1-refraction", Q1],
-    ["q2-tower-numerical", Q2],
-  ]) {
-    jobs.push(timed(`${qKey}--raw-minimax-m3`, (s) => callRawNim(env.OPENSOURCE_MODEL, q, s)));
-    jobs.push(timed(`${qKey}--raw-gemini-3.5-flash`, (s) => callRawGemini(q, s)));
+  // MiniMax/NIM raw baselines were removed with the open-source backend; only
+  // the raw Gemini baseline remains, and it needs the key to be configured.
+  if (!env.GEMINI_API_KEY) {
+    console.warn("--raw skipped: GEMINI_API_KEY missing from backend/.env");
+  } else {
+    for (const [qKey, q] of [
+      ["q1-refraction", Q1],
+      ["q2-tower-numerical", Q2],
+    ]) {
+      jobs.push(timed(`${qKey}--raw-gemini-3.5-flash`, (s) => callRawGemini(q, s)));
+    }
   }
 }
 

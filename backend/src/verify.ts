@@ -5,7 +5,7 @@
  * (final value + the givens + an arithmetic expression that should reproduce it).
  * We recompute that expression HERE with a tiny safe evaluator and compare to the
  * stated final value. Only agreement earns verification:'verified'. An LLM never
- * sets 'verified' — it can't independently check its own arithmetic.
+ * sets 'verified': it can't independently check its own arithmetic.
  *
  * This is v1: it covers numeric/arithmetic answers (the common Type-A case). A
  * symbolic CAS (SymPy sandbox) is the next hardening step for proofs/derivations;

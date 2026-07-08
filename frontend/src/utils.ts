@@ -14,16 +14,19 @@ export function float32ToInt16PCM(float32Array: Float32Array): ArrayBuffer {
 }
 
 /**
- * Encodes an ArrayBuffer to standard base64 format.
+ * Encodes an ArrayBuffer to standard base64 format. Converted in 32K chunks:
+ * one String.fromCharCode call per byte froze the main thread on the long
+ * audio buffers the live-voice session produces.
  */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = "";
   const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const CHUNK = 0x8000;
+  const parts: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const slice = bytes.subarray(i, i + CHUNK);
+    parts.push(String.fromCharCode.apply(null, slice as unknown as number[]));
   }
-  return window.btoa(binary);
+  return window.btoa(parts.join(""));
 }
 
 /**
@@ -133,13 +136,15 @@ export function parseTeachingSections(text: string): ParsedTeaching {
   ];
 
   // Locate each header by its emoji, tolerantly: allow optional markdown prefix
-  // (#, *), optional numbering ("1.", "1)"), whitespace, and an optional emoji
-  // variation selector. Capture the rest of that header line as the section
-  // title (whatever language the model wrote it in), so the tab shows the
-  // Arabic title, not a hardcoded English one.
+  // (#, *, >, -), optional numbering ("1.", "1)"), bold markers, bidi marks,
+  // and an optional emoji variation selector. Anchored to the START of a line
+  // ("^" with the m flag) so the same emoji used mid-sentence is never mistaken
+  // for a header. Capture the rest of that header line as the section title
+  // (whatever language the model wrote it in), so the tab shows the Arabic
+  // title, not a hardcoded English one.
   const found: { idx: number; headerEnd: number; emoji: string; title: string }[] = [];
   for (const def of defs) {
-    const re = new RegExp(`[#*>\\s]*\\d*[.)]?\\s*${def.emoji}\\uFE0F?[ \\t]*([^\\n]*)`);
+    const re = new RegExp(`^[-#*>\\u200E\\u200F\\t ]*\\d*[.)]?[*\\u200E\\u200F\\t ]*${def.emoji}\\uFE0F?[ \\t]*([^\\n]*)`, "m");
     const m = re.exec(text);
     if (m) {
       const rawTitle = (m[1] || "").replace(/[*#:>\-=\s]+$/, "").replace(/\*\*/g, "").trim();

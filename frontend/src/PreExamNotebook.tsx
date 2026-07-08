@@ -1,17 +1,18 @@
 /**
  * The Pre-exam notebook: every line the student chose to keep, auto-filed by
- * subject and chapter, with one AI-written revision sheet ("Clarify notes")
+ * subject and chapter, with one AI-written revision sheet ("Faheem notes")
  * per chapter. Opens as a full-screen overlay on every device.
  *
  * Locked state (trial, Starter, lapsed pass): saving has been quietly working
  * all along, so the lock screen shows how many points are already waiting,
  * with a calm path to the plans. Nothing is ever deleted while locked.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { X, BookMarked, ChevronRight, ArrowLeft, Trash2, Loader2, Sparkles, Lock, RefreshCw } from "lucide-react";
 import { api } from "./api";
 import type { NotebookSummary, NotebookEntry, ClarifyNote, Subscription } from "./types";
 import { Markdown } from "./Markdown";
+import { useLocale } from "./i18n/LocaleContext";
 
 interface PreExamNotebookProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface PreExamNotebookProps {
 type Level = { view: "subjects" } | { view: "chapters"; subject: string } | { view: "points"; subject: string; chapter: string };
 
 export default function PreExamNotebook({ open, onClose, subscription, onUpgrade }: PreExamNotebookProps) {
+  const { t, lang } = useLocale();
   const [summary, setSummary] = useState<NotebookSummary | null>(null);
   const [level, setLevel] = useState<Level>({ view: "subjects" });
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
@@ -49,9 +51,54 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
     api
       .getNotebook()
       .then(setSummary)
-      .catch((e) => setError(e?.message || "Could not open your notebook."))
+      .catch((e) => setError(e?.message || t("notebook.openError")))
       .finally(() => setLoading(false));
+    // t is stable per language; reloading on a language flip would discard state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, subscription?.plan, subscription?.state]);
+
+  // ---- Focus management: move focus in on open, restore it on close ----
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The overlay is in the DOM by the time this effect runs, so focus it
+    // synchronously; a deferred (rAF) focus can silently never land.
+    overlayRef.current?.focus();
+    return () => {
+      previousFocus.current?.focus();
+    };
+  }, [open]);
+
+  // Simple trap: Escape closes, Tab cycles inside the overlay.
+  const onOverlayKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const root = overlayRef.current;
+    if (!root) return;
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    ).filter((el) => !el.hasAttribute("disabled"));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey) {
+      if (active === first || active === root) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   const openChapter = async (subject: string, chapter: string) => {
     const seq = ++reqSeq.current;
@@ -67,7 +114,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
       setEntries(data.entries);
       setNote(data.note);
     } catch (e: any) {
-      if (seq === reqSeq.current) setError(e?.message || "Could not load this chapter.");
+      if (seq === reqSeq.current) setError(e?.message || t("notebook.loadChapterError"));
     } finally {
       if (seq === reqSeq.current) setLoading(false);
     }
@@ -93,7 +140,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
       if (seq !== reqSeq.current) return; // navigated away: never paint into another chapter
       setNote(fresh);
     } catch (e: any) {
-      if (seq === reqSeq.current) setError(e?.message || "Could not prepare your notes. Please try again.");
+      if (seq === reqSeq.current) setError(e?.message || t("notebook.notesError"));
     } finally {
       if (seq === reqSeq.current) setNotesBusy(false);
     }
@@ -109,17 +156,27 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
     else if (level.view === "chapters") setLevel({ view: "subjects" });
   };
 
+  const dateLocale = lang === "ar" ? "ar-BH" : "en-GB";
+
   return (
-    <div className="fixed inset-0 z-[55] flex flex-col bg-editorial-ivory" role="dialog" aria-modal="true" aria-label="Pre-exam notebook">
+    <div
+      className="fixed inset-0 z-[55] flex flex-col bg-editorial-ivory outline-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("notebook.title")}
+      ref={overlayRef}
+      tabIndex={-1}
+      onKeyDown={onOverlayKeyDown}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-editorial-line bg-editorial-ivory px-4 py-3 md:px-8">
         {level.view !== "subjects" && !summary?.locked ? (
           <button
             onClick={back}
-            aria-label="Back"
+            aria-label={t("common.back")}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/60 transition-colors hover:bg-editorial-stone cursor-pointer"
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={15} className="rtl:rotate-180" />
           </button>
         ) : (
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
@@ -128,19 +185,19 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
         )}
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-serif text-lg italic text-editorial-charcoal">
-            {level.view === "points" ? level.chapter : level.view === "chapters" ? level.subject : "Pre-exam notebook"}
+            {level.view === "points" ? level.chapter : level.view === "chapters" ? level.subject : t("notebook.title")}
           </h2>
           <p className="truncate text-[11px] text-editorial-charcoal/70">
             {level.view === "subjects"
-              ? "The lines you chose to keep, filed and ready for revision."
+              ? t("notebook.subtitleSubjects")
               : level.view === "chapters"
-              ? "Your chapters in this subject."
-              : `${level.subject} · your saved points`}
+              ? t("notebook.subtitleChapters")
+              : t("notebook.subtitlePoints", { subject: level.subject })}
           </p>
         </div>
         <button
           onClick={onClose}
-          aria-label="Close the notebook"
+          aria-label={t("notebook.close")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/50 transition-colors hover:bg-editorial-stone cursor-pointer"
           id="btn-notebook-close"
         >
@@ -153,12 +210,14 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
         <div className="mx-auto max-w-3xl">
           {loading && (
             <div className="flex items-center justify-center gap-2 py-16 text-sm text-editorial-charcoal/60">
-              <Loader2 size={15} className="animate-spin" /> Opening your notebook…
+              <Loader2 size={15} className="animate-spin" /> {t("notebook.opening")}
             </div>
           )}
 
           {error && (
-            <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs leading-relaxed text-red-700">{error}</p>
+            <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs leading-relaxed text-red-700">
+              {error}
+            </p>
           )}
 
           {/* Locked: calm, honest, shows the value already waiting. */}
@@ -169,20 +228,16 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               </div>
               <h3 className="font-serif text-2xl italic text-editorial-charcoal">
                 {summary.savedCount > 0
-                  ? `${summary.savedCount} saved point${summary.savedCount === 1 ? "" : "s"} waiting for you.`
-                  : "Your revision shelf, ready when you are."}
+                  ? t("notebook.lockedWaiting", { n: summary.savedCount })
+                  : t("notebook.lockedReady")}
               </h3>
-              <p className="text-sm leading-relaxed text-editorial-charcoal/70">
-                Keep saving the lines that make things click; they are filed safely under their subject and chapter.
-                The Pre-exam notebook opens on the Regular and Unlimited plans, with Clarify notes that turn your
-                points into one revision sheet per chapter.
-              </p>
+              <p className="text-sm leading-relaxed text-editorial-charcoal/70">{t("notebook.lockedBody")}</p>
               <button
                 onClick={onUpgrade}
                 className="rounded-full bg-editorial-charcoal px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
                 id="btn-notebook-upgrade"
               >
-                See the plans
+                {t("notebook.seePlans")}
               </button>
             </div>
           )}
@@ -193,11 +248,8 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               {(summary.subjects?.length || 0) === 0 ? (
                 <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-14 text-center">
                   <BookMarked size={26} className="text-editorial-sage" />
-                  <h3 className="font-serif text-xl italic text-editorial-charcoal">Nothing saved yet.</h3>
-                  <p className="text-sm leading-relaxed text-editorial-charcoal/70">
-                    When an answer makes something click, select the lines you want to keep and tap Save lines.
-                    They will file themselves here, ready for revision.
-                  </p>
+                  <h3 className="font-serif text-xl italic text-editorial-charcoal">{t("notebook.emptyTitle")}</h3>
+                  <p className="text-sm leading-relaxed text-editorial-charcoal/70">{t("notebook.emptyBody")}</p>
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -205,15 +257,15 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                     <button
                       key={s.subject}
                       onClick={() => setLevel({ view: "chapters", subject: s.subject })}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white p-5 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white p-5 text-start transition-all hover:border-editorial-sage/40 cursor-pointer"
                     >
                       <div>
                         <h3 className="font-serif text-lg italic text-editorial-charcoal">{s.subject}</h3>
                         <p className="mt-1 text-xs text-editorial-charcoal/70">
-                          {s.chapters.length} chapter{s.chapters.length === 1 ? "" : "s"} · {s.count} point{s.count === 1 ? "" : "s"}
+                          {t("notebook.chaptersCount", { n: s.chapters.length })} · {t("notebook.pointsCount", { n: s.count })}
                         </p>
                       </div>
-                      <ChevronRight size={16} className="shrink-0 text-editorial-charcoal/35" />
+                      <ChevronRight size={16} className="shrink-0 text-editorial-charcoal/35 rtl:rotate-180" />
                     </button>
                   ))}
                 </div>
@@ -228,72 +280,65 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                 <button
                   key={c.chapter}
                   onClick={() => openChapter(level.subject, c.chapter)}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white px-5 py-4 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white px-5 py-4 text-start transition-all hover:border-editorial-sage/40 cursor-pointer"
                 >
                   <div>
                     <h4 className="text-sm font-semibold text-editorial-charcoal">{c.chapter}</h4>
                     <p className="mt-0.5 text-[11px] text-editorial-charcoal/70">
-                      {c.count} saved point{c.count === 1 ? "" : "s"}
+                      {t("notebook.savedPointsCount", { n: c.count })}
                     </p>
                   </div>
-                  <ChevronRight size={15} className="shrink-0 text-editorial-charcoal/35" />
+                  <ChevronRight size={15} className="shrink-0 text-editorial-charcoal/35 rtl:rotate-180" />
                 </button>
               ))}
             </div>
           )}
 
-          {/* One chapter: Clarify notes + the saved points */}
+          {/* One chapter: Faheem notes + the saved points */}
           {!loading && level.view === "points" && (
             <div className="flex flex-col gap-5">
-              {/* Clarify notes */}
+              {/* Faheem notes */}
               <div className="rounded-2xl border border-editorial-line bg-white p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="flex items-center gap-1.5 text-sm font-semibold text-editorial-charcoal">
-                    <Sparkles size={14} className="text-editorial-sage" /> Clarify notes
+                    <Sparkles size={14} className="text-editorial-sage" /> {t("notebook.clarifyNotes")}
                   </h3>
                   <button
                     onClick={() => makeNotes(level.subject, level.chapter)}
                     disabled={notesBusy || entries.length === 0 || (note !== null && !note.stale)}
                     className="flex items-center gap-1.5 rounded-full bg-editorial-sage px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                     id="btn-clarify-notes"
-                    title={
-                      note && !note.stale
-                        ? "These notes already cover all your saved points"
-                        : "Turn your saved points into one revision sheet"
-                    }
+                    title={note && !note.stale ? t("notebook.notesUpToDateTitle") : t("notebook.notesMakeTitle")}
                   >
                     {notesBusy ? (
                       <>
-                        <Loader2 size={13} className="animate-spin" /> Preparing…
+                        <Loader2 size={13} className="animate-spin" /> {t("notebook.preparing")}
                       </>
                     ) : note ? (
                       <>
-                        <RefreshCw size={13} /> {note.stale ? "Refresh notes" : "Up to date"}
+                        <RefreshCw size={13} /> {note.stale ? t("notebook.refreshNotes") : t("notebook.upToDate")}
                       </>
                     ) : (
-                      <>Clarify notes</>
+                      <>{t("notebook.clarifyNotes")}</>
                     )}
                   </button>
                 </div>
                 {notesBusy && (
                   <p className="mt-3 text-xs leading-relaxed text-editorial-charcoal/70">
-                    Turning your {entries.length} saved point{entries.length === 1 ? "" : "s"} into one revision
-                    sheet. This takes a moment; the full sheet appears at once.
+                    {t("notebook.notesBusyBody", { n: entries.length })}
                   </p>
                 )}
                 {note && !notesBusy && (
                   <div className="mt-4 border-t border-editorial-line-light pt-4 text-sm leading-relaxed text-editorial-charcoal">
                     <Markdown>{note.text}</Markdown>
                     <p className="mt-3 text-[10px] text-editorial-charcoal/60">
-                      Prepared {new Date(note.generatedAt).toLocaleString()}
-                      {note.stale ? " · you have saved new points since, refresh when ready" : ""}
+                      {t("notebook.notesPrepared", { date: new Date(note.generatedAt).toLocaleString(dateLocale) })}
+                      {note.stale ? t("notebook.notesStale") : ""}
                     </p>
                   </div>
                 )}
                 {!note && !notesBusy && (
-                  <p className="mt-3 text-xs leading-relaxed text-editorial-charcoal/70">
-                    One tap turns everything you saved in this chapter into a single marks-style revision sheet.
-                  </p>
+                  <p className="mt-3 text-xs leading-relaxed text-editorial-charcoal/70">{t("notebook.notesEmptyBody")}</p>
                 )}
               </div>
 
@@ -302,7 +347,9 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                 {entries.map((e) => (
                   <div key={e.id} className="group rounded-2xl border border-editorial-line-light bg-white p-4">
                     {e.question && (
-                      <p className="mb-1.5 text-[11px] italic text-editorial-charcoal/60">from: "{e.question.slice(0, 120)}"</p>
+                      <p className="mb-1.5 text-[11px] italic text-editorial-charcoal/60">
+                        {t("notebook.entryFrom", { q: e.question.slice(0, 120) })}
+                      </p>
                     )}
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1 text-sm leading-relaxed text-editorial-charcoal">
@@ -310,8 +357,8 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                       </div>
                       <button
                         onClick={() => removeEntry(e.id)}
-                        title="Remove this point"
-                        aria-label="Remove this point"
+                        title={t("notebook.removePoint")}
+                        aria-label={t("notebook.removePoint")}
                         className="shrink-0 rounded-full p-1.5 text-editorial-charcoal/30 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
                       >
                         <Trash2 size={13} />
@@ -320,7 +367,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                   </div>
                 ))}
                 {entries.length === 0 && !loading && (
-                  <p className="py-6 text-center text-sm text-editorial-charcoal/70">No points left in this chapter.</p>
+                  <p className="py-6 text-center text-sm text-editorial-charcoal/70">{t("notebook.noPointsLeft")}</p>
                 )}
               </div>
             </div>

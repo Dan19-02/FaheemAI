@@ -1,80 +1,51 @@
 // Load env FIRST (before db/ai/auth modules read process.env at import time).
 import "dotenv/config";
 
-import express from "express";
-import cors from "cors";
 import http from "http";
-import { initDb, dbMode } from "./db.js";
-import { authRouter } from "./auth.js";
-import { aiRouter, attachLiveWebSocket } from "./ai.js";
-// FAHIM(v2): Razorpay billing is DORMANT (no monetization in the Bahrain pilot).
-// The billing module is kept in the tree but is NOT mounted, so /billing/* and the
-// Razorpay webhook are off the critical path. Re-mount here if monetization returns.
-// import { billingRouter, razorpayWebhookHandler } from "./billing.js";
-import { notebookRouter } from "./notebook.js";
-import { ingestKnowledge } from "./knowledge.js";
-// FAHIM accuracy engine + curriculum (FR1). Public read + ask for the pilot.
-import { curriculumRouter } from "./curriculum.js";
-import { tutorRouter } from "./tutor.js";
+import { initDb, dbMode, pool } from "./db.js";
+import { buildApp } from "./app.js";
+import { attachLiveWebSocket } from "./ai.js";
+import { log } from "./logger.js";
 
-const app = express();
-
-// CORS_ORIGIN may be a single origin, a comma-separated list (apex + www +
-// the Render preview URL), or "*". A list is matched exactly per request.
-const corsOrigins = (process.env.CORS_ORIGIN || "*")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-app.use(
-  cors({
-    origin: corsOrigins.includes("*")
-      ? "*"
-      : (origin, cb) => {
-          // Allow same-origin / server-to-server (no Origin header) and any listed origin.
-          if (!origin || corsOrigins.includes(origin)) return cb(null, true);
-          return cb(new Error(`Origin ${origin} not allowed by CORS`));
-        },
-  })
-);
-// FAHIM(v2): Razorpay webhook unmounted (billing dormant). Was:
-// app.post("/api/billing/webhook", express.raw({ type: "*/*" }), razorpayWebhookHandler);
-
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-// db reports which engine is live ("postgres" | "memory") so a production
-// instance that silently lost its real database is detectable from outside.
-app.get("/api/health", (_req, res) => res.json({ ok: true, db: dbMode }));
-app.use("/api", authRouter);
-// FAHIM(v2): app.use("/api", billingRouter);  // billing dormant, unmounted
-app.use("/api", curriculumRouter);
-app.use("/api", tutorRouter);
-app.use("/api", notebookRouter);
-app.use("/api", aiRouter);
+// The full HTTP surface (CORS, body-limit tiering, health route, routers)
+// lives in app.ts so tests can build the same app without a listener.
+const app = buildApp();
 
 const PORT = Number(process.env.PORT) || 4000;
 const server = http.createServer(app);
 attachLiveWebSocket(server);
 
-// await initDb();
-// server.listen(PORT, () => console.log(`Clarify.AI backend running on http://localhost:${PORT}`));
-
-// // Seed the RAG knowledge base in the background (doesn't block startup).
-// ingestKnowledge().catch((e) => console.warn("[RAG] ingest error:", e.message));
-
 async function start() {
   await initDb();
 
   server.listen(PORT, () => {
-    console.log(`Clarify.AI backend running on http://localhost:${PORT}`);
+    log.info("Faheem backend running", { port: PORT, db: dbMode });
   });
-
-  ingestKnowledge().catch((e) =>
-    console.warn("[RAG] ingest error:", e.message)
-  );
 }
 
 start().catch((err) => {
-  console.error("Startup failed:", err);
+  log.error("startup failed", { err: String(err?.message || err) });
   process.exit(1);
 });
+
+// Graceful shutdown: stop accepting connections, drain in-flight requests,
+// end the pool best-effort. The forced-exit timer covers a wedged connection
+// (an SSE stream that never closes) so a deploy can never hang indefinitely.
+let shuttingDown = false;
+function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log.info("shutting down", { signal });
+  const force = setTimeout(() => {
+    log.warn("forced exit: open connections did not drain in time");
+    process.exit(1);
+  }, 10_000);
+  force.unref();
+  server.close(() => {
+    Promise.resolve(pool?.end?.())
+      .catch(() => {})
+      .finally(() => process.exit(0));
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

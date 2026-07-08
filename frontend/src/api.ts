@@ -12,6 +12,8 @@ import type {
   NotebookSummary,
   NotebookEntry,
   ClarifyNote,
+  GroundingSource,
+  Attachment,
 } from "./types";
 // DEV-ONLY preview harness; the reference below sits inside an
 // `import.meta.env.DEV` branch so production builds tree-shake it out.
@@ -44,6 +46,19 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+// Session-expiry hook: when a request comes back 401 while we HELD a token,
+// the token is dead (expired or revoked). Clearing localStorage alone is not
+// enough, the signed-in UI would keep rendering against a dead session, so
+// AuthContext registers a callback here to drop the account immediately.
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(cb: (() => void) | null) {
+  onUnauthorized = cb;
+}
+function handleUnauthorized(hadToken: boolean) {
+  setToken(null);
+  if (hadToken) onUnauthorized?.();
+}
+
 export interface Account {
   id: number;
   email: string;
@@ -55,8 +70,9 @@ export interface Account {
 export interface PlanInfo {
   id: "starter" | "regular" | "unlimited";
   name: string;
+  /** BHD for display; the backend charges amountFils (1 BHD = 1000 fils). */
   price: number;
-  amountPaise: number;
+  amountFils: number;
   monthlyQueries: number | null;
   blurb: string;
 }
@@ -92,7 +108,14 @@ export interface SignupInput {
   confidenceLevel: number;
 }
 
-async function request<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+/** The error payload every backend route uses for a non-2xx response. */
+interface ErrorBody {
+  error?: string;
+  code?: string;
+  subscription?: Subscription;
+}
+
+async function request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -100,29 +123,75 @@ async function request<T = any>(path: string, options: RequestInit = {}): Promis
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  // const res = await fetch(`/api${path}`, { ...options, headers });
   const res = await fetch(`${API_BASE}/api${path}`, {
   ...options,
   headers,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // Token rejected → clear it so the app drops back to the login screen.
-    if (res.status === 401) setToken(null);
+    // Token rejected: clear it and tell AuthContext, so the app drops back to
+    // the login screen instead of a zombie workspace where every call fails.
+    if (res.status === 401) handleUnauthorized(Boolean(token));
+    const err = (data ?? {}) as ErrorBody;
     throw new ApiError(
-      (data as any).error || `Request failed (${res.status})`,
+      err.error || `Request failed (${res.status})`,
       res.status,
-      (data as any).code,
-      (data as any).subscription
+      err.code,
+      err.subscription
     );
   }
   return data as T;
 }
 
+/** Curriculum grounding chip attached to an answer (same shape the UI stores
+ *  on ChatMessage.grounding). */
+export type ChatGrounding = NonNullable<ChatMessage["grounding"]>;
+
+/** Everything /chat and /chat/stream accept. All fields beyond the message
+ *  are optional; the backend fills sensible defaults. */
+export interface ChatRequestBody {
+  message: string;
+  history?: { role: string; text: string }[];
+  mode?: string;
+  board?: string;
+  grade?: string;
+  language?: string;
+  preferredAnalogy?: string;
+  /** Study-log topics that personalize the answer (kept out of shared caches). */
+  recentTopics?: string[];
+  deep?: boolean;
+  deepVerify?: boolean;
+  images?: { data: string; mimeType: string }[];
+}
+
+/** The /chat response payload. */
+export interface ChatResponse {
+  text: string;
+  sources: GroundingSource[];
+  cached?: boolean;
+  verification?: "passed" | "unavailable";
+  grounding?: ChatGrounding;
+  outOfSyllabus?: boolean;
+}
+
 export type ChatStreamResult =
-  | { kind: "done"; text: string; sources: any[]; verification?: "passed" | "unavailable"; grounding?: any; outOfSyllabus?: boolean }
+  | { kind: "done"; text: string; sources: GroundingSource[]; verification?: "passed" | "unavailable"; grounding?: ChatGrounding; outOfSyllabus?: boolean }
   | { kind: "fallback"; reason: string }
   | { kind: "paywall"; error: string; subscription?: Subscription };
+
+/** One SSE frame from /chat/stream; the shape is owned by the backend
+ *  (ai.ts emits these), so parsing trusts it after the JSON.parse guard. */
+interface StreamFrame {
+  type: "delta" | "checking" | "done" | "fallback" | "paywall" | "error";
+  text?: string;
+  sources?: GroundingSource[];
+  verification?: "passed" | "unavailable";
+  grounding?: ChatGrounding;
+  outOfSyllabus?: boolean;
+  reason?: string;
+  error?: string;
+  subscription?: Subscription;
+}
 
 /**
  * Streaming chat (SSE over fetch, POST /chat/stream). onDelta receives each
@@ -132,7 +201,7 @@ export type ChatStreamResult =
  * the plain /chat endpoint. Throws on network or server errors.
  */
 async function chatStream(
-  body: any,
+  body: ChatRequestBody,
   onDelta: (chunk: string) => void,
   onChecking: () => void
 ): Promise<ChatStreamResult> {
@@ -141,8 +210,13 @@ async function chatStream(
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}/api/chat/stream`, { method: "POST", headers, body: JSON.stringify(body) });
-  if (res.status === 401) setToken(null);
-  if (!res.ok || !res.body) throw new Error(`Stream request failed (${res.status})`);
+  if (res.status === 401) handleUnauthorized(Boolean(token));
+  if (!res.ok || !res.body) {
+    // Read the server's error body so the real reason (quota, validation,
+    // maintenance) reaches the UI instead of a bare status code.
+    const data = (await res.json().catch(() => ({}))) as ErrorBody;
+    throw new ApiError(data.error || `Stream request failed (${res.status})`, res.status, data.code, data.subscription);
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -156,7 +230,7 @@ async function chatStream(
     for (const frame of frames) {
       const line = frame.split("\n").find((l) => l.startsWith("data:"));
       if (!line) continue;
-      let msg: any;
+      let msg: StreamFrame;
       try {
         msg = JSON.parse(line.slice(5).trim());
       } catch {
@@ -164,7 +238,7 @@ async function chatStream(
       }
       if (msg.type === "delta" && typeof msg.text === "string") onDelta(msg.text);
       else if (msg.type === "checking") onChecking();
-      else if (msg.type === "done") return { kind: "done", text: msg.text, sources: msg.sources || [], verification: msg.verification, grounding: msg.grounding, outOfSyllabus: msg.outOfSyllabus };
+      else if (msg.type === "done") return { kind: "done", text: msg.text || "", sources: msg.sources || [], verification: msg.verification, grounding: msg.grounding, outOfSyllabus: msg.outOfSyllabus };
       else if (msg.type === "fallback") return { kind: "fallback", reason: msg.reason || "" };
       else if (msg.type === "paywall") return { kind: "paywall", error: msg.error || "", subscription: msg.subscription };
       else if (msg.type === "error") throw new Error(msg.error || "Stream error");
@@ -208,7 +282,7 @@ export const api = {
     request<{ messages: ChatMessage[] }>(`/conversations/${conversationId}/messages`),
   addMessage: (
     conversationId: string,
-    msg: { id: string; role: string; text: string; mode?: string; sources?: any[]; attachments?: any[] }
+    msg: { id: string; role: string; text: string; mode?: string; sources?: GroundingSource[]; attachments?: Attachment[] }
   ) => request(`/conversations/${conversationId}/messages`, { method: "POST", body: JSON.stringify(msg) }),
   /** Unwind an optimistically saved question that the paywall blocked. */
   deleteMessage: (conversationId: string, messageId: string) =>
@@ -226,8 +300,16 @@ export const api = {
   generateClarifyNotes: (subject: string, chapter: string) =>
     request<ClarifyNote>("/notebook/notes", { method: "POST", body: JSON.stringify({ subject, chapter }) }),
 
-  chat: (body: any) =>
-    request<{ text: string; sources: any[]; cached?: boolean; verification?: "passed" | "unavailable"; grounding?: any; outOfSyllabus?: boolean }>("/chat", {
+  /** Translated VIEW of stored messages, for the language toggle. The server
+   *  caches by content hash, so flipping back and forth costs one call each
+   *  way per message, ever. Stored text is never rewritten. */
+  translate: (body: { target: "ar" | "en"; items: { id: string; text: string }[] }) =>
+    request<{ translations: Record<string, string> }>("/chat/translate", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  chat: (body: ChatRequestBody) =>
+    request<ChatResponse>("/chat", {
       method: "POST",
       body: JSON.stringify(body),
     }),

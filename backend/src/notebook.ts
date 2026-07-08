@@ -12,9 +12,8 @@
  * locked summary with their saved-point count. A lapsed pass read-locks the
  * notebook, it never deletes anything.
  *
- * Model split follows the house strategy: Gemini Flash for the tiny
- * classification tool-call (fast, cheap, runs async after save), MiniMax for
- * the Clarify notes generation with Gemini as the fallback, same as chat.
+ * Everything here generates on Gemini Flash: a tiny classification call (fast,
+ * cheap, runs async after save) and the notes synthesis with extended thinking.
  */
 import { Router } from "express";
 import type { Request, Response } from "express";
@@ -22,7 +21,8 @@ import crypto from "crypto";
 import { requireAuth } from "./auth.js";
 import { ai, apiKey } from "./gemini.js";
 import { ThinkingLevel } from "@google/genai";
-import { rateLimit } from "./ai.js";
+import { rateLimit } from "./ratelimit.js";
+import { callExternal } from "./resilience.js";
 import {
   pool,
   getUserById,
@@ -85,7 +85,7 @@ function canonicalSubject(raw: string): string {
 
 /** Chapter labels stay short, single-line, and reuse the student's existing ones. */
 function cleanChapter(raw: string, existing: { subject: string; chapter: string }[], subject: string): string {
-  let chapter = (raw || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  const chapter = (raw || "").replace(/\s+/g, " ").trim().slice(0, 60);
   if (!chapter) return "Unsorted";
   const match = existing.find(
     (e) => e.subject === subject && e.chapter.toLowerCase() === chapter.toLowerCase()
@@ -120,7 +120,7 @@ async function classifyEntry(
       .slice(0, 60)
       .join("\n");
 
-    const prompt = `You are a librarian for an Indian student's revision notebook (board: ${board || "CBSE"}, level: ${grade || "school"}).
+    const prompt = `You are a librarian for a school student's revision notebook in Bahrain (board: ${board || "Bahrain MoE"}, level: ${grade || "school"}).
 File this saved study snippet under exactly one subject and one chapter.
 
 RULES:
@@ -159,7 +159,7 @@ ${text.slice(0, 1500)}`;
 
 /** The Clarify notes writer prompt: one marks-style revision sheet per chapter. */
 function notesSystemInstruction(profile: { board?: string; grade?: string; language?: string }): string {
-  return `You are Clarify.AI, writing a PRE-EXAM REVISION SHEET for an Indian student (board: ${profile.board || "CBSE"}, level: ${profile.grade || "school"}, language preference: ${profile.language || "English"}).
+  return `You are Faheem, writing a PRE-EXAM REVISION SHEET for a school student in Bahrain (board: ${profile.board || "Bahrain MoE"}, level: ${profile.grade || "school"}, language preference: ${profile.language || "Arabic"}).
 
 You will receive the exact lines the student personally saved from past answers because those lines made the concept click for them. Turn them into ONE tight, structured revision sheet they can read the night before the exam.
 
@@ -177,7 +177,7 @@ Three to six memorable single-sentence takeaways for last-minute revision.
 
 HARD RULES:
 - Build ONLY on the student's saved points. You may complete a formula or tighten a definition for accuracy, but never introduce unrelated new topics.
-- Match the student's language preference (keep technical terms accurate in English even in Hindi or Hinglish).
+- Match the student's language preference (keep technical terms accurate, surfacing the English term in parentheses when writing in Arabic).
 - Concise and marks-focused: this is a revision sheet, not a lesson. No preamble, no closing chatter.
 - NEVER use an em dash (U+2014) or an en dash (U+2013) anywhere. Use commas, colons, periods, or parentheses instead.`;
 }
@@ -396,17 +396,21 @@ notebookRouter.post("/notebook/notes", requireAuth, async (req: Request, res: Re
 
       // Clarify notes run on Gemini Flash, same brain as normal chat answers
       // (the MiniMax-first path was retired on the all_models_set_to_gemini
-      // branch).
+      // branch). callExternal adds the hard timeout + shared "gemini" breaker.
       if (!apiKey) throw new Error("notes-unavailable");
       const t0 = Date.now();
       console.log(`[GEMINI_NOTES] start (chapter=${chapter})`);
-      const resp = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [{ role: "user", parts: [{ text: userContent }] }],
-        // Extended thinking: revision sheets are a synthesis task (dedupe,
-        // structure, marks-focus), which benefits from the HIGH gear.
-        config: { systemInstruction: system, temperature: 0.4, thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } },
-      });
+      const resp = await callExternal(
+        () =>
+          ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: [{ role: "user", parts: [{ text: userContent }] }],
+            // Extended thinking: revision sheets are a synthesis task (dedupe,
+            // structure, marks-focus), which benefits from the HIGH gear.
+            config: { systemInstruction: system, temperature: 0.4, thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } },
+          }),
+        { label: "gemini.notes", dependency: "gemini", timeoutMs: Math.max(5_000, Number(process.env.NOTES_TIMEOUT_MS) || 60_000), retries: 0 }
+      );
       const text = resp.text || null;
       console.log(`[GEMINI_NOTES] end - ${((Date.now() - t0) / 1000).toFixed(1)}s (${text ? text.length + " chars" : "EMPTY"})`);
       if (!text) throw new Error("notes-unavailable");

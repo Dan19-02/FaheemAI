@@ -61,9 +61,11 @@ export async function startCheckout(plan: string, account: Account, cb: Checkout
     order_id: order.orderId,
     amount: order.amount,
     currency: order.currency,
-    name: "Clarify.AI",
+    name: "Faheem",
     description: `${order.planName} plan, 30 days`,
-    image: "/favicon.svg",
+    // Absolute URL: Razorpay renders this inside its own iframe, where a
+    // relative path would resolve against their origin and 404.
+    image: `${window.location.origin}/favicon.svg`,
     prefill: { email: order.prefill.email || account.email, name: order.prefill.name || account.profile.name },
     theme: { color: "#6f7d5f" }, // editorial sage
     handler: async (resp: any) => {

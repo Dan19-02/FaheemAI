@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "strict": false,
+    "strict": true,
     "skipLibCheck": true,
     "noEmit": true
   },

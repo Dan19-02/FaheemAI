@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://clarifyai.in/sitemap.xml
+Sitemap: https://faheem-frontend.onrender.com/sitemap.xml

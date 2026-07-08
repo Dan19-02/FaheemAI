@@ -1,6 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import {defineConfig} from 'vite';
 // Default to the local Fahim backend so `npm run dev` proxies /api without extra env.
 const target_url = process.env.BACKEND_URL || 'http://localhost:4000';
@@ -8,11 +7,6 @@ const target_url = process.env.BACKEND_URL || 'http://localhost:4000';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
     server: {
       port: 3000,
       // Forward API + live-voice WebSocket calls to the Express backend.

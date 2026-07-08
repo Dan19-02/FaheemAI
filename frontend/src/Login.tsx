@@ -48,8 +48,10 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
 
   // Arriving from the landing page unmounts the element that was focused, so
   // hand focus to the Back control to keep keyboard and screen-reader context.
+  // The ref is only attached when a Back control renders, so no props are read
+  // here (which keeps the dependency array honestly empty).
   useEffect(() => {
-    if (onBack) backRef.current?.focus();
+    backRef.current?.focus();
   }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,22 +168,27 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
           <form onSubmit={submit} className="flex flex-col gap-3">
             {mode === "signup" && (
               <div className="flex flex-col gap-1.5">
-                <label className={label}>اسمك</label>
-                <input className={input} required value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد" />
+                <label className={label} htmlFor="signup-name">اسمك</label>
+                <input id="signup-name" className={input} required value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد" />
               </div>
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className={label}>البريد الإلكتروني</label>
-              <input className={`${input} font-latin`} dir="ltr" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              <label className={label} htmlFor="auth-email">البريد الإلكتروني</label>
+              <input id="auth-email" className={`${input} font-latin`} dir="ltr" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className={label}>كلمة المرور</label>
+              <label className={label} htmlFor="auth-password">كلمة المرور</label>
               <input
+                id="auth-password"
                 className={input}
                 type="password"
                 required
+                // The signup placeholder promises 6 characters; let the browser
+                // hold that line too. Login stays unconstrained so no existing
+                // account is ever locked out client-side.
+                minLength={mode === "signup" ? 6 : undefined}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -193,16 +200,16 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className={label}>المنهج</label>
-                    <select className={input} value={board} onChange={(e) => setBoard(e.target.value)}>
+                    <label className={label} htmlFor="signup-board">المنهج</label>
+                    <select id="signup-board" className={input} value={board} onChange={(e) => setBoard(e.target.value)}>
                       {BOARDS.map((b) => (
                         <option key={b} value={b}>{arLabel(b)}</option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className={label}>الصف</label>
-                    <select className={input} value={grade} onChange={(e) => setGrade(e.target.value)}>
+                    <label className={label} htmlFor="signup-grade">الصف</label>
+                    <select id="signup-grade" className={input} value={grade} onChange={(e) => setGrade(e.target.value)}>
                       {GRADES.map((g) => (
                         <option key={g} value={g}>{arLabel(g)}</option>
                       ))}
@@ -212,16 +219,16 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className={label}>اللغة</label>
-                    <select className={input} value={language} onChange={(e) => setLanguage(e.target.value)}>
+                    <label className={label} htmlFor="signup-language">اللغة</label>
+                    <select id="signup-language" className={input} value={language} onChange={(e) => setLanguage(e.target.value)}>
                       {LANGUAGES.map((l) => (
                         <option key={l} value={l}>{arLabel(l)}</option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className={label}>أسلوب التشبيه</label>
-                    <select className={input} value={preferredAnalogy} onChange={(e) => setPreferredAnalogy(e.target.value)}>
+                    <label className={label} htmlFor="signup-analogy">أسلوب التشبيه</label>
+                    <select id="signup-analogy" className={input} value={preferredAnalogy} onChange={(e) => setPreferredAnalogy(e.target.value)}>
                       {ANALOGIES.map((a) => (
                         <option key={a} value={a}>{arLabel(a)}</option>
                       ))}
@@ -230,8 +237,9 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className={label}>أهدافك الدراسية (اختياري)</label>
+                  <label className={label} htmlFor="signup-goals">أهدافك الدراسية (اختياري)</label>
                   <textarea
+                    id="signup-goals"
                     className={`${input} resize-none`}
                     rows={2}
                     value={examGoals}
@@ -241,12 +249,15 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className={label}>ما مدى ثقتك بنفسك الآن؟</label>
-                  <div className="flex gap-1.5">
+                  {/* No single input to point at: the buttons form a radiogroup labelled by this text. */}
+                  <span className={label} id="signup-confidence-label">ما مدى ثقتك بنفسك الآن؟</span>
+                  <div className="flex gap-1.5" role="radiogroup" aria-labelledby="signup-confidence-label">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button
                         type="button"
                         key={n}
+                        role="radio"
+                        aria-checked={confidenceLevel === n}
                         onClick={() => setConfidenceLevel(n)}
                         className={`font-latin flex-1 rounded-full py-2 text-xs font-bold transition-colors ${
                           confidenceLevel >= n ? "bg-[var(--color-sea)] text-white" : "bg-[var(--color-sand)] text-[var(--color-ink-soft)]"
@@ -260,7 +271,11 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
               </>
             )}
 
-            {error && <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs leading-relaxed text-red-700">{error}</div>}
+            {error && (
+              <div role="alert" aria-live="polite" className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs leading-relaxed text-red-700">
+                {error}
+              </div>
+            )}
 
             <button type="submit" disabled={busy} className="faheem-btn mt-1 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm disabled:opacity-50">
               {busy && <Loader2 className="animate-spin" size={16} />}

@@ -5,6 +5,7 @@
  * exact same code can run against the real database in production and against an
  * in-memory Postgres (pg-mem) in tests.
  */
+import fs from "fs";
 import pg from "pg";
 
 const { Pool } = pg;
@@ -62,6 +63,25 @@ export function stripSslParams(raw: string): string {
   }
 }
 
+/**
+ * Resolve the pool's ssl option. Default stays `rejectUnauthorized: false`
+ * (managed-Postgres CAs are not in Node's trust store, see stripSslParams
+ * above), but an operator who downloads the provider's root certificate can
+ * set PGSSLROOTCERT to its path and get full certificate verification.
+ */
+function resolveSsl(isLocal: boolean): false | Record<string, unknown> {
+  if (process.env.PGSSL === "false" || isLocal) return false;
+  const caPath = process.env.PGSSLROOTCERT;
+  if (caPath) {
+    try {
+      return { ca: fs.readFileSync(caPath, "utf8"), rejectUnauthorized: true };
+    } catch (e: any) {
+      console.warn(`[DB] PGSSLROOTCERT is set but unreadable (${e.message}); falling back to unverified TLS.`);
+    }
+  }
+  return { rejectUnauthorized: false };
+}
+
 export async function initDb(): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (url) {
@@ -69,11 +89,12 @@ export async function initDb(): Promise<void> {
     const connectionString = stripSslParams(url);
     const attempts = isLocal ? 1 : Math.max(1, Number(process.env.DB_CONNECT_ATTEMPTS) || 6);
     const connectTimeoutMs = Math.max(1_000, Number(process.env.DB_CONNECT_TIMEOUT_MS) || 15_000);
+    const ssl = resolveSsl(isLocal);
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
       const candidate = new Pool({
         connectionString,
-        ssl: process.env.PGSSL === "false" || isLocal ? false : { rejectUnauthorized: false },
+        ssl,
         connectionTimeoutMillis: connectTimeoutMs,
       });
       try {
@@ -116,16 +137,8 @@ export async function initDb(): Promise<void> {
   console.warn("[DB] ⚠ Using IN-MEMORY database: data resets on restart. Set a real DATABASE_URL to persist.");
 }
 
-export interface ChapterSeed {
-  id: string;
-  name: string;
-  mastery: "weak" | "developing" | "strong";
-  confidenceScore: number;
-  lastStudied: string;
-}
-
 // New accounts start with an empty Chapter Mastery list (no demo/prefilled data).
-export const DEFAULT_CHAPTERS: ChapterSeed[] = [];
+export const DEFAULT_CHAPTERS: unknown[] = [];
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -136,9 +149,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT,
   google_sub TEXT UNIQUE,
   name TEXT NOT NULL DEFAULT 'Student',
-  board TEXT NOT NULL DEFAULT 'CBSE',
-  grade TEXT NOT NULL DEFAULT '11th Grade',
-  language TEXT NOT NULL DEFAULT 'Hinglish',
+  board TEXT NOT NULL DEFAULT 'Bahrain MoE',
+  grade TEXT NOT NULL DEFAULT 'Grade 10',
+  language TEXT NOT NULL DEFAULT 'Arabic',
   preferred_analogy TEXT NOT NULL DEFAULT 'Daily Life',
   exam_goals TEXT NOT NULL DEFAULT '',
   confidence_level INTEGER NOT NULL DEFAULT 3,
@@ -154,8 +167,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Per-question usage counters. period_key is 'd:YYYY-MM-DD' for the daily trial
--- quota (reset midnight IST) or 'p:<pass-start-ms>' for a paid monthly pass, so
--- a fresh pass gets a fresh counter automatically.
+-- quota (reset midnight Bahrain time) or 'p:<pass-start-ms>' for a paid monthly
+-- pass, so a fresh pass gets a fresh counter automatically.
 CREATE TABLE IF NOT EXISTS usage_counters (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   period_key TEXT NOT NULL,
@@ -172,7 +185,7 @@ CREATE TABLE IF NOT EXISTS payments (
   order_id TEXT UNIQUE NOT NULL,
   payment_id TEXT,
   amount INTEGER NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'INR',
+  currency TEXT NOT NULL DEFAULT 'BHD',
   status TEXT NOT NULL DEFAULT 'created',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -242,16 +255,6 @@ CREATE TABLE IF NOT EXISTS notebook_notes (
   entry_count INTEGER NOT NULL DEFAULT 0,
   generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, subject, chapter)
-);
-
-CREATE TABLE IF NOT EXISTS knowledge_chunks (
-  id TEXT PRIMARY KEY,
-  subject TEXT,
-  topic TEXT,
-  board TEXT,
-  grade TEXT,
-  content TEXT NOT NULL,
-  embedding JSONB NOT NULL
 );
 
 -- ===========================================================================
@@ -427,55 +430,102 @@ export async function initSchema(q: Queryable = pool): Promise<void> {
 }
 
 /**
- * Defensive migrations for databases created before newer columns existed.
- * Split from initSchema so tests can simulate a redeploy against an existing
- * database (pg-mem cannot re-run CREATE TABLE IF NOT EXISTS; real Postgres can).
+ * Ordered, named migrations recorded in schema_migrations. Each step runs at
+ * most once per database (a step marked `repeat` re-runs every boot: reserved
+ * for idempotent data repairs, never schema changes). A step that fails for a
+ * real reason CRASHES startup instead of being silently swallowed; only
+ * "already exists" style errors are tolerated, for databases that predate the
+ * ledger and already carry the columns.
  */
+const MIGRATIONS: { name: string; sql: string; repeat?: boolean }[] = [
+  { name: "001-messages-conversation-id", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id TEXT` },
+  { name: "002-messages-attachments", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB NOT NULL DEFAULT '[]'::jsonb` },
+  { name: "003-cache-verified", sql: `ALTER TABLE explanation_cache ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT FALSE` },
+  // Google sign-in: link accounts by Google's stable subject id, and let
+  // Google-only accounts have no password.
+  { name: "004-users-google-sub", sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT` },
+  { name: "005-users-password-nullable", sql: `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL` },
+  { name: "006-users-google-sub-index", sql: `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL` },
+  // Billing columns for accounts created before subscriptions shipped.
+  { name: "007-users-plan", sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'trial'` },
+  { name: "008-users-trial-ends-at", sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ` },
+  { name: "009-users-plan-started-at", sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_started_at TIMESTAMPTZ` },
+  { name: "010-users-plan-expires-at", sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ` },
+  // Any account with a NULL trial gets a FRESH week from the day this runs,
+  // honouring the "free while in early access" promise. `repeat` on purpose:
+  // it is an idempotent data repair (the WHERE matches almost nothing after
+  // the first pass) and must also catch rows a restore or manual edit left
+  // NULL. New signups are unaffected (createUser stamps signup + 7 days).
+  { name: "011-backfill-trial-ends-at", sql: `UPDATE users SET trial_ends_at = now() + interval '7 days' WHERE trial_ends_at IS NULL`, repeat: true },
+  // FAHIM curriculum provenance. Attach the immutable unit_id + source/section
+  // + confidence/verification/out-of-syllabus signals to every answer and saved
+  // note. The old free-text subject/chapter columns STAY as a display cache so
+  // the Arabic<->English render toggle never rewrites stored text.
+  { name: "012-messages-unit-id", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS unit_id TEXT` },
+  { name: "013-messages-language", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS language TEXT` },
+  { name: "014-messages-source-section", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS source_section TEXT` },
+  { name: "015-messages-confidence", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS confidence TEXT` },
+  { name: "016-messages-groundedness", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS groundedness NUMERIC` },
+  { name: "017-messages-verification-outcome", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS verification_outcome TEXT` },
+  { name: "018-messages-out-of-syllabus", sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE` },
+  { name: "019-notebook-unit-id", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS unit_id TEXT` },
+  { name: "020-notebook-language", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS language TEXT` },
+  { name: "021-notebook-source-section", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS source_section TEXT` },
+  { name: "022-notebook-confidence", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS confidence TEXT` },
+  { name: "023-notebook-groundedness", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS groundedness NUMERIC` },
+  { name: "024-notebook-verification-outcome", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS verification_outcome TEXT` },
+  { name: "025-notebook-out-of-syllabus", sql: `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE` },
+  // Translated views for the language toggle: one row per (source text, target
+  // language), keyed by content hash. Stored messages stay verbatim; this table
+  // only caches the display-layer translation, shared across every student who
+  // asks for the same answer in the other language.
+  {
+    name: "026-translations-table",
+    sql: `CREATE TABLE IF NOT EXISTS translations (
+      hash TEXT PRIMARY KEY,
+      target TEXT NOT NULL,
+      translated TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+  },
+];
+
+/** The only error class a migration may survive: the object it creates is
+ *  already there (legacy databases that predate the schema_migrations ledger). */
+function isAlreadyExistsError(e: any): boolean {
+  // 42701 duplicate_column, 42P07 duplicate_table, 42710 duplicate_object.
+  if (e?.code === "42701" || e?.code === "42P07" || e?.code === "42710") return true;
+  return /already exists/i.test(String(e?.message || e));
+}
+
 export async function runMigrations(q: Queryable = pool): Promise<void> {
-  for (const sql of [
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB NOT NULL DEFAULT '[]'::jsonb`,
-    `ALTER TABLE explanation_cache ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT FALSE`,
-    // Google sign-in: link accounts by Google's stable subject id, and let
-    // Google-only accounts have no password. Runs once against existing DBs.
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT`,
-    `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL`,
-    // Billing columns for accounts created before subscriptions shipped.
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'trial'`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_started_at TIMESTAMPTZ`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ`,
-    // Existing early-access accounts (created before billing shipped) get a
-    // FRESH week from the day this code first runs, honouring the "free while
-    // in early access, plans switch on at launch" promise. Runs once per
-    // account: after this backfill, trial_ends_at is never NULL again. New
-    // signups are unaffected (createUser stamps signup + 7 days explicitly).
-    `UPDATE users SET trial_ends_at = now() + interval '7 days' WHERE trial_ends_at IS NULL`,
-    // FAHIM curriculum provenance. Attach the immutable unit_id + source/section
-    // + confidence/verification/out-of-syllabus signals to every answer and saved
-    // note. The old free-text subject/chapter columns STAY as a display cache so
-    // the Arabic<->English render toggle never rewrites stored text.
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS unit_id TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS language TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS source_section TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS confidence TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS groundedness NUMERIC`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS verification_outcome TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS unit_id TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS language TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS source_section TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS confidence TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS groundedness NUMERIC`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS verification_outcome TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE`,
-  ]) {
+  // Probe-then-create instead of a bare CREATE TABLE IF NOT EXISTS: pg-mem
+  // (the dev/test engine) cannot re-run CREATE TABLE IF NOT EXISTS against an
+  // existing table, while the probe works identically on both engines.
+  try {
+    await q.query(`SELECT 1 FROM schema_migrations LIMIT 1`);
+  } catch {
+    await q.query(
+      `CREATE TABLE IF NOT EXISTS schema_migrations (
+         name TEXT PRIMARY KEY,
+         applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`
+    );
+  }
+  const { rows } = await q.query(`SELECT name FROM schema_migrations`);
+  const applied = new Set(rows.map((r) => r.name));
+
+  for (const m of MIGRATIONS) {
+    if (applied.has(m.name) && !m.repeat) continue;
     try {
-      await q.query(sql);
-    } catch {
-      /* column already exists / engine lacks IF NOT EXISTS: safe to ignore */
+      await q.query(m.sql);
+    } catch (e: any) {
+      if (!isAlreadyExistsError(e)) {
+        console.error(`[DB] Migration ${m.name} failed: ${e?.message || e}`);
+        throw e;
+      }
     }
+    await q.query(`INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [m.name]);
   }
 }
 
@@ -574,7 +624,7 @@ export async function createGoogleUser(q: Queryable, u: NewGoogleUser) {
   const trialEndsAt = new Date(Date.now() + SIGNUP_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { rows } = await q.query(
     `INSERT INTO users (email, password_hash, google_sub, name, board, grade, language, preferred_analogy, exam_goals, confidence_level, chapters, plan, trial_ends_at)
-     VALUES ($1, NULL, $2, $3, 'CBSE', '11th Grade', 'Hinglish', 'Daily Life', '', 3, $4, 'trial', $5)
+     VALUES ($1, NULL, $2, $3, 'Bahrain MoE', 'Grade 10', 'Arabic', 'Daily Life', '', 3, $4, 'trial', $5)
      RETURNING *`,
     [u.email.toLowerCase(), u.googleSub, u.name || "Student", JSON.stringify(DEFAULT_CHAPTERS), trialEndsAt]
   );
@@ -931,18 +981,23 @@ export async function getMessages(q: Queryable, userId: number, conversationId: 
     mode: r.mode || undefined,
     sources: r.sources || [],
     attachments: r.attachments || [],
-    timestamp: new Date(r.created_at).toLocaleTimeString(),
+    // Deterministic HH:MM regardless of the server's locale/timezone config,
+    // so the same row never renders differently across deploys.
+    timestamp: new Date(r.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
   }));
 }
 
 export async function addMessage(q: Queryable, userId: number, m: StoredMessage) {
   // Upsert on id: re-saving an existing message updates its text and sources,
   // which is how a Deep-checked (examiner-corrected) answer replaces the
-  // original in the study log.
+  // original in the study log. The WHERE clause makes the update owner-scoped:
+  // message ids are client-minted, so without it any user could overwrite
+  // another user's message by guessing its id.
   await q.query(
     `INSERT INTO messages (id, user_id, conversation_id, role, text, mode, sources, attachments)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, sources = EXCLUDED.sources`,
+     ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, sources = EXCLUDED.sources
+     WHERE messages.user_id = EXCLUDED.user_id`,
     [m.id, userId, m.conversationId, m.role, m.text, m.mode || null, JSON.stringify(m.sources || []), JSON.stringify(m.attachments || [])]
   );
   // Bump the conversation so the most recently used one floats to the top.
@@ -1098,68 +1153,6 @@ export async function cacheMarkVerified(q: Queryable, cacheKey: string, text: st
   await q.query(`UPDATE explanation_cache SET text = $2, verified = TRUE WHERE cache_key = $1`, [cacheKey, text]);
 }
 
-// ---- Knowledge base (RAG) ----
-export interface KnowledgeChunk {
-  id: string;
-  subject: string;
-  topic: string;
-  board: string;
-  grade: string;
-  content: string;
-  embedding: number[];
-}
-
-export async function knowledgeCount(q: Queryable): Promise<number> {
-  const { rows } = await q.query(`SELECT count(*) AS n FROM knowledge_chunks`);
-  return Number(rows[0]?.n || 0);
-}
-
-export async function knowledgeInsert(q: Queryable, c: KnowledgeChunk): Promise<void> {
-  await q.query(
-    `INSERT INTO knowledge_chunks (id, subject, topic, board, grade, content, embedding)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`,
-    [c.id, c.subject, c.topic, c.board, c.grade, c.content, JSON.stringify(c.embedding)]
-  );
-}
-
-/** Ids already ingested, so startup can top up only the missing seed chunks. */
-export async function knowledgeIds(q: Queryable): Promise<string[]> {
-  const { rows } = await q.query(`SELECT id FROM knowledge_chunks`);
-  return rows.map((r) => r.id);
-}
-
-export async function knowledgeAll(
-  q: Queryable
-): Promise<{ subject: string; topic: string; board: string; grade: string; content: string; embedding: number[] }[]> {
-  const { rows } = await q.query(`SELECT subject, topic, board, grade, content, embedding FROM knowledge_chunks`);
-  return rows.map((r) => ({
-    subject: r.subject,
-    topic: r.topic,
-    board: r.board,
-    grade: r.grade || "",
-    content: r.content,
-    embedding: r.embedding,
-  }));
-}
-
-/** Purge the knowledge base (used when stored vectors no longer match the live embedding model). */
-export async function knowledgeDeleteAll(q: Queryable): Promise<void> {
-  await q.query(`DELETE FROM knowledge_chunks`);
-}
-
-/**
- * Null out cached-answer embeddings whose dimension doesn't match the live
- * embedding model. Mismatched vectors can never score above 0, so they only
- * waste candidate scans; the rows stay usable for exact-key lookups.
- */
-export async function cacheClearMismatchedEmbeddings(q: Queryable, dims: number): Promise<void> {
-  await q.query(
-    `UPDATE explanation_cache SET embedding = NULL
-     WHERE embedding IS NOT NULL AND jsonb_array_length(embedding) <> $1`,
-    [dims]
-  );
-}
-
 // ===========================================================================
 // FAHIM curriculum spine + telemetry.
 //
@@ -1177,7 +1170,7 @@ export interface CurriculumSubject {
   nameEn: string;
   /** 'A' objective | 'B' language | 'C' interpretive | 'D' sensitive/doctrinal. */
   accuracyType: string;
-  /** 'textbook' | 'syllabus' | 'proxy' | 'structure' — how deep grounding can go. */
+  /** 'textbook' | 'syllabus' | 'proxy' | 'structure': how deep grounding can go. */
   groundingLevel: string;
   /** 'draft' | 'in_review' | 'blocked' | 'live'. Only 'live' is served to students. */
   gateStatus: string;
@@ -1641,5 +1634,27 @@ export async function insertTeacherReport(q: Queryable, r: TeacherReportInsert):
       r.severity ?? null,
       r.note ?? "",
     ]
+  );
+}
+
+// ---- Translated views (the language toggle) ----
+
+/** Batch-read cached translations by content hash. */
+export async function translationsGet(q: Queryable, hashes: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (hashes.length === 0) return out;
+  const params = hashes.map((_, i) => `$${i + 1}`).join(",");
+  const { rows } = await q.query(`SELECT hash, translated FROM translations WHERE hash IN (${params})`, hashes);
+  for (const r of rows) out.set(r.hash, r.translated);
+  return out;
+}
+
+/** Cache one translation. First write wins: translations are deterministic
+ *  enough that racing writers would store near-identical text anyway. */
+export async function translationPut(q: Queryable, hash: string, target: string, translated: string): Promise<void> {
+  await q.query(
+    `INSERT INTO translations (hash, target, translated) VALUES ($1,$2,$3)
+     ON CONFLICT (hash) DO NOTHING`,
+    [hash, target, translated]
   );
 }

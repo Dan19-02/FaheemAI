@@ -27,7 +27,7 @@ export function NotebookViewer({ sections }: NotebookViewerProps) {
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 items-stretch min-h-[240px] max-w-full">
-        <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto pb-1.5 md:pb-0 shrink-0 md:w-44 border-b md:border-b-0 md:border-r border-editorial-line-light pr-0 md:pr-3 scrollbar-none">
+        <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto pb-1.5 md:pb-0 shrink-0 md:w-44 border-b md:border-b-0 md:border-e border-editorial-line-light pe-0 md:pe-3 scrollbar-none">
           {sections.map((sec, idx) => (
             <button
               key={idx}

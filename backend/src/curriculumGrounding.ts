@@ -1,23 +1,47 @@
 /**
  * Bahrain curriculum grounding for the Clarify chat flow.
  *
- * The student sets only board + grade (Clarify's profile) and just asks — this
+ * The student sets only board + grade (the profile) and just asks: this
  * resolves SUBJECT and UNIT server-side by retrieving the best-matching unit's
  * textbook content across the whole board+grade corpus. It plugs into the same
- * `referenceContext` slot Clarify already feeds to buildSystemInstruction, so
- * the rest of the flow (cache, streaming, deep-check, notebook) is untouched.
+ * `referenceContext` slot the chat flow already feeds to buildSystemInstruction,
+ * so the rest of the flow (cache, streaming, deep-check, notebook) is untouched.
  *
  * Honesty: if nothing in the grade's textbooks matches, it returns no reference
  * and flags out-of-syllabus rather than inventing a curriculum source. Boards/
  * grades with no textbook corpus (syllabus-only) simply return no reference, and
  * Clarify answers as usual (no false "from your curriculum" claim).
  */
-import { pool, corpusChunksForBoardGrade } from "./db.js";
+import { pool, corpusChunksForBoardGrade, type CorpusChunk } from "./db.js";
 import { cosine } from "./knowledge.js";
 
 const RETRIEVAL_GATE = () => Number(process.env.RETRIEVAL_GATE) || 0.62;
 const TOP_K = 4;
 const MAX_CHUNK_CHARS = 900;
+
+// In-process cache of a grade's corpus vectors. Loading + JSON-parsing the
+// whole board+grade corpus from Postgres on EVERY question is the single
+// biggest per-request cost of grounding, and the corpus only changes on an
+// operator re-seed (an offline action), so serving it up to TTL-stale is safe:
+// the worst case is ten minutes of answers grounded on the previous seed.
+// The size guard bounds memory if many board+grade combos get traffic.
+const CORPUS_TTL_MS = 10 * 60_000;
+const CORPUS_CACHE_MAX_ENTRIES = 8;
+type CachedCorpus = { loadedAt: number; chunks: (CorpusChunk & { unitTitle: string })[] };
+const corpusCache = new Map<string, CachedCorpus>();
+
+async function corpusFor(board: string, gradeId: string): Promise<CachedCorpus["chunks"]> {
+  const key = `${board}|${gradeId}`;
+  const hit = corpusCache.get(key);
+  if (hit && Date.now() - hit.loadedAt < CORPUS_TTL_MS) return hit.chunks;
+  const chunks = await corpusChunksForBoardGrade(pool, board, gradeId);
+  if (!corpusCache.has(key) && corpusCache.size >= CORPUS_CACHE_MAX_ENTRIES) {
+    const oldest = corpusCache.keys().next().value;
+    if (oldest) corpusCache.delete(oldest);
+  }
+  corpusCache.set(key, { loadedAt: Date.now(), chunks });
+  return chunks;
+}
 
 export interface GroundingResult {
   /** Curriculum reference to inject into the system prompt, or null. */
@@ -62,7 +86,7 @@ export async function groundQuery(
 
   let chunks;
   try {
-    chunks = await corpusChunksForBoardGrade(pool, bk, gradeId);
+    chunks = await corpusFor(bk, gradeId);
   } catch {
     return NONE;
   }

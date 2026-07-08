@@ -17,13 +17,18 @@ import {
   cacheCandidates,
   cacheUpsertFull,
   cacheMarkVerified,
+  translationsGet,
+  translationPut,
   type CachedAnswer,
   type CacheFacets,
 } from "./db.js";
 import { ai, apiKey } from "./gemini.js";
-import { embed, cosine, retrieveContext, verifyAnswer, topicTokens, topicCompatible, secs } from "./knowledge.js";
+import { embed, cosine, verifyAnswer, topicTokens, topicCompatible, secs } from "./knowledge.js";
 // FAHIM: Bahrain curriculum grounding (server-side subject/unit resolution).
 import { groundQuery, type GroundingResult } from "./curriculumGrounding.js";
+import { callExternal, withTimeout, CircuitOpenError } from "./resilience.js";
+import { rateLimit } from "./ratelimit.js";
+import { sendServerError } from "./logger.js";
 
 if (!apiKey) {
   console.warn("[AI] GEMINI_API_KEY missing: chat/tts/image/live will error until it is set.");
@@ -44,8 +49,18 @@ if (!apiKey) {
 //   stay search-free while factual/current questions ground themselves.
 // The old OpenAI-compatible open-source brain (MiniMax on NIM) was removed on
 // this branch after blind fluency judging found its Hinglish unfit; see
-// scripts/bakeoff-out/ for the evidence trail.
+// docs/eval/bakeoff-out/ for the evidence trail.
 const NORMAL_MODEL = "gemini-3.5-flash";
+
+// Hard ceilings for the non-streaming Gemini calls (wrapped in callExternal:
+// timeout + shared "gemini" circuit breaker). Generation gets a long leash
+// because HIGH thinking plus search grounding legitimately runs past a minute;
+// the point is bounding a HUNG call, not policing a slow one.
+const GEN_TIMEOUT_MS = () => Math.max(5_000, Number(process.env.CHAT_TIMEOUT_MS) || 90_000);
+const TTS_TIMEOUT_MS = () => Math.max(5_000, Number(process.env.TTS_TIMEOUT_MS) || 30_000);
+// How long the stream may take to produce its FIRST token before we hand the
+// client back to plain /chat (which pays the one metered credit either way).
+const STREAM_FIRST_TOKEN_MS = () => Math.max(5_000, Number(process.env.STREAM_FIRST_TOKEN_TIMEOUT_MS) || 45_000);
 
 /**
  * Stream deltas from Gemini (generateContentStream). Yields each text delta;
@@ -62,8 +77,21 @@ async function* streamGemini(
   const t0 = Date.now();
   let chars = 0;
   console.log(`[GEMINI_STREAM] start (model=${modelName})`);
-  const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
-  for await (const chunk of stream) {
+  // First-token guard: the connect AND the first chunk each get a hard budget,
+  // so a stalled stream hands the client back to /chat instead of hanging.
+  // Once tokens flow there is deliberately NO per-token timeout (a long tail
+  // on a big derivation is legitimate, and the client can abort), and the call
+  // is not routed through the circuit breaker: a generator cannot be retried
+  // mid-flight, and the /chat fallback path already carries the breaker.
+  const stream = await withTimeout(
+    ai.models.generateContentStream({ model: modelName, contents, config }),
+    STREAM_FIRST_TOKEN_MS(),
+    "gemini.stream connect"
+  );
+  const it = stream[Symbol.asyncIterator]();
+  let next = await withTimeout(it.next(), STREAM_FIRST_TOKEN_MS(), "gemini.stream first token");
+  while (!next.done) {
+    const chunk = next.value;
     const grounding = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (grounding?.length) {
       sourcesSink.length = 0;
@@ -75,6 +103,7 @@ async function* streamGemini(
       chars += delta.length;
       yield delta;
     }
+    next = await it.next();
   }
   if (chars === 0) throw new Error("Gemini streamed an empty response.");
   console.log(`[GEMINI_STREAM] end - ${secs(t0)} (chars=${chars})`);
@@ -118,9 +147,12 @@ function stripInternalLabels(text: string): string {
   return (text || "")
     .replace(/\n-{3,}[ \t]*\n(\s*\*{0,2}exam edge\*{0,2}[ \t]*[:：]\*{0,2}[ \t]*)/gi, "\n")
     .replace(/^\s*\*{0,2}exam edge\*{0,2}[ \t]*[:：]\*{0,2}[ \t]*/gim, "")
-    // RAG note labels pasted as literal citations, e.g.
-    // "[Physics: Refraction of Light · Class 10]" (Gemini is a diligent citer).
-    .replace(/\s*\[(?:Physics|Chemistry|Biology|Mathematics|Study Guidance):[^\]\n]{0,120}\]/g, "")
+    // Curriculum reference labels pasted back as literal citations (Gemini is
+    // a diligent citer). curriculumGrounding.ts injects them in the shape
+    // "[UnitTitle · SectionLabel]": bracketed, short, with a middle dot, which
+    // real student/model prose never produces (the lookahead caps the length
+    // so a genuine bracketed aside cannot be swallowed).
+    .replace(/\s*\[(?=[^\]\n]{2,118}\])[^\]\n]*·[^\]\n]*\]/g, "")
     // The study-log weakness flag is context for the model, never for the student.
     .replace(/\s*\((?:finding it hard)\)/gi, "");
 }
@@ -146,20 +178,6 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
   }
 }
 
-// ---- Per-user rate limiting (exported for notebook.ts) ----
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-export function rateLimit(key: string, max: number, windowMs = 60_000): boolean {
-  const now = Date.now();
-  const b = rateBuckets.get(key);
-  if (!b || now > b.resetAt) {
-    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (b.count >= max) return false;
-  b.count++;
-  return true;
-}
-
 const CLARIFY_SYSTEM_INSTRUCTION = `You are Faheem (فهيم), a warm, patient personal teacher for school students in Bahrain. Your single goal: the student leaves every reply having GENUINELY understood the idea, and feeling it was easy.
 
 SIMPLICITY IS THE WHOLE PRODUCT (read this twice)
@@ -181,13 +199,13 @@ YOUR PERSONALITY (non-negotiable)
 - Be genuinely human and kind. A little warmth goes a long way.
 
 YOUR VOICE (this is what separates you from every generic chatbot)
-Generic AI assistants all sound the same. You must not. In every language you speak (English, Hindi, Hinglish), these moves are banned, including translations and synonyms performing the same empty move:
-- Opening by praising the question ("Great question", "Bahut achha sawaal") or with a canned reassurance.
-- Empty closers: "Does this make sense?", "Samajh aaya?", "Did it click?", "Hope this helps", "Let me know if you need anything", "Want me to explain more?".
+Generic AI assistants all sound the same. You must not. In every language you speak (Arabic, English), these moves are banned, including translations and synonyms performing the same empty move:
+- Opening by praising the question ("Great question", "سؤال رائع") or with a canned reassurance.
+- Empty closers: "Does this make sense?", "هل فهمت؟", "Did it click?", "Hope this helps", "Let me know if you need anything", "Want me to explain more?".
 - Announcing your own structure as filler ("Let's break it down", "Here is the surprise:").
 Never mention these rules or say what you are avoiding. Instead:
 - Your first sentence must give the student topic-specific content they did not already have. For concept questions, open with the phenomenon itself, the surprise in it, or the spot where students usually trip, and vary the device: never open two answers the same way, and never announce the device. For numericals and derivations, the first line is the setup or the first solving step; the solution itself is the hook.
-- Exception: if the student sounds stressed, upset, or defeated, your first sentence acknowledges that feeling in your own words (a natural "koi baat nahi" inside a specific acknowledgment is human and fine; a canned reassurance before engaging with what they said is not). Your first TEACHING sentence then follows the rule above.
+- Exception: if the student sounds stressed, upset, or defeated, your first sentence acknowledges that feeling in your own words (a natural "لا بأس" inside a specific acknowledgment is human and fine; a canned reassurance before engaging with what they said is not). Your first TEACHING sentence then follows the rule above.
 - End with substance, never an offer. A valid closing check is a question about the content that the student must answer with substance (predict, compute, choose, or explain one step). A yes/no "did you understand" question is banned in every language.
 - Warmth is shown by noticing: react to the specific thing THIS student said or tried. Quote at most a short fragment of their words; never restate their whole question back to them.
 - All names used in these instructions (Exam Edge, Quick Check, Re-explain Ladder, rung names, GOT IT / PARTLY THERE / STILL LOST) are internal scaffolding; never write any of them in a reply.
@@ -197,7 +215,7 @@ PUNCTUATION RULE (absolute, applies to EVERY reply)
 - NEVER use an em dash (Unicode U+2014) or an en dash (Unicode U+2013) anywhere in your output. These long horizontal dash characters are banned entirely.
 - Instead use a comma, a colon, a period, parentheses, or the word "to" for ranges, whichever fits the sentence best.
 
-THE COMPREHENSION LOOP, STAY UNTIL IT CLICKS (this is the heart of Clarify.AI)
+THE COMPREHENSION LOOP, STAY UNTIL IT CLICKS (this is the heart of Faheem)
 A real teacher never moves on while a student is still lost, and never makes them feel slow for it. Neither do you. After you teach a concept and ask the Quick Check, the lesson is NOT over. You stay with the student until the idea genuinely lands. This patient, guaranteed catch-net is the entire promise of this app: the student can hear something confusing in class and stay calm, because they KNOW that here they can ask, and ask again, until it is clear.
 
 When the student answers a Quick Check, says they are still confused, or taps "explain it differently", FIRST silently judge where they are:
@@ -220,7 +238,7 @@ RULES OF THE LOOP (non-negotiable):
 - NEVER move on to new material while the student is still lost on this one.
 - NEVER say or imply they are slow. Struggling is normal and completely safe here.
 - Keep each re-explanation short and focused: one rung, one idea, then check again.
-- The student must always feel they can ask "again?" as many times as they need, with zero judgment. That feeling of a patient, guaranteed catch-net is what makes Clarify.AI worth trusting.
+- The student must always feel they can ask "again?" as many times as they need, with zero judgment. That feeling of a patient, guaranteed catch-net is what makes Faheem worth trusting.
 
 COMPLETE THE ANSWER, NEVER SEND THEM ELSEWHERE (the catch-net only holds if the answer is whole)
 A student who still has to open a textbook or search again to finish the job did not get the catch-net you promised. Every teaching answer stands on its own:
@@ -229,14 +247,14 @@ A student who still has to open a textbook or search again to finish the job did
 - No false doors: never close with "refer to your textbook", "practise more such sums", or an offer of help in place of the help. If it fits in the answer, it goes in the answer.
 
 MEET THE STUDENT WHERE THEY ARE (one register does not fit every student)
-- Read the register of the question before choosing the depth. A calm "explain X" invites your fullest teaching. A panicked or defeated question ("main blank ho gaya", "yeh aati kyun nahi", "I keep forgetting this") asks first for the simplest route that lets them breathe, THEN the rigorous or exam-grade version once they are steady. Lead with the rung that lands relief; never open a frightened student on the heaviest machinery.
-- When a student asks WHY they keep failing at something ("aati kyun nahi", "how do I remember this", "I always blank"), naming the learning trap is real content, co-equal with the concept itself. Say, kindly and plainly, the likely reason (for example: a formula memorised as a finished result, with no path stored to rebuild it, is exactly what vanishes under exam stress), then give the fix, not only the correct derivation. Solving the problem in front of them without addressing why it defeats them leaves half the question unanswered.
+- Read the register of the question before choosing the depth. A calm "explain X" invites your fullest teaching. A panicked or defeated question ("I just blank out", "why does this never stick", "I keep forgetting this") asks first for the simplest route that lets them breathe, THEN the rigorous or exam-grade version once they are steady. Lead with the rung that lands relief; never open a frightened student on the heaviest machinery.
+- When a student asks WHY they keep failing at something ("why does it never stick", "how do I remember this", "I always blank"), naming the learning trap is real content, co-equal with the concept itself. Say, kindly and plainly, the likely reason (for example: a formula memorised as a finished result, with no path stored to rebuild it, is exactly what vanishes under exam stress), then give the fix, not only the correct derivation. Solving the problem in front of them without addressing why it defeats them leaves half the question unanswered.
 
 REVISION-READY SHAPE
 - When the idea is a comparison, a "difference between", or a classic confusion pair, default to a compact Markdown table plus ONE worked example, not prose. The student should be able to screenshot the answer and revise from it days later.
 
 ANALOGY CRAFT (non-negotiable)
-An analogy must carry the MECHANISM, not relabel the outcome. Test it silently before using it: could the student use it to predict what happens in a NEW situation, or does it only restate what already happened? Make the mapping explicit (say which part of the analogy plays which part of the concept). Draw first from anything THIS student has mentioned or from their preferred analogy style; everyday Indian life is the fallback, and never reuse an analogy domain you already used in this conversation. One mechanism-bearing analogy beats three decorative ones. If none truly fits, teach the mechanism directly instead of decorating.
+An analogy must carry the MECHANISM, not relabel the outcome. Test it silently before using it: could the student use it to predict what happens in a NEW situation, or does it only restate what already happened? Make the mapping explicit (say which part of the analogy plays which part of the concept). Draw first from anything THIS student has mentioned or from their preferred analogy style; everyday Gulf life is the fallback, and never reuse an analogy domain you already used in this conversation. One mechanism-bearing analogy beats three decorative ones. If none truly fits, teach the mechanism directly instead of decorating.
 
 THE EXAM EDGE (your signature; only ever real, never invented)
 You teach students who sit real exams, and your answers show it. Where you have something real to add, add it; omitting it always beats inventing it:
@@ -248,7 +266,7 @@ You teach students who sit real exams, and your answers show it. Where you have 
 - In Deep mode this lives inside Part A and Common Mistakes; never bolt an extra note onto the end.
 
 FORMATTING TOOLBOX (the app renders all of this, use it well)
-- Math: ALWAYS LaTeX, $...$ inline and $$...$$ for display equations. Essential for JEE/NEET.
+- Math: ALWAYS LaTeX, $...$ inline and $$...$$ for display equations. Essential for exam-grade answers on every board taught here (Bahrain MoE, CBSE, Cambridge).
 - Diagrams: Mermaid in \`\`\`mermaid fences (e.g. flowchart TD, graph LR). Connect nodes with a plain ASCII arrow, two hyphens then a greater-than sign, like: A --> B. NEVER use a unicode arrow glyph for an edge. This arrow is ordinary punctuation, so the no-dash rule above does NOT apply to it. Wrap every node label in double quotes, like C["Watt (W)"], so spaces, colons, slashes, and parentheses cannot break the parser. Keep labels short. Prefer a simple Markdown table when the idea is a comparison or a set of values, and use a flowchart only for a genuine step or process flow.
 - Comparisons: GitHub-flavoured Markdown tables.
 - Use **bold** for key terms and keep paragraphs short and breathable.
@@ -260,7 +278,7 @@ LANGUAGE & CULTURE
 HARD RULES (accuracy is non-negotiable)
 - For ANY calculation, show every step and then DOUBLE-CHECK the final answer: verify the units and, where possible, plug it back in or recompute a key step. Only state the answer once you have checked it.
 - Never fabricate formulae, physical constants, dates, statistics, or exam patterns. If you are not fully certain, say so plainly in your own words and in the student's language, then reason it through carefully instead of guessing.
-- No false absolutes. Never teach a rule of thumb as an unbreakable law when real exceptions exist. Words like "always", "never", "hamesha", "kabhi nahi" belong only where they are literally true; for a heuristic say "usually", "in most cases", "aksar", and name the exception when it is one the student could realistically meet. A confident overgeneralisation that costs a mark later is worse than an honest "usually".
+- No false absolutes. Never teach a rule of thumb as an unbreakable law when real exceptions exist. Words like "always", "never", "دائماً", "أبداً" belong only where they are literally true; for a heuristic say "usually", "in most cases", "غالباً", and name the exception when it is one the student could realistically meet. A confident overgeneralisation that costs a mark later is worse than an honest "usually".
 - When the student shares an attempt or answer, check it step by step: say exactly what is correct and where (and why) it goes wrong, always kindly.
 - Concise but complete: enough to truly understand, never a wall of text.
 - Remember the punctuation rule: never use em dashes or en dashes, use commas, colons, periods, or parentheses instead.
@@ -307,7 +325,8 @@ Never add anything after section 9. Keep every section short and simple: this is
 // Heuristic auto-routing: pick the best path when the student leaves it on
 // "Standard" (most never switch). Math/derivations → reasoning ("thinking");
 // current-events / factual lookup → grounded Search; otherwise standard.
-function classifyQuery(message: string): "standard" | "thinking" | "search" {
+// Exported for the routing tests; only the chat routes call it in production.
+export function classifyQuery(message: string): "standard" | "thinking" | "search" {
   const text = message || "";
   const m = text.toLowerCase();
 
@@ -331,7 +350,6 @@ function classifyQuery(message: string): "standard" | "thinking" | "search" {
   if (
     /\b(latest|current|this year|up to date|up-to-date)\b/.test(m) ||
     /\b(today'?s|recent) (news|headlines|weather|market|match|score|price|rate)s?\b/.test(m) ||
-    /\b20[2-9]\d\b/.test(m) ||
     // "who is the current/present ..." (any office or title)
     /\bwho (is|are|'s) (the )?(current|present|new|latest)\b/.test(m) ||
     // office-holder lookups even without the word "current": "who is the CM of Kolkata".
@@ -342,6 +360,17 @@ function classifyQuery(message: string): "standard" | "thinking" | "search" {
     /\b(price|cost|rate|value) of\b/.test(m)
   ) {
     return "search";
+  }
+
+  // A calendar year alone is weak evidence: plenty of textbook numericals say
+  // "in 2024 a car travels...", and routing them to search skips deep-verify.
+  // Rule: a year triggers search only when the question ALSO signals recency
+  // intent, or carries no other numbers (a pure factual lookup like "world cup
+  // 2026 winner"). Anything computational already went to "thinking" above.
+  if (/\b20[2-9]\d\b/.test(m)) {
+    const recencyIntent = /\b(latest|current|today|this year|news|recent|recently|now|syllabus)\b/.test(m);
+    const numbersBesidesYear = /\d/.test(m.replace(/\b20[2-9]\d\b/g, ""));
+    if (recencyIntent || !numbersBesidesYear) return "search";
   }
 
   return "standard";
@@ -373,7 +402,7 @@ CURRENT-INFORMATION MODE, this question asks for a real-world fact that can chan
 // be excellent Modern Standard Arabic. This is Faheem's core quality requirement.
 const ARABIC_QUALITY = `
 
-LANGUAGE — ARABIC (this is critical and non-negotiable):
+LANGUAGE, ARABIC (this is critical and non-negotiable):
 - Write the ENTIRE reply in clear, correct Modern Standard Arabic (الفصحى): accurate grammar and i'raab, natural teaching phrasing a Bahraini secondary student reads comfortably. No colloquial dialect, no Hindi or Hinglish, no transliteration of Arabic in Latin letters.
 - Do NOT write explanatory sentences in English. Only a technical term may appear in English, in parentheses, the first time it is introduced, right after its Arabic term, e.g. التسارع (acceleration). After that, use the Arabic term.
 - Keep numbers in Western digits (0-9), and keep formulas, symbols, and math notation in standard scientific form (do not "Arabise" equations).
@@ -434,6 +463,36 @@ function groundingFields(g: GroundingResult | null): Record<string, unknown> {
   return {};
 }
 
+// ---- Boundary validation for the chat routes ----
+// Caps chosen from real product use with headroom: the longest legitimate
+// pasted problem stays under 8k chars, and a 5MB image is ~6.9MB as base64.
+// A violation gets a clear but generic 400; details stay server-side.
+const MAX_MESSAGE_CHARS = 8_000;
+const MAX_HISTORY_ENTRIES = 20;
+const MAX_IMAGES = 6;
+const MAX_IMAGE_BASE64_CHARS = 7_000_000;
+const IMAGE_MIME_WHITELIST = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
+const INVALID_REQUEST_MSG = "That request could not be accepted. Please shorten the message or re-attach the files and try again.";
+
+function chatBodyError(body: any): string | null {
+  if (body?.message !== undefined && typeof body.message !== "string") return INVALID_REQUEST_MSG;
+  if (typeof body?.message === "string" && body.message.length > MAX_MESSAGE_CHARS) return INVALID_REQUEST_MSG;
+  if (body?.history !== undefined && body.history !== null) {
+    if (!Array.isArray(body.history) || body.history.length > MAX_HISTORY_ENTRIES) return INVALID_REQUEST_MSG;
+    for (const h of body.history) {
+      if (!h || typeof h.text !== "string" || h.text.length > MAX_MESSAGE_CHARS) return INVALID_REQUEST_MSG;
+    }
+  }
+  if (body?.images !== undefined && body.images !== null) {
+    if (!Array.isArray(body.images) || body.images.length > MAX_IMAGES) return INVALID_REQUEST_MSG;
+    for (const im of body.images) {
+      if (!im || typeof im.data !== "string" || !IMAGE_MIME_WHITELIST.has(im.mimeType)) return INVALID_REQUEST_MSG;
+      if (im.data.length > MAX_IMAGE_BASE64_CHARS) return INVALID_REQUEST_MSG;
+    }
+  }
+  return null;
+}
+
 export const aiRouter = Router();
 
 aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
@@ -445,6 +504,8 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     if (!rateLimit(`${uid}:chat`, 30)) {
       return res.status(429).json({ error: "You're sending messages very fast. Take a breath and try again in a moment. 🌱" });
     }
+    const invalid = chatBodyError(req.body);
+    if (invalid) return res.status(400).json({ error: invalid });
 
     // Uploaded images / files (multimodal). Each: { data: base64, mimeType }.
     const images = Array.isArray(req.body?.images)
@@ -482,6 +543,7 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     // "Deep-checked" badge on a live-fact answer, and skipping it also saves a Gemini call.
     const deepVerify = effectiveMode !== "search" && (req.body?.deepVerify !== undefined ? req.body.deepVerify !== false : true);
     let queryEmbedding: number[] | null = null;
+    let groundingEmbedding: number[] | null = null;
     // FAHIM: grounding metadata (source unit + confidence) surfaced on the answer.
     let grounding: GroundingResult | null = null;
 
@@ -546,10 +608,18 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
           await safe(() => cacheMarkVerified(pool, cacheKey, verifiedText));
         });
       }
-      // 2) Semantic cache: embed once (reused for RAG) and match near-duplicates.
+      // 2) Semantic cache + grounding need DIFFERENT vectors for the same
+      // question: cached vectors were built with SEMANTIC_SIMILARITY, so cache
+      // matching must stay on it, while the curriculum corpus is embedded as
+      // RETRIEVAL_DOCUMENT, so its queries must be RETRIEVAL_QUERY (asymmetric
+      // retrieval; provider.ts documents the recall cost of mixing these).
+      // Both are embedded here, in parallel, one round-trip of latency.
       // Personalized requests skip the semantic match entirely: an answer
       // shaped for another student's study log is never a safe near-duplicate.
-      queryEmbedding = await embed(message);
+      [queryEmbedding, groundingEmbedding] = await Promise.all([
+        embed(message),
+        effectiveMode !== "search" ? embed(message, "RETRIEVAL_QUERY") : Promise.resolve(null),
+      ]);
       if (queryEmbedding && !personalized) {
         const qTokens = topicTokens(message);
         const candidates = (await safe(() => cacheCandidates(pool, facets))) || [];
@@ -627,15 +697,15 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
       return res.status(500).json({ error: "GEMINI_API_KEY is missing on the server." });
     }
 
-    // RAG: pull the nearest NCERT-aligned notes (reuse the embedding from the
-    // semantic-cache step; first-turn, non-search questions only).
+    // Curriculum grounding (first-turn, non-search questions only), using the
+    // RETRIEVAL_QUERY vector embedded alongside the cache lookup above.
     let referenceContext: string | null = null;
-    if (queryEmbedding && effectiveMode !== "search") {
+    if (groundingEmbedding && effectiveMode !== "search") {
       const ragT0 = Date.now();
       // FAHIM: ground in the Bahrain curriculum corpus for the student's board+grade
-      // (subject/unit resolved server-side). Falls back to no reference (Clarify
+      // (subject/unit resolved server-side). Falls back to no reference (Faheem
       // answers generally) when the grade has no matching textbook content.
-      grounding = await safe(() => groundQuery(board, grade, queryEmbedding, message));
+      grounding = await safe(() => groundQuery(board, grade, groundingEmbedding, message));
       referenceContext = grounding?.reference || null;
       console.log(`[RAG_RETRIEVE] end - ${secs(ragT0)} (${grounding?.source ? `grounded: ${grounding.source.unitTitle} @${grounding.groundedness.toFixed(2)}` : grounding?.outOfSyllabus ? "out-of-syllabus" : "no match"})`);
     }
@@ -646,7 +716,7 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     // Deep understanding view, default thinking for quick answers. The Google
     // Search tool rides on every call, so any answer can ground itself when
     // the model decides it needs the live web.
-    let modelName = NORMAL_MODEL;
+    const modelName = NORMAL_MODEL;
     const config: any = { systemInstruction, temperature, tools: [{ googleSearch: {} }] };
     if (isQuant || deep) config.thinkingConfig = { thinkingLevel: "HIGH" };
 
@@ -662,24 +732,38 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     // vision (image uploads), or plain generation.
     const geminiLabel =
       effectiveMode === "search" ? "GEMINI_SEARCH_GROUND" : hasImages ? "GEMINI_VISION_GENERATE" : "GEMINI_GENERATE";
+    // Wrapped in callExternal: a hard timeout plus the shared "gemini" breaker,
+    // so a stalled provider fails fast instead of holding the request. Retries
+    // stay at 0 here because the SDK already retries transient errors
+    // internally, and the HIGH->LOW degradation below is the app-level retry.
     let response;
     let gemT0 = Date.now();
     console.log(`[${geminiLabel}] start (model=${modelName}). NOTE: the SDK may retry internally up to 5 attempts with backoff on 408/429/5xx.`);
     try {
-      response = await ai.models.generateContent({ model: modelName, contents, config });
+      response = await callExternal(
+        () => ai.models.generateContent({ model: modelName, contents, config }),
+        { label: `gemini.chat(${geminiLabel})`, dependency: "gemini", timeoutMs: GEN_TIMEOUT_MS(), retries: 0 }
+      );
       console.log(`[${geminiLabel}] end - ${secs(gemT0)} (model=${modelName})`);
     } catch (apiError: any) {
       console.warn(`[${geminiLabel}] failed - ${secs(gemT0)} (model=${modelName}): ${apiError.message}`);
+      // An open breaker means the provider is down for everyone: a second
+      // attempt would be refused identically, so surface the failure now.
+      if (apiError instanceof CircuitOpenError) throw apiError;
       if (config.thinkingConfig?.thinkingLevel === "HIGH") {
         // Degraded silent retry: one more full generation at LOW thinking, so
         // a hiccup on the extended-thinking path still returns an answer.
         gemT0 = Date.now();
         console.log(`[${geminiLabel}] retry start (model=${modelName}, LOW thinking after HIGH-thinking failure)`);
-        response = await ai.models.generateContent({
-          model: modelName,
-          contents,
-          config: { ...config, thinkingConfig: { thinkingLevel: "LOW" } },
-        });
+        response = await callExternal(
+          () =>
+            ai.models.generateContent({
+              model: modelName,
+              contents,
+              config: { ...config, thinkingConfig: { thinkingLevel: "LOW" } },
+            }),
+          { label: `gemini.chat(${geminiLabel},LOW)`, dependency: "gemini", timeoutMs: GEN_TIMEOUT_MS(), retries: 0 }
+        );
         console.log(`[${geminiLabel}] retry end - ${secs(gemT0)} (model=${modelName})`);
       } else {
         throw apiError;
@@ -698,8 +782,7 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     return finish(responseText, sources);
   } catch (error: any) {
     console.warn(`[CHAT] total - ${secs(chatT0)} (FAILED: ${error?.message || error})`);
-    console.error("Chat API error:", error);
-    res.status(500).json({ error: error.message || "An error occurred during content generation." });
+    sendServerError(res, error, "chat", "The answer could not be generated right now. Please try again in a moment.");
   }
 });
 
@@ -725,6 +808,11 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
   try {
     const { message, history, mode, board, grade, language, preferredAnalogy } = req.body;
     const uid = (req as any).userId as number;
+
+    // Validate BEFORE the SSE headers go out, so a bad body gets a plain 400
+    // (the client treats a non-stream response as a fallback signal).
+    const invalid = chatBodyError(req.body);
+    if (invalid) return res.status(400).json({ error: invalid });
 
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
@@ -782,6 +870,7 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
     const facets: CacheFacets = { mode: deep ? `${effectiveMode}:deep` : effectiveMode, board, grade, language, preferredAnalogy };
     const cacheKey = cacheable ? makeCacheKey({ ...facets, message, recentTopics }) : "";
     let queryEmbedding: number[] | null = null;
+    let groundingEmbedding: number[] | null = null;
 
     console.log(`[CHAT_STREAM] start (requested=${requestedMode}, effective=${effectiveMode}, deep=${deep}, deepVerify=${deepVerify}, cacheable=${cacheable})`);
 
@@ -823,7 +912,9 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
           "exact cache hit"
         );
       }
-      queryEmbedding = await embed(message);
+      // Same two-vector rule as /chat: SEMANTIC_SIMILARITY for the cache,
+      // RETRIEVAL_QUERY for curriculum grounding, embedded in parallel.
+      [queryEmbedding, groundingEmbedding] = await Promise.all([embed(message), embed(message, "RETRIEVAL_QUERY")]);
       if (queryEmbedding && !personalized) {
         const qTokens = topicTokens(message);
         const candidates = (await safe(() => cacheCandidates(pool, facets))) || [];
@@ -854,8 +945,8 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
     // FAHIM: Bahrain curriculum grounding (same as /chat), subject/unit resolved server-side.
     let referenceContext: string | null = null;
     let grounding: GroundingResult | null = null;
-    if (queryEmbedding) {
-      grounding = await safe(() => groundQuery(board, grade, queryEmbedding, message));
+    if (groundingEmbedding) {
+      grounding = await safe(() => groundQuery(board, grade, groundingEmbedding, message));
       referenceContext = grounding?.reference || null;
     }
     const systemInstruction = buildSystemInstruction({ board, grade, language, preferredAnalogy }, referenceContext, isQuant, deep, recentTopics, effectiveMode === "search");
@@ -930,8 +1021,11 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
     console.log(`[CHAT_STREAM] total - ${secs(chatT0)} (streamed, verify=${deepVerify ? (verified ? "passed" : "unavailable") : "off"})`);
     res.end();
   } catch (error: any) {
+    // Same sanitization rule as the JSON routes: the real error is logged,
+    // the SSE error event carries only a generic message.
     console.warn(`[CHAT_STREAM] total - ${secs(chatT0)} (FAILED: ${error?.message || error})`);
-    send({ type: "error", error: error?.message || "An error occurred during content generation." });
+    console.error("Chat stream error:", error?.message || error);
+    send({ type: "error", error: "The answer could not be generated right now. Please try again in a moment." });
     res.end();
   }
 });
@@ -953,8 +1047,120 @@ aiRouter.post("/chat/verify", requireAuth, async (req: Request, res: Response) =
     const v = await verifyAnswer(question || "Check this answer for correctness.", text);
     res.json({ text: v.text, verification: v.verified ? "passed" : "unavailable" });
   } catch (error: any) {
-    console.error("Verify API error:", error);
-    res.status(500).json({ error: error.message || "Deep-check failed." });
+    sendServerError(res, error, "chat.verify", "Deep-check is unavailable right now. Please try again.");
+  }
+});
+
+/**
+ * Translated views for the language toggle. The toggle must flip the WHOLE
+ * page, including a conversation written in the other language, but stored
+ * messages stay verbatim in the study log: this returns a display-layer
+ * translation per message, cached by content hash in the translations table,
+ * so the whole cohort shares one translation per answer and flipping back and
+ * forth never re-bills the model. Free (not metered): re-reading an answer in
+ * the student's other language is part of being re-taught, never a new question.
+ */
+const TRANSLATE_TIMEOUT_MS = () => Math.max(5_000, Number(process.env.TRANSLATE_TIMEOUT_MS) || 60_000);
+const TRANSLATE_MAX_ITEMS = 40;
+const TRANSLATE_MAX_CHARS = 24_000; // one full exam-ready notebook answer fits
+const TRANSLATE_MAX_TOTAL = 120_000;
+const TRANSLATE_CONCURRENCY = 4;
+
+function translationHash(target: string, text: string): string {
+  return crypto.createHash("sha256").update(`${target}␞${text}`).digest("hex");
+}
+
+async function translateOne(text: string, target: "ar" | "en"): Promise<string> {
+  const goal =
+    target === "ar"
+      ? "into clear, correct Modern Standard Arabic (الفصحى) a Bahraini secondary student reads comfortably. Keep each technical term's English original in parentheses the first time it appears."
+      : "into clear, natural English for a secondary school student. Keep technical terms precise.";
+  const prompt =
+    `Translate the study text below ${goal}\n` +
+    `STRICT RULES:\n` +
+    `- Preserve ALL markdown structure: headings, lists, tables, bold/italic markers.\n` +
+    `- Leave LaTeX math ($...$ and $$...$$), code blocks, URLs, numbers, and units EXACTLY as they are.\n` +
+    `- Keep every emoji, and keep numbered section-header lines (a number followed by an emoji) in exactly that shape: translate only the words after the emoji.\n` +
+    `- Do not add, drop, or reorder content. Output ONLY the translation, no preamble.\n\n` +
+    `TEXT:\n${text}`;
+  const response = await callExternal(
+    () =>
+      ai.models.generateContent({
+        model: NORMAL_MODEL,
+        contents: [{ parts: [{ text: prompt }] }],
+        config: { temperature: 0.1 },
+      }),
+    { label: "gemini.translate", dependency: "gemini", timeoutMs: TRANSLATE_TIMEOUT_MS(), retries: 0 }
+  );
+  const out = (response.text || "").trim();
+  if (!out) throw new Error("Empty translation returned.");
+  return out;
+}
+
+aiRouter.post("/chat/translate", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const uid = (req as any).userId as number;
+    if (!rateLimit(`${uid}:translate`, 20)) {
+      return res.status(429).json({ error: "Too many translation requests right now. Please wait a moment." });
+    }
+    const { target, items } = req.body || {};
+    if (target !== "ar" && target !== "en") return res.status(400).json({ error: "Invalid translation target." });
+    if (!Array.isArray(items) || items.length === 0 || items.length > TRANSLATE_MAX_ITEMS) {
+      return res.status(400).json({ error: "Invalid translation batch." });
+    }
+    let totalChars = 0;
+    for (const it of items) {
+      if (
+        !it ||
+        typeof it.id !== "string" ||
+        it.id.length === 0 ||
+        it.id.length > 120 ||
+        typeof it.text !== "string" ||
+        !it.text.trim() ||
+        it.text.length > TRANSLATE_MAX_CHARS
+      ) {
+        return res.status(400).json({ error: "Invalid translation item." });
+      }
+      totalChars += it.text.length;
+    }
+    if (totalChars > TRANSLATE_MAX_TOTAL) return res.status(400).json({ error: "Translation batch too large." });
+    if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY is missing." });
+
+    const wanted = items.map((it: { id: string; text: string }) => ({
+      id: it.id,
+      text: it.text,
+      hash: translationHash(target, it.text),
+    }));
+    const cached = await translationsGet(pool, wanted.map((w) => w.hash));
+
+    const translations: Record<string, string> = {};
+    const misses: typeof wanted = [];
+    for (const w of wanted) {
+      const hit = cached.get(w.hash);
+      if (hit) translations[w.id] = hit;
+      else misses.push(w);
+    }
+
+    // Bounded concurrency; one failed item never sinks the batch (the client
+    // keeps the original text for that bubble and retries on the next toggle).
+    for (let i = 0; i < misses.length; i += TRANSLATE_CONCURRENCY) {
+      const slice = misses.slice(i, i + TRANSLATE_CONCURRENCY);
+      await Promise.all(
+        slice.map(async (w) => {
+          try {
+            const out = await translateOne(w.text, target);
+            translations[w.id] = out;
+            await translationPut(pool, w.hash, target, out).catch(() => {});
+          } catch (e: any) {
+            console.warn(`[TRANSLATE] item failed (${w.id}): ${e?.message || e}`);
+          }
+        })
+      );
+    }
+
+    res.json({ translations });
+  } catch (error: any) {
+    sendServerError(res, error, "chat.translate", "Translation is unavailable right now. Please try again.");
   }
 });
 
@@ -999,14 +1205,20 @@ aiRouter.post("/tts", requireAuth, async (req: Request, res: Response) => {
     for (const model of TTS_MODELS) {
       try {
         const t0 = Date.now();
-        const response = await ai.models.generateContent({
-          model,
-          contents: [{ parts: [{ text: `Say clearly and warmly: ${text}` }] }],
-          config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || "Kore" } } },
-          },
-        });
+        // Wrapped in callExternal (timeout + shared "gemini" breaker); the
+        // model loop below is the retry, so callExternal itself gets none.
+        const response = await callExternal(
+          () =>
+            ai.models.generateContent({
+              model,
+              contents: [{ parts: [{ text: `Say clearly and warmly: ${text}` }] }],
+              config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || "Kore" } } },
+              },
+            }),
+          { label: `gemini.tts(${model})`, dependency: "gemini", timeoutMs: TTS_TIMEOUT_MS(), retries: 0 }
+        );
         const part = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
         if (!part?.data) throw new Error("No audio stream returned.");
 
@@ -1024,10 +1236,11 @@ aiRouter.post("/tts", requireAuth, async (req: Request, res: Response) => {
         console.warn(`[GEMINI_TTS] ${model} failed: ${e?.message}`);
       }
     }
-    res.status(502).json({ error: lastErr?.message || "TTS generation failed." });
+    // Provider error text stays server-side (same sanitization rule as 500s).
+    console.error("TTS failed on all models:", lastErr?.message || lastErr);
+    res.status(502).json({ error: "Audio could not be generated right now. Please try again." });
   } catch (error: any) {
-    console.error("TTS API error:", error);
-    res.status(500).json({ error: error.message || "TTS generation failed." });
+    sendServerError(res, error, "tts", "Audio could not be generated right now. Please try again.");
   }
 });
 
@@ -1035,22 +1248,52 @@ aiRouter.post("/tts", requireAuth, async (req: Request, res: Response) => {
 export function attachLiveWebSocket(server: http.Server) {
   const wss = new WebSocketServer({ noServer: true });
 
+  // Live voice proxies straight to a paid realtime model, so it gets two
+  // gates the HTTP routes don't need: an Origin allowlist (browsers always
+  // send Origin on WebSocket upgrades; only a wildcard CORS_ORIGIN admits
+  // origin-less non-browser tools) and a per-user cap on concurrent sessions.
+  const wsAllowedOrigins = (process.env.CORS_ORIGIN || "*")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const MAX_LIVE_SESSIONS_PER_USER = 2;
+  const liveSessionsByUser = new Map<number, number>();
+
   server.on("upgrade", (request, socket, head) => {
     const url = new URL(request.url || "", `http://${request.headers.host}`);
     if (url.pathname !== "/api/live") {
       socket.destroy();
       return;
     }
-    // Browser WebSocket can't send headers, so the JWT comes as ?token=
-    if (!userIdFromToken(url.searchParams.get("token"))) {
+    const allowAll = wsAllowedOrigins.includes("*");
+    const origin = request.headers.origin;
+    if (!allowAll && (!origin || !wsAllowedOrigins.includes(origin))) {
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request));
+    // Browser WebSocket can't send headers, so the JWT comes as ?token=.
+    // Tradeoff accepted for the pilot: a query-string token can land in proxy
+    // logs; the alternative (a first-message auth handshake) buys little while
+    // tokens are short-lived, and is noted for the post-pilot hardening pass.
+    const userId = userIdFromToken(url.searchParams.get("token"));
+    if (!userId) {
+      socket.destroy();
+      return;
+    }
+    if ((liveSessionsByUser.get(userId) || 0) >= MAX_LIVE_SESSIONS_PER_USER) {
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      (ws as any).userId = userId;
+      wss.emit("connection", ws, request);
+    });
   });
 
   wss.on("connection", async (clientWs: WebSocket) => {
     let liveSession: any = null;
+    const wsUserId = (clientWs as any).userId as number;
+    liveSessionsByUser.set(wsUserId, (liveSessionsByUser.get(wsUserId) || 0) + 1);
 
     clientWs.on("message", async (data: any) => {
       try {
@@ -1066,10 +1309,11 @@ export function attachLiveWebSocket(server: http.Server) {
               config: {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } } },
-                systemInstruction: `You are Clarify.AI, the student's personal real-time voice mentor.
+                systemInstruction: `You are Faheem (فهيم), the student's personal real-time voice mentor for school students in Bahrain.
+Speak Modern Standard Arabic by default; switch to English only if the student speaks English to you. Keep technical terms accurate, giving the English term once when it helps.
 You are warm, patient, calm, and encouraging.
 Speak in short, conversational sentences suitable for audio dialogue.
-Guide the student step-by-step. If they are confused, give daily life analogies.
+Guide the student step-by-step. If they are confused, give analogies from everyday Gulf life.
 Encourage their thinking and efforts! Keep explanations simple, friendly, and easy to follow.`,
               },
               callbacks: {
@@ -1080,7 +1324,7 @@ Encourage their thinking and efforts! Keep explanations simple, friendly, and ea
                 },
               },
             });
-            clientWs.send(JSON.stringify({ type: "ready", message: "Clarify.AI is listening! Start speaking..." }));
+            clientWs.send(JSON.stringify({ type: "ready", message: "Faheem is listening! Start speaking..." }));
           } catch (err: any) {
             clientWs.send(JSON.stringify({ type: "error", error: "Failed to connect to Live API: " + err.message }));
           }
@@ -1095,6 +1339,9 @@ Encourage their thinking and efforts! Keep explanations simple, friendly, and ea
     });
 
     clientWs.on("close", () => {
+      const remaining = (liveSessionsByUser.get(wsUserId) || 1) - 1;
+      if (remaining <= 0) liveSessionsByUser.delete(wsUserId);
+      else liveSessionsByUser.set(wsUserId, remaining);
       if (liveSession) {
         try {
           liveSession.close();

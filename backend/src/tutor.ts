@@ -31,6 +31,9 @@ import { generate, embed } from "./provider.js";
 import { cosine } from "./knowledge.js";
 import { checkAnswerClaim, type AnswerClaim, type Verification } from "./verify.js";
 import { CircuitOpenError } from "./resilience.js";
+import { requireAuth } from "./auth.js";
+import { rateLimit } from "./ratelimit.js";
+import { sendServerError } from "./logger.js";
 
 const RETRIEVAL_GATE = () => Number(process.env.RETRIEVAL_GATE) || 0.62;
 const TOP_K = 4;
@@ -224,7 +227,7 @@ export async function askTutor(input: AskInput): Promise<AskResult> {
     keyTerms: (await keyTermsForUnit(pool, unit.unitId)).slice(0, 8).map((t) => ({ ar: t.termAr, en: t.termEn })),
   };
 
-  // Type D: doctrinal — extractive-only, dark until scholar sign-off. Never generate.
+  // Type D: doctrinal, extractive-only, dark until scholar sign-off. Never generate.
   if (subject.accuracyType === "D") {
     const res: AskResult = { ...base, text: TYPE_D_MSG[language], confidence: "out_of_syllabus", verification: "not_applicable", outOfSyllabus: true };
     await logEvent(input, subject, { groundedness: null, verification: "not_applicable", outOfSyllabus: true, confidence: "out_of_syllabus", text: res.text, latencyMs: Date.now() - t0 });
@@ -320,7 +323,13 @@ export async function askTutor(input: AskInput): Promise<AskResult> {
 
 export const tutorRouter = express.Router();
 
-tutorRouter.post("/tutor/ask", async (req, res) => {
+// Same gate as every other AI route: a valid session plus a per-user rate
+// limit. Each ask is real model spend, so it must never be open or unlimited.
+tutorRouter.post("/tutor/ask", requireAuth, async (req, res) => {
+  const uid = (req as any).userId as number;
+  if (!rateLimit(`${uid}:tutor`, 15)) {
+    return res.status(429).json({ error: "You're asking very fast. Take a breath and try again in a moment." });
+  }
   const { board, gradeId, subjectId, unitId, question, language } = req.body || {};
   if (!unitId || !question || typeof question !== "string" || question.trim().length < 2) {
     return res.status(400).json({ error: "unitId and a non-empty question are required" });
@@ -337,6 +346,10 @@ tutorRouter.post("/tutor/ask", async (req, res) => {
     });
     res.json(result);
   } catch (e: any) {
-    res.status(e?.status || 500).json({ error: e?.message || "tutor failed" });
+    // Deliberate 4xx messages (unknown unit/subject) pass through; anything
+    // else is logged server-side and answered generically.
+    const status = Number(e?.status);
+    if (status >= 400 && status < 500) return res.status(status).json({ error: e?.message || "invalid request" });
+    sendServerError(res, e, "tutor.ask", "The tutor could not answer right now. Please try again.");
   }
 });

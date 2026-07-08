@@ -1,63 +1,35 @@
-# Fahim self-hosted Arabic font
+# Faheem self-hosted fonts
 
-Fahim is Arabic-first, so we self-host the Arabic UI face rather than pulling it
-from a CDN (no `@import` from Google Fonts for Arabic — see `src/index.css`).
-Until the file below is added, the app falls back to the platform Arabic fonts
-declared in the `--font-arabic` stack (`Noto Sans Arabic`, `Segoe UI`, `Tahoma`,
-`system-ui`).
+Faheem is Arabic-first, so the Arabic UI face is self-hosted here instead of
+being pulled from a CDN: no third-party request on first paint, and the app
+keeps its own face offline or behind school network filters.
 
-## What to drop here
+## What lives here
 
-A **subsetted IBM Plex Sans Arabic variable WOFF2** covering:
+Tajawal (the `--font-arabic` / `--font-sans` face) as static WOFF2 files,
+downloaded from the Google Fonts API (v12), split by weight and script subset:
 
-- Arabic block (U+0600–06FF) + Arabic Supplement / Presentation Forms as needed
-- Basic Latin (U+0000–00FF) so mixed Arabic/English UI stays in one face
-- Western (Latin) digits 0–9
+| File | Weight | Subset |
+|---|---|---|
+| `tajawal-400-arabic.woff2` / `tajawal-400-latin.woff2` | 400 | Arabic / Latin |
+| `tajawal-500-arabic.woff2` / `tajawal-500-latin.woff2` | 500 | Arabic / Latin |
+| `tajawal-700-arabic.woff2` / `tajawal-700-latin.woff2` | 700 | Arabic / Latin |
+| `tajawal-800-arabic.woff2` / `tajawal-800-latin.woff2` | 800 | Arabic / Latin |
 
-Name it exactly:
+The matching `@font-face` rules (with `font-display: swap` and the original
+`unicode-range` splits, so a page only downloads the subsets it uses) live at
+the top of `src/index.css`. There is no Google Fonts `@import` anymore.
 
-```
-public/fonts/IBMPlexSansArabic-Variable.woff2
-```
+Latin technical terms (`--font-latin`) and code (`--font-mono`) intentionally
+resolve from system font stacks; Inter and JetBrains Mono are not bundled.
 
-Recommended source: the official IBM Plex Sans Arabic variable font, subsetted
-with a tool like `fonttools`/`glyphhanger` to keep the download small.
+## Updating a weight or adding one
 
-## Enable it (two steps)
+1. Request the CSS with a modern browser user agent so Google serves WOFF2:
+   `curl -A "Mozilla/5.0 ... Chrome/120" "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap"`
+2. Download each `fonts.gstatic.com/...woff2` URL into this folder using the
+   `tajawal-<weight>-<subset>.woff2` naming above.
+3. Mirror any new `@font-face` blocks (weight + `unicode-range`) in
+   `src/index.css`.
 
-### 1. Declare the `@font-face` in `src/index.css`
-
-Paste this near the top of `src/index.css` (after `@import "tailwindcss";`) and
-uncomment it. `font-family` matches the first entry of `--font-arabic`, so no
-other CSS needs to change — the app root already uses `var(--font-arabic)`.
-
-```css
-/*
-@font-face {
-  font-family: "IBM Plex Sans Arabic";
-  src: url("/fonts/IBMPlexSansArabic-Variable.woff2") format("woff2");
-  font-weight: 100 700;
-  font-style: normal;
-  font-display: swap;
-}
-*/
-```
-
-### 2. Preload it in `index.html`
-
-Add this inside `<head>` (before the module script) so the Arabic face starts
-downloading during first paint, avoiding a flash of fallback text:
-
-```html
-<!--
-<link
-  rel="preload"
-  href="/fonts/IBMPlexSansArabic-Variable.woff2"
-  as="font"
-  type="font/woff2"
-  crossorigin
-/>
--->
-```
-
-That's it — no code changes, no new dependencies.
+Tajawal is licensed under the SIL Open Font License 1.1.

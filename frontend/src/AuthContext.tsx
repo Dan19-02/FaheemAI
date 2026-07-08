@@ -4,7 +4,7 @@
  * a stored token on load, and exposes login / signup / logout.
  */
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { api, getToken, setToken, type Account, type SignupInput } from "./api";
+import { api, getToken, setToken, setOnUnauthorized, type Account, type SignupInput } from "./api";
 import type { Subscription } from "./types";
 
 interface AuthContextValue {
@@ -38,6 +38,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(({ user }) => setAccount(user))
       .catch(() => setToken(null))
       .finally(() => setLoading(false));
+  }, []);
+
+  // A 401 mid-session means the JWT expired or was revoked. The api layer has
+  // already cleared the token; dropping the account here returns the student
+  // to the landing/login screen instead of a dead workspace.
+  useEffect(() => {
+    setOnUnauthorized(() => setAccount(null));
+    return () => setOnUnauthorized(null);
   }, []);
 
   const login = async (email: string, password: string) => {

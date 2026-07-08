@@ -31,6 +31,7 @@ import {
   DEFAULT_CHAPTERS,
 } from "./db.js";
 import { getEntitlement } from "./subscription.js";
+import { rateLimit } from "./ratelimit.js";
 
 /** The account payload sent to the client: profile + chapters + live plan/usage. */
 async function accountPayload(row: any) {
@@ -46,6 +47,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-insecure-secret-change-me";
 const TOKEN_TTL = "30d";
 
 if (!process.env.JWT_SECRET) {
+  // A known signing secret means anyone can mint a valid session for any user.
+  // That is tolerable only for a throwaway local run; any deployment signal
+  // (NODE_ENV=production, or a remote database holding real accounts) makes it
+  // fatal, because a warning in the logs protects nobody.
+  const dbUrl = process.env.DATABASE_URL || "";
+  const remoteDb = Boolean(dbUrl) && !/localhost|127\.0\.0\.1/.test(dbUrl);
+  if (process.env.NODE_ENV === "production" || remoteDb) {
+    console.error("[Auth] FATAL: JWT_SECRET is not set. Refusing to serve real accounts on the built-in dev secret; set JWT_SECRET and redeploy.");
+    process.exit(1);
+  }
   console.warn("[Auth] JWT_SECRET not set, using an insecure dev secret. Set JWT_SECRET before deploying.");
 }
 
@@ -86,9 +97,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 export const authRouter = Router();
 
+// Credential endpoints are the classic stuffing/enumeration target, so each
+// gets a per-IP window (req.ip is real behind Render: trust proxy is set).
+// Signup is the tightest: legitimate students create one account, not five.
+const AUTH_WINDOW_15M = 15 * 60_000;
+const AUTH_WINDOW_1H = 60 * 60_000;
+const TOO_MANY_ATTEMPTS = "Too many attempts from this connection. Please wait a while and try again.";
+
 // --- Sign up: collect the full student profile in one go ---
 authRouter.post("/auth/signup", async (req: Request, res: Response) => {
   try {
+    if (!rateLimit(`signup:${req.ip}`, 5, AUTH_WINDOW_1H)) {
+      return res.status(429).json({ error: TOO_MANY_ATTEMPTS });
+    }
     const {
       email,
       password,
@@ -118,9 +139,9 @@ authRouter.post("/auth/signup", async (req: Request, res: Response) => {
       email,
       passwordHash,
       name: (name || "Student").trim(),
-      board: board || "CBSE",
-      grade: grade || "11th Grade",
-      language: language || "Hinglish",
+      board: board || "Bahrain MoE",
+      grade: grade || "Grade 10",
+      language: language || "Arabic",
       preferredAnalogy: preferredAnalogy || "Daily Life",
       examGoals: examGoals || "",
       confidenceLevel: Number(confidenceLevel) || 3,
@@ -142,6 +163,9 @@ authRouter.post("/auth/signup", async (req: Request, res: Response) => {
 // --- Log in ---
 authRouter.post("/auth/login", async (req: Request, res: Response) => {
   try {
+    if (!rateLimit(`login:${req.ip}`, 10, AUTH_WINDOW_15M)) {
+      return res.status(429).json({ error: TOO_MANY_ATTEMPTS });
+    }
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
@@ -169,6 +193,9 @@ authRouter.post("/auth/login", async (req: Request, res: Response) => {
 // own session token, exactly like email/password login.
 authRouter.post("/auth/google", async (req: Request, res: Response) => {
   try {
+    if (!rateLimit(`google:${req.ip}`, 20, AUTH_WINDOW_15M)) {
+      return res.status(429).json({ error: TOO_MANY_ATTEMPTS });
+    }
     if (!GOOGLE_CLIENT_ID) {
       return res.status(503).json({ error: "Google sign in is not configured on this server yet." });
     }
@@ -216,18 +243,25 @@ authRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
 });
 
 // --- Update profile + study log ---
+// Merge semantics: only the fields present in the body change. A partial
+// update (say, just the language toggle) must never silently reset the rest
+// of the profile to defaults or wipe the chapter list.
 authRouter.put("/me", requireAuth, async (req: Request, res: Response) => {
   try {
     const b = req.body || {};
+    const current = await getUserById(pool, (req as any).userId);
+    if (!current) return res.status(404).json({ error: "User not found." });
+
+    const str = (v: any, fallback: string) => (typeof v === "string" && v.trim() ? v.trim() : fallback);
     const row = await updateUser(pool, (req as any).userId, {
-      name: (b.name || "Student").trim(),
-      board: b.board || "CBSE",
-      grade: b.grade || "11th Grade",
-      language: b.language || "Hinglish",
-      preferredAnalogy: b.preferredAnalogy || "Daily Life",
-      examGoals: b.examGoals || "",
-      confidenceLevel: Number(b.confidenceLevel) || 3,
-      chapters: Array.isArray(b.chapters) ? b.chapters : [],
+      name: str(b.name, current.name),
+      board: str(b.board, current.board),
+      grade: str(b.grade, current.grade),
+      language: str(b.language, current.language),
+      preferredAnalogy: str(b.preferredAnalogy, current.preferred_analogy),
+      examGoals: typeof b.examGoals === "string" ? b.examGoals : current.exam_goals,
+      confidenceLevel: b.confidenceLevel !== undefined ? Number(b.confidenceLevel) || current.confidence_level : current.confidence_level,
+      chapters: Array.isArray(b.chapters) ? b.chapters : current.chapters || [],
     });
     if (!row) return res.status(404).json({ error: "User not found." });
     res.json({ user: await accountPayload(row) });
@@ -300,7 +334,16 @@ authRouter.post("/conversations/:id/messages", requireAuth, async (req: Request,
   try {
     const uid = (req as any).userId;
     const { id, role, text, mode, sources, attachments } = req.body || {};
-    if (!id || !role || typeof text !== "string") {
+    // Boundary validation: the role names drive rendering and re-prompting, so
+    // only the two known ones are stored; the length cap covers the longest
+    // deep-notebook answer with headroom.
+    if (!id || typeof id !== "string" || id.length > 120) {
+      return res.status(400).json({ error: "Invalid message." });
+    }
+    if (role !== "user" && role !== "model") {
+      return res.status(400).json({ error: "Invalid message." });
+    }
+    if (typeof text !== "string" || text.length > 20_000) {
       return res.status(400).json({ error: "Invalid message." });
     }
     if (!(await conversationOwnedBy(pool, uid, String(req.params.id)))) {

@@ -1,5 +1,5 @@
 /**
- * Rich markdown renderer for Clarify.AI teaching responses.
+ * Rich markdown renderer for Faheem teaching responses.
  *
  * The model is prompted to use Markdown tables, LaTeX math, and Mermaid
  * diagrams. The old UI dumped raw text, so equations and diagrams showed as
@@ -14,6 +14,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { useLocale } from "./i18n/LocaleContext";
 
 // Mermaid (and its cytoscape/dagre deps) is ~1.5MB, so we load it lazily, only
 // when a response actually contains a diagram. Critical for low-end mobile.
@@ -84,6 +85,7 @@ function mermaidToWords(src: string): string {
 }
 
 function MermaidBlock({ chart }: { chart: string }) {
+  const { t } = useLocale();
   const reactId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const clean = React.useMemo(() => sanitizeMermaid(chart), [chart]);
   const [svg, setSvg] = useState<string | null>(null);
@@ -112,7 +114,7 @@ function MermaidBlock({ chart }: { chart: string }) {
     if (!words) return null;
     return (
       <div className="my-3 rounded-xl border border-editorial-line-light bg-editorial-stone/40 p-4">
-        <div className="mb-1.5 text-xs font-semibold text-editorial-charcoal/70">Diagram, in words</div>
+        <div className="mb-1.5 text-xs font-semibold text-editorial-charcoal/70">{t("markdown.diagramInWords")}</div>
         <ul className="space-y-1 text-sm text-editorial-charcoal/85">
           {words.split("\n").map((line, i) => (
             <li key={i}>{line}</li>
@@ -122,18 +124,26 @@ function MermaidBlock({ chart }: { chart: string }) {
     );
   }
 
+  // Two explicit branches: React throws at runtime if a node ever receives
+  // both dangerouslySetInnerHTML and children, so the states never share a div.
+  // dir="ltr": on the Arabic (RTL) page the flowchart would otherwise mirror
+  // left-to-right, reversing arrow direction and node order. Diagrams are
+  // direction-neutral artwork, so they stay LTR regardless of UI language.
+  const frameClass = "my-3 flex justify-center overflow-x-auto rounded-xl border border-editorial-line-light bg-white p-3";
+  if (svg) {
+    return (
+      <div
+        role="img"
+        aria-label={t("markdown.diagramAlt")}
+        dir="ltr"
+        className={frameClass}
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+    );
+  }
   return (
-    <div
-      role="img"
-      aria-label="Concept flowchart drawn by Clarify.AI"
-      // dir="ltr": on the Arabic (RTL) page the flowchart would otherwise mirror
-      // left-to-right, reversing arrow direction and node order. Diagrams are
-      // direction-neutral artwork, so they stay LTR regardless of UI language.
-      dir="ltr"
-      className="my-3 flex justify-center overflow-x-auto rounded-xl border border-editorial-line-light bg-white p-3"
-      dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
-    >
-      {svg ? undefined : <span className="text-xs text-editorial-charcoal/40">Drawing diagram…</span>}
+    <div role="img" aria-label={t("markdown.diagramAlt")} dir="ltr" className={frameClass}>
+      <span className="text-xs text-editorial-charcoal/40">{t("loading.diagram")}</span>
     </div>
   );
 }
@@ -148,9 +158,10 @@ interface MarkdownProps {
 
 /** Placeholder shown where a diagram will draw once the answer completes. */
 function DiagramPending() {
+  const { t } = useLocale();
   return (
     <div className="my-3 flex justify-center rounded-xl border border-dashed border-editorial-line bg-editorial-stone/40 p-4">
-      <span className="text-xs text-editorial-charcoal/70">Diagram will draw when the answer completes…</span>
+      <span className="text-xs text-editorial-charcoal/70">{t("loading.diagramPending")}</span>
     </div>
   );
 }
@@ -171,7 +182,7 @@ function MarkdownImpl({ children, streaming }: MarkdownProps) {
           // wrap each math node in a dir="ltr" bidi-isolate so notation renders
           // exactly as written; non-math spans/divs pass through untouched.
           // (The index.css .katex rules are the CSS half of the same fix.)
-          // `node` is react-markdown's hast node — drop it so it is never spread
+          // `node` is react-markdown's hast node: drop it so it is never spread
           // onto the real DOM element (invalid attribute).
           span: ({ children, className, node: _node, ...props }) => {
             const isMath = !!className && /(^|\s)math(\s|$)/.test(className);

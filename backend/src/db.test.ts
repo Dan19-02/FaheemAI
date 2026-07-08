@@ -10,7 +10,6 @@ import {
   initSchema,
   createUser,
   getUserByEmail,
-  getUserById,
   updateUser,
   addMessage,
   getMessages,
@@ -21,10 +20,6 @@ import {
   cacheUpsertFull,
   cacheCandidates,
   cacheMarkVerified,
-  knowledgeInsert,
-  knowledgeCount,
-  knowledgeAll,
-  knowledgeDeleteAll,
   rowToUser,
 } from "./db.js";
 
@@ -128,16 +123,6 @@ function assert(cond: any, label: string) {
   await cacheMarkVerified(q, "k1", "corrected answer");
   const upgraded = await cacheGetByKey(q, "k1");
   assert(upgraded !== null && upgraded.verified === true && upgraded.text === "corrected answer", "cacheMarkVerified upgrades text + flag");
-
-  await knowledgeInsert(q, { id: "kc1", subject: "Physics", topic: "Inertia", board: "CBSE", grade: "11", content: "Inertia note", embedding: [0.1, 0.2, 0.3] });
-  assert((await knowledgeCount(q)) === 1, "knowledge insert + count");
-  const chunks = await knowledgeAll(q);
-  assert(chunks.length === 1 && Array.isArray(chunks[0].embedding), "knowledge embedding round-trips as a JS array");
-
-  // Stale-embedding recovery path (cacheClearMismatchedEmbeddings uses
-  // jsonb_array_length, which pg-mem lacks; its call site is try/catch-safe).
-  await knowledgeDeleteAll(q);
-  assert((await knowledgeCount(q)) === 0, "knowledgeDeleteAll purges the corpus for re-ingestion");
 
   console.log("\nDB SMOKE TEST PASSED ✓");
   process.exit(0);

@@ -46,6 +46,7 @@ import { api, getToken, ApiError } from "./api";
 import { useLocale, type TranslateFn } from "./i18n/LocaleContext";
 import { DEFAULT_CHAPTERS, makeDefaultProfile, SUPPORT_EMAIL } from "./defaults";
 import { Markdown } from "./Markdown";
+import { MessageErrorBoundary } from "./ErrorBoundary";
 import { NotebookViewer } from "./NotebookViewer";
 import UpgradeModal from "./UpgradeModal";
 import PreExamNotebook from "./PreExamNotebook";
@@ -139,6 +140,29 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
+  // Translated VIEWS of stored messages, keyed by message id then language.
+  // The language toggle must flip the WHOLE page, including a conversation
+  // that was written in the other language, but the stored study log is never
+  // rewritten: we fetch a translated view once, cache it here (and by content
+  // hash on the server), and swap the displayed text. Toggling back is instant.
+  const [msgTranslations, setMsgTranslations] = useState<Record<string, Partial<Record<"ar" | "en", string>>>>({});
+  const translationsInFlight = useRef<Set<string>>(new Set());
+
+  const hasArabicText = (s: string) => /[؀-ۿ]/.test(s);
+  // Which stored messages read in the WRONG language for the current UI?
+  // Cheap script check: Arabic content on the English page (or Latin-only
+  // content on the Arabic page) needs a translated view. Drafts still
+  // streaming and examiner-checking messages wait for their final text.
+  const needsTranslation = (m: ChatMessage): boolean => {
+    if (!m.text || m.text.trim().length < 2 || m.isError || m.streaming || m.verification === "checking") return false;
+    return lang === "en" ? hasArabicText(m.text) : !hasArabicText(m.text);
+  };
+  // The message as the student should SEE it right now.
+  const displayedMessage = (m: ChatMessage): ChatMessage => {
+    const translated = needsTranslation(m) ? msgTranslations[m.id]?.[lang] : undefined;
+    return translated ? { ...m, text: translated } : m;
+  };
+
   // UI state
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<{ dataUrl: string; mimeType: string; name: string; isImage: boolean }[]>([]);
@@ -153,6 +177,17 @@ export default function App() {
   // Profile edit
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState<StudentProfile>({ ...profile });
+
+  // Escape closes the Preferences modal; the notebook overlay and plan chooser
+  // handle their own keys. Registered only while the modal is open.
+  useEffect(() => {
+    if (!isEditingProfile) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsEditingProfile(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isEditingProfile]);
   const [selectedVoice, setSelectedVoice] = useState<"Kore" | "Zephyr" | "Puck" | "Charon" | "Fenrir">("Kore");
 
   // TTS playback
@@ -292,6 +327,42 @@ export default function App() {
     }, 700);
     return () => clearTimeout(t);
   }, [profile, chapters, account?.id]);
+
+  // End-to-end language switch, part 2. Part 1 (profile.language sync on the
+  // toggle) makes every NEW answer arrive in the chosen language; this makes
+  // the conversation ALREADY on screen follow it too. Fetches a translated
+  // view for every bubble that reads in the wrong language and lacks a cached
+  // one. In-flight keys prevent duplicate requests while a batch is running.
+  useEffect(() => {
+    const target = lang;
+    const pending = chatHistory.filter(
+      (m) =>
+        needsTranslation(m) &&
+        !msgTranslations[m.id]?.[target] &&
+        !translationsInFlight.current.has(`${m.id}:${target}`)
+    );
+    if (pending.length === 0) return;
+    pending.forEach((m) => translationsInFlight.current.add(`${m.id}:${target}`));
+    showToast(t("translate.working"));
+    api
+      .translate({ target, items: pending.map((m) => ({ id: m.id, text: m.text })) })
+      .then(({ translations }) => {
+        setMsgTranslations((prev) => {
+          const next = { ...prev };
+          for (const [id, text] of Object.entries(translations || {})) {
+            if (typeof text === "string" && text.trim()) next[id] = { ...next[id], [target]: text };
+          }
+          return next;
+        });
+      })
+      .catch((e) => {
+        // Non-fatal: the original text stays readable; the next toggle retries.
+        console.error("Conversation translation failed:", e);
+      })
+      .finally(() => {
+        pending.forEach((m) => translationsInFlight.current.delete(`${m.id}:${target}`));
+      });
+  }, [lang, chatHistory, msgTranslations]);
 
   // Auto-scroll on new messages, but during streaming (same message count,
   // growing text) only follow when the student is already near the bottom, so
@@ -682,7 +753,9 @@ export default function App() {
     setChapters((prev) => [newCh, ...prev]);
     setNewChapterName("");
     setIsAddingChapter(false);
-    handleSendMessage(`اشرح لي «${newCh.name}» بعمق.`, { deep: true });
+    // The prompt follows the active UI language so an English-mode student is
+    // not silently switched back to an Arabic conversation.
+    handleSendMessage(t("study.deepDivePrompt", { chapter: newCh.name }), { deep: true });
   };
 
   const handleUpdateMastery = (id: string, newMastery: "weak" | "developing" | "strong") => {
@@ -950,9 +1023,17 @@ export default function App() {
             }}
           />
           {/* Language toggle: Arabic loads by default; students may flip to
-              English. Kept compact, shows the language they'd switch TO. */}
+              English. Kept compact, shows the language they'd switch TO.
+              It switches BOTH the UI chrome and the tutor's answer language
+              (profile.language, persisted by the debounced save): one tap,
+              one language, no hidden second control to hunt for. The
+              Preferences select stays available for fine control. */}
           <button
-            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+            onClick={() => {
+              const next = lang === "ar" ? "en" : "ar";
+              setLang(next);
+              setProfile((p) => ({ ...p, language: next === "ar" ? "Arabic" : "English" }));
+            }}
             title={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
             aria-label={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
             className="h-9 px-3 rounded-full border border-[var(--color-line)] flex items-center justify-center text-xs font-bold text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-ink)] transition-all cursor-pointer shrink-0"
@@ -1122,7 +1203,7 @@ export default function App() {
                   {chapters.map((ch) => (
                     <div
                       key={ch.id}
-                      onClick={() => handleSendMessage(`اشرح لي «${ch.name}» بعمق.`, { deep: true })}
+                      onClick={() => handleSendMessage(t("study.deepDivePrompt", { chapter: ch.name }), { deep: true })}
                       className="group bg-[var(--color-sand)] border border-[var(--color-line-soft)] p-3 rounded-xl flex flex-col gap-2 hover:border-[var(--color-sea)]/40 hover:bg-[var(--color-sea-soft)]/60 transition-all cursor-pointer relative"
                     >
                       <div className="flex justify-between items-start gap-1">
@@ -1225,7 +1306,12 @@ export default function App() {
               </div>
             )}
 
-            {chatHistory.map((message, msgIdx) => (
+            {chatHistory.map((message, msgIdx) => {
+              // The bubble renders the translated VIEW when the UI language
+              // differs from the message's own; actions that persist or check
+              // content (deep-check, save, re-ask) keep the original text.
+              const shown = displayedMessage(message);
+              return (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -1271,12 +1357,22 @@ export default function App() {
                   )}
 
                   {/* data-answer-body clamps line-selection saving to the answer
-                      text itself: never buttons, sources, or status chrome. */}
+                      text itself: never buttons, sources, or status chrome.
+                      dir="auto" lets each message pick its own base direction
+                      from its content, so an Arabic answer on the English page
+                      (or vice versa) keeps its punctuation on the right end
+                      instead of inheriting the page direction and garbling.
+                      The per-message boundary keeps one malformed answer from
+                      blanking the whole conversation. */}
                   {message.text &&
                     (message.role === "model" ? (
-                      <div data-answer-body="true">{renderMessageContent(message)}</div>
+                      <div data-answer-body="true" dir="auto">
+                        <MessageErrorBoundary notice={t("error.messageRender")}>
+                          {renderMessageContent(shown)}
+                        </MessageErrorBoundary>
+                      </div>
                     ) : (
-                      renderMessageContent(message)
+                      <div dir="auto">{renderMessageContent(shown)}</div>
                     ))}
 
                   {/* Deep-check state: honest at every stage. The passed state
@@ -1397,7 +1493,7 @@ export default function App() {
                         </button>
                       )}
                       <button
-                        onClick={() => handleSpeak(message.id, message.text)}
+                        onClick={() => handleSpeak(message.id, shown.text)}
                         className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer sm:ms-auto ${
                           playingMessageId === message.id ? "bg-[var(--color-sea)] text-white" : "bg-[var(--color-sand)] hover:bg-[var(--color-sea-soft)] text-[var(--color-sea)] border border-[var(--color-line-soft)]"
                         }`}
@@ -1409,7 +1505,8 @@ export default function App() {
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
 
             {/* Facts fill the wait until the first streamed token arrives. */}
             {isGenerating && !chatHistory.some((m) => m.streaming || m.verification === "checking") && (
@@ -1574,22 +1671,22 @@ export default function App() {
         }}
       />
 
-      {/* Quiet toast (saves, hints) */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -8, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: -8, x: "-50%" }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-[var(--color-ink)] px-5 py-2.5 text-center text-xs text-[var(--color-chalk)] shadow-lg"
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Quiet toast (saves, hints). No AnimatePresence: motion 12 with React
+          19 StrictMode can finish the exit fade without unmounting, leaving an
+          invisible fixed element floating over the page (verified live on the
+          plan chooser). Entry animates, close unmounts instantly. */}
+      {toast && (
+        <motion.div
+          role="status"
+          aria-live="polite"
+          initial={{ opacity: 0, y: -8, x: "-50%" }}
+          animate={{ opacity: 1, y: 0, x: "-50%" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-[var(--color-ink)] px-5 py-2.5 text-center text-xs text-[var(--color-chalk)] shadow-lg"
+        >
+          {toast}
+        </motion.div>
+      )}
 
       {/* Plan chooser / paywall */}
       {account && (
@@ -1607,14 +1704,14 @@ export default function App() {
         />
       )}
 
-      {/* Preferences modal */}
-      <AnimatePresence>
-        {isEditingProfile && (
+      {/* Preferences modal. Same rule as the toast: no AnimatePresence, the
+          stuck-exit bug would leave an invisible full-screen backdrop that
+          swallows every click in the app. */}
+      {isEditingProfile && (
           <div className="fixed inset-0 bg-[var(--color-night)]/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.98, opacity: 0 }}
               className="bg-[var(--color-pearl)] border border-[var(--color-line)] w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
@@ -1708,8 +1805,7 @@ export default function App() {
               </form>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+      )}
     </div>
     </MotionConfig>
   );
@@ -1763,12 +1859,15 @@ function UsagePill({ t, subscription, onClick }: { t: TranslateFn; subscription?
 // call) while the answer generates. Facts auto-change every 10s and stay until
 // the full answer has been generated.
 function SmartFactsLoader({ seedMessage, t }: { seedMessage: string; t: TranslateFn }) {
+  // Facts are bilingual; render the side that matches the active UI language.
+  const { lang } = useLocale();
   const [idx, setIdx] = useState(() => pickFirstFactIndex(seedMessage));
   useEffect(() => {
     const timer = setInterval(() => setIdx((i) => (i + 1) % STUDY_FACTS.length), 10000);
     return () => clearInterval(timer);
   }, []);
   const fact = STUDY_FACTS[idx] || FALLBACK_STUDY_FACT;
+  const factText = lang === "ar" ? fact.ar : fact.en;
   return (
     <div className="self-start max-w-[92%] md:max-w-[85%] flex flex-col items-start">
       <div className="flex items-center gap-2 mb-1.5 text-[11px] text-[var(--color-sea)]">
@@ -1789,7 +1888,7 @@ function SmartFactsLoader({ seedMessage, t }: { seedMessage: string; t: Translat
             transition={{ duration: 0.4 }}
             className="text-sm text-[var(--color-ink)]/85 leading-relaxed"
           >
-            {fact.text}
+            {factText}
           </motion.p>
         </AnimatePresence>
       </div>

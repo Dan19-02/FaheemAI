@@ -18,7 +18,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import crypto from "crypto";
 import { requireAuth } from "./auth.js";
-import { rateLimit } from "./ai.js";
+import { rateLimit } from "./ratelimit.js";
 import {
   pool,
   getUserById,
@@ -53,18 +53,20 @@ if (!billingConfigured) {
   console.warn("[Billing] RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set: payments are disabled until they are.");
 } else {
   const mode = KEY_ID.startsWith("rzp_live") ? "LIVE" : "TEST";
-  console.log(`[Billing] Razorpay enabled (${mode} keys). Plans: ${PLANS.map((p) => `${p.name} ₹${p.price}`).join(", ")}.`);
+  console.log(`[Billing] Razorpay enabled (${mode} keys). Plans: ${PLANS.map((p) => `${p.name} BHD ${p.price}`).join(", ")}.`);
 }
 
 const PASS_MS = PASS_DAYS * 24 * 60 * 60 * 1000;
 
-/** Create an order on Razorpay via the REST API (Basic auth = key id:secret). */
-async function razorpayCreateOrder(amountPaise: number, receipt: string, notes: Record<string, string>) {
+/** Create an order on Razorpay via the REST API (Basic auth = key id:secret).
+ *  Billing is dormant; the currency here is catalogue metadata for whatever
+ *  processor goes live in Bahrain, while the Razorpay wiring stays intact. */
+async function razorpayCreateOrder(amountFils: number, receipt: string, notes: Record<string, string>) {
   const auth = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
   const resp = await fetch(`${RAZORPAY_API}/orders`, {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt, notes, payment_capture: 1 }),
+    body: JSON.stringify({ amount: amountFils, currency: "BHD", receipt, notes, payment_capture: 1 }),
   });
   if (!resp.ok) {
     const body = await resp.text().catch(() => "");
@@ -131,26 +133,34 @@ export async function grantPass(userId: number, plan: string, paymentId: string,
 
 export const billingRouter = Router();
 
+/**
+ * Read-only billing surface, mounted even while purchasing is dormant: the
+ * plan chooser needs the catalogue (it renders "coming soon" while
+ * configured=false), and the usage pill refreshes /subscription after every
+ * metered question. Neither route can move money.
+ */
+export const billingReadRouter = Router();
+
 /** Public plan catalogue + trial terms (used to render the pricing UI). */
-billingRouter.get("/billing/plans", (_req: Request, res: Response) => {
+billingReadRouter.get("/billing/plans", (_req: Request, res: Response) => {
   res.json({
     plans: PLANS.map((p) => ({
       id: p.id,
       name: p.name,
       price: p.price,
-      amountPaise: p.amountPaise,
+      amountFils: p.amountFils,
       monthlyQueries: p.monthlyQueries,
       blurb: p.blurb,
     })),
     trial: { days: TRIAL_DAYS, dailyQueries: TRIAL_DAILY_QUERIES },
     passDays: PASS_DAYS,
     configured: billingConfigured,
-    currency: "INR",
+    currency: "BHD",
   });
 });
 
 /** The signed-in student's current entitlement (plan, usage, remaining). */
-billingRouter.get("/subscription", requireAuth, async (req: Request, res: Response) => {
+billingReadRouter.get("/subscription", requireAuth, async (req: Request, res: Response) => {
   try {
     const row = await getUserById(pool, (req as any).userId);
     if (!row) return res.status(404).json({ error: "User not found." });
@@ -180,15 +190,15 @@ billingRouter.post("/billing/order", requireAuth, async (req: Request, res: Resp
     // starts AT the current expiry (grantPass chains the windows).
     const decision = renewalDecision(row);
     if (!decision.allowed) {
-      const until = new Date(decision.activeUntilMs!).toLocaleDateString("en-IN", { day: "numeric", month: "long", timeZone: "Asia/Kolkata" });
+      const until = new Date(decision.activeUntilMs!).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Asia/Bahrain" });
       return res.status(409).json({
         error: `Your current pass is active until ${until}. Renewal opens in its last ${RENEW_WINDOW_DAYS} days, so nothing you have paid for is lost.`,
       });
     }
 
-    const receipt = `clarify_${uid}_${Date.now()}`.slice(0, 40); // Razorpay caps receipt at 40 chars
-    const order = await razorpayCreateOrder(def.amountPaise, receipt, { userId: String(uid), plan: def.id });
-    await createPayment(pool, { userId: uid, plan: def.id, orderId: order.id, amount: def.amountPaise, currency: "INR" });
+    const receipt = `faheem_${uid}_${Date.now()}`.slice(0, 40); // Razorpay caps receipt at 40 chars
+    const order = await razorpayCreateOrder(def.amountFils, receipt, { userId: String(uid), plan: def.id });
+    await createPayment(pool, { userId: uid, plan: def.id, orderId: order.id, amount: def.amountFils, currency: "BHD" });
 
     res.json({
       orderId: order.id,
