@@ -1,8 +1,8 @@
 import type { StudentProfile, ChapterProgress, ChatMessage } from "./types";
 
-/** The one and only support contact. Every "reach us" surface uses this.
- *  Interim address until a faheem domain mailbox exists. */
-export const SUPPORT_EMAIL = "daanishmotivate@gmail.com";
+/** The one and only support contact. Every "reach us" surface uses this
+ *  (user decision: Faheem is a Clarify.AI product, support stays there). */
+export const SUPPORT_EMAIL = "support@clarifyai.in";
 
 // Intentionally empty. Students start with a clean Chapter Mastery list and
 // add their own chapters. (No demo/prefilled data.)

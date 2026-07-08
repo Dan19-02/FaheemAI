@@ -31,9 +31,9 @@ export interface PlanDef {
 
 /** The three paid plans (must match the landing page PricingSection). */
 export const PLANS: PlanDef[] = [
-  { id: "starter", name: "Starter", price: 1.9, amountFils: 1_900, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
-  { id: "regular", name: "Regular", price: 3.9, amountFils: 3_900, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
-  { id: "unlimited", name: "Unlimited", price: 5.9, amountFils: 5_900, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
+  { id: "starter", name: "Starter", price: 10, amountFils: 10_000, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
+  { id: "regular", name: "Regular", price: 40, amountFils: 40_000, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
+  { id: "unlimited", name: "Unlimited", price: 100, amountFils: 100_000, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
 ];
 
 export const PLAN_BY_ID: Record<string, PlanDef> = Object.fromEntries(PLANS.map((p) => [p.id, p]));

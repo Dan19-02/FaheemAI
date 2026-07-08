@@ -307,9 +307,9 @@ export function installPreviewMocks(api: typeof ApiShape) {
   api.getPlans = () =>
     ok({
       plans: [
-        { id: "starter", name: "Starter", price: 1.9, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
-        { id: "regular", name: "Regular", price: 3.9, monthlyQueries: 300, blurb: "Ten a day: daily learning plus exam-season revision." },
-        { id: "unlimited", name: "Unlimited", price: 5.9, monthlyQueries: null, blurb: "Never ration your curiosity, never count a question." },
+        { id: "starter", name: "Starter", price: 10, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
+        { id: "regular", name: "Regular", price: 40, monthlyQueries: 300, blurb: "Ten a day: daily learning plus exam-season revision." },
+        { id: "unlimited", name: "Unlimited", price: 100, monthlyQueries: null, blurb: "Never ration your curiosity, never count a question." },
       ] as PlansResponse["plans"],
       trial: { days: 7, dailyQueries: 10 },
       passDays: 30,

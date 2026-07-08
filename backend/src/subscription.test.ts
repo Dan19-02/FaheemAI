@@ -85,10 +85,10 @@ async function makeUser(q: any, email: string) {
 
   // ---- Plan catalogue matches the decided pricing (Bahraini dinar) ----
   assert(PLANS.length === 3, "three paid plans");
-  assert(PLAN_BY_ID.starter.price === 1.9 && PLAN_BY_ID.starter.monthlyQueries === 100, "Starter: BHD 1.9 = 100 questions/month");
-  assert(PLAN_BY_ID.regular.price === 3.9 && PLAN_BY_ID.regular.monthlyQueries === 300, "Regular: BHD 3.9 = 300 questions/month");
-  assert(PLAN_BY_ID.unlimited.price === 5.9 && PLAN_BY_ID.unlimited.monthlyQueries === null, "Unlimited: BHD 5.9 = unlimited questions");
-  assert(PLAN_BY_ID.starter.amountFils === 1_900 && PLAN_BY_ID.regular.amountFils === 3_900 && PLAN_BY_ID.unlimited.amountFils === 5_900, "fils amounts match dinar prices (1 BHD = 1000 fils)");
+  assert(PLAN_BY_ID.starter.price === 10 && PLAN_BY_ID.starter.monthlyQueries === 100, "Starter: BHD 10 = 100 questions/month");
+  assert(PLAN_BY_ID.regular.price === 40 && PLAN_BY_ID.regular.monthlyQueries === 300, "Regular: BHD 40 = 300 questions/month");
+  assert(PLAN_BY_ID.unlimited.price === 100 && PLAN_BY_ID.unlimited.monthlyQueries === null, "Unlimited: BHD 100 = unlimited questions");
+  assert(PLAN_BY_ID.starter.amountFils === 10_000 && PLAN_BY_ID.regular.amountFils === 40_000 && PLAN_BY_ID.unlimited.amountFils === 100_000, "fils amounts match dinar prices (1 BHD = 1000 fils)");
   assert(TRIAL_DAYS === 7 && TRIAL_DAILY_QUERIES === 10 && PASS_DAYS === 30, "trial = 7 days of 10/day; a pass = 30 days");
 
   // ---- Bahrain day math (UTC+3, no DST) ----
@@ -136,7 +136,7 @@ async function makeUser(q: any, email: string) {
   assert(paywallMessage(noAccess.entitlement, "no_access").includes("free week"), "trial-over paywall message mentions the free week");
 
   // ---- Payment: create -> paid (idempotent) -> plan active ----
-  await createPayment(q, { userId: row.id, plan: "starter", orderId: "order_TEST1", amount: 1_900, currency: "BHD" });
+  await createPayment(q, { userId: row.id, plan: "starter", orderId: "order_TEST1", amount: 10_000, currency: "BHD" });
   const pay = await getPaymentByOrderId(q, "order_TEST1");
   assert(pay && pay.status === "created" && pay.user_id === row.id, "payment row created for the order");
 
@@ -247,7 +247,7 @@ async function makeUser(q: any, email: string) {
   // engine: the healing path below must protect students all by itself.
   assert((await withTransaction(async () => 42, q)) === 42, "withTransaction returns the callback's value");
 
-  await createPayment(q, { userId: cu.id, plan: "starter", orderId: "order_GP", amount: 1_900, currency: "BHD" });
+  await createPayment(q, { userId: cu.id, plan: "starter", orderId: "order_GP", amount: 10_000, currency: "BHD" });
   await grantPass(cu.id, "starter", "pay_GP", "order_GP", q);
   let gpRow = await getUserById(q, cu.id);
   assert(gpRow.plan === "starter" && new Date(gpRow.plan_expires_at).getTime() > Date.now(), "grantPass marks paid AND activates the plan");
@@ -259,7 +259,7 @@ async function makeUser(q: any, email: string) {
 
   // Partial state (the old critical bug): payment marked paid, activation lost.
   const healUser = await makeUser(q, "heal@example.com");
-  await createPayment(q, { userId: healUser.id, plan: "regular", orderId: "order_HEAL", amount: 3_900, currency: "BHD" });
+  await createPayment(q, { userId: healUser.id, plan: "regular", orderId: "order_HEAL", amount: 40_000, currency: "BHD" });
   await markPaymentPaid(q, "order_HEAL", "pay_HEAL"); // simulate the crash right after mark-paid
   let healRow = await getUserById(q, healUser.id);
   assert(healRow.plan === "trial", "partial state reproduced: money taken, no plan granted");
@@ -326,11 +326,11 @@ async function makeUser(q: any, email: string) {
   // Paid tiers: Starter stays locked; Regular and Unlimited unlock viewing.
   const t2 = Date.now();
   await activatePlan(q, nb.id, "starter", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(!hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Starter (BHD 1.9): notebook stays locked");
+  assert(!hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Starter (BHD 10): notebook stays locked");
   await activatePlan(q, nb.id, "regular", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Regular (BHD 3.9): notebook unlocked");
+  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Regular (BHD 40): notebook unlocked");
   await activatePlan(q, nb.id, "unlimited", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Unlimited (BHD 5.9): notebook unlocked");
+  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Unlimited (BHD 100): notebook unlocked");
 
   // Lapsed pass: read-locked again, but every saved point survives untouched.
   await q.query(`UPDATE users SET plan_expires_at = now() - interval '1 day' WHERE id = $1`, [nb.id]);
