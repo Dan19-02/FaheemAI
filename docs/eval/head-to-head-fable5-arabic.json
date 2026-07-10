@@ -1,0 +1,1641 @@
+{
+  "meta": {
+    "judges": 6,
+    "roles": "3 teachers + 3 students (Bahrain personas)",
+    "questions": 10,
+    "language": "Arabic",
+    "blind": true,
+    "rotation": "A/B rotated per question",
+    "gradings": 60,
+    "answer_scores": 120,
+    "faheem": "real deployed product pipeline (Gemini 3.5 Flash + full Arabic teaching spec + deep-verify)",
+    "fable": "raw Fable 5 (Claude), neutral generic-assistant prompt"
+  },
+  "questions": [
+    {
+      "id": "Q1",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "numerical",
+      "text": "سقطت كرة من ارتفاع 45 متراً عن سطح الأرض. احسب الزمن الذي تستغرقه الكرة للوصول إلى الأرض وسرعتها لحظة الاصطدام. (اعتبر g = 10 م/ث²)"
+    },
+    {
+      "id": "Q2",
+      "subject": "Chemistry",
+      "grade": "Grade 10",
+      "type": "concept-why",
+      "text": "لماذا يوصل الجرافيت الكهرباء بينما الألماس لا يوصلها مع أن كليهما مكوّن من الكربون؟"
+    },
+    {
+      "id": "Q3",
+      "subject": "Biology",
+      "grade": "Grade 11",
+      "type": "comparison",
+      "text": "ما الفرق بين الانقسام المتساوي والانقسام المنصف؟"
+    },
+    {
+      "id": "Q4",
+      "subject": "Mathematics",
+      "grade": "Grade 10",
+      "type": "solve",
+      "text": "حل المعادلة: x^2 - 5x + 6 = 0"
+    },
+    {
+      "id": "Q5",
+      "subject": "Physics",
+      "grade": "Grade 12",
+      "type": "concept-applied",
+      "text": "اشرح لي قانون فاراداي في الحث الكهرومغناطيسي وكيف نستفيد منه في توليد الكهرباء."
+    },
+    {
+      "id": "Q6",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "stressed-student",
+      "text": "أنا خايف من امتحان الفيزياء باكر، كل ما أذاكر قوانين الحركة أنساها بسرعة. ليش ما تثبت في راسي؟ ساعدني."
+    },
+    {
+      "id": "Q7",
+      "subject": "Chemistry",
+      "grade": "Grade 11",
+      "type": "numerical",
+      "text": "احسب عدد المولات في 88 غراماً من غاز ثاني أكسيد الكربون CO2. (الكتل الذرية: C = 12، O = 16)"
+    },
+    {
+      "id": "Q8",
+      "subject": "Biology",
+      "grade": "Grade 9",
+      "type": "why-it-matters",
+      "text": "ليش لازم نتعلم البناء الضوئي؟ شنو فايدته في حياتنا اليومية؟"
+    },
+    {
+      "id": "Q9",
+      "subject": "Mathematics",
+      "grade": "Grade 12",
+      "type": "concept-simple",
+      "text": "ما معنى المشتقة في الرياضيات؟ اشرحها لي ببساطة."
+    },
+    {
+      "id": "Q10",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "misconception",
+      "text": "إذا أسقطت عملة معدنية وريشة من نفس الارتفاع وفي نفس اللحظة، أيهما يصل إلى الأرض أولاً ولماذا؟"
+    }
+  ],
+  "mapping": {
+    "Q1": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "Q2": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "Q3": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "Q4": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "Q5": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "Q6": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "Q7": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "Q8": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "Q9": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "Q10": {
+      "A": "fable",
+      "B": "faheem"
+    }
+  },
+  "summary": {
+    "n_judges": 6,
+    "n_questions": 10,
+    "n_gradings": 60,
+    "n_answer_scores": 120,
+    "system_overall": {
+      "faheem": 8.61,
+      "fable": 8.96
+    },
+    "system_by_dim": {
+      "faheem": {
+        "accuracy": 9.1,
+        "curriculum": 8.5,
+        "language": 8.42,
+        "pedagogy": 8.68,
+        "trust": 8.33
+      },
+      "fable": {
+        "accuracy": 9.65,
+        "curriculum": 8.98,
+        "language": 8.88,
+        "pedagogy": 8.45,
+        "trust": 8.83
+      }
+    },
+    "best_answer_wins": {
+      "faheem": 25,
+      "fable": 35,
+      "tie": 0
+    },
+    "per_q_wins": {
+      "Q1": {
+        "faheem": 4,
+        "fable": 2
+      },
+      "Q2": {
+        "faheem": 2,
+        "fable": 4
+      },
+      "Q3": {
+        "faheem": 4,
+        "fable": 2
+      },
+      "Q4": {
+        "faheem": 1,
+        "fable": 5
+      },
+      "Q5": {
+        "faheem": 1,
+        "fable": 5
+      },
+      "Q6": {
+        "faheem": 0,
+        "fable": 6
+      },
+      "Q7": {
+        "faheem": 4,
+        "fable": 2
+      },
+      "Q8": {
+        "faheem": 3,
+        "fable": 3
+      },
+      "Q9": {
+        "faheem": 3,
+        "fable": 3
+      },
+      "Q10": {
+        "faheem": 3,
+        "fable": 3
+      }
+    },
+    "per_judge": {
+      "S1": {
+        "role": "student",
+        "faheem": 8.08,
+        "fable": 9.02,
+        "wins": {
+          "faheem": 1,
+          "fable": 9
+        }
+      },
+      "S2": {
+        "role": "student",
+        "faheem": 8.62,
+        "fable": 8.9,
+        "wins": {
+          "faheem": 6,
+          "fable": 4
+        }
+      },
+      "S3": {
+        "role": "student",
+        "faheem": 8.8,
+        "fable": 8.48,
+        "wins": {
+          "faheem": 8,
+          "fable": 2
+        }
+      },
+      "T1": {
+        "role": "teacher",
+        "faheem": 8.68,
+        "fable": 9.28,
+        "wins": {
+          "faheem": 1,
+          "fable": 9
+        }
+      },
+      "T2": {
+        "role": "teacher",
+        "faheem": 8.54,
+        "fable": 8.98,
+        "wins": {
+          "faheem": 4,
+          "fable": 6
+        }
+      },
+      "T3": {
+        "role": "teacher",
+        "faheem": 8.92,
+        "fable": 9.1,
+        "wins": {
+          "faheem": 5,
+          "fable": 5
+        }
+      }
+    },
+    "per_question": {
+      "Q1": {
+        "subject": "Physics",
+        "grade": "Grade 10",
+        "type": "numerical",
+        "faheem": 8.83,
+        "fable": 8.73,
+        "wins": {
+          "faheem": 4,
+          "fable": 2
+        }
+      },
+      "Q2": {
+        "subject": "Chemistry",
+        "grade": "Grade 10",
+        "type": "concept-why",
+        "faheem": 8.37,
+        "fable": 8.9,
+        "wins": {
+          "faheem": 2,
+          "fable": 4
+        }
+      },
+      "Q3": {
+        "subject": "Biology",
+        "grade": "Grade 11",
+        "type": "comparison",
+        "faheem": 8.77,
+        "fable": 8.7,
+        "wins": {
+          "faheem": 4,
+          "fable": 2
+        }
+      },
+      "Q4": {
+        "subject": "Mathematics",
+        "grade": "Grade 10",
+        "type": "solve",
+        "faheem": 8.67,
+        "fable": 9.2,
+        "wins": {
+          "faheem": 1,
+          "fable": 5
+        }
+      },
+      "Q5": {
+        "subject": "Physics",
+        "grade": "Grade 12",
+        "type": "concept-applied",
+        "faheem": 8.0,
+        "fable": 9.13,
+        "wins": {
+          "faheem": 1,
+          "fable": 5
+        }
+      },
+      "Q6": {
+        "subject": "Physics",
+        "grade": "Grade 10",
+        "type": "stressed-student",
+        "faheem": 7.47,
+        "fable": 9.27,
+        "wins": {
+          "faheem": 0,
+          "fable": 6
+        }
+      },
+      "Q7": {
+        "subject": "Chemistry",
+        "grade": "Grade 11",
+        "type": "numerical",
+        "faheem": 9.13,
+        "fable": 8.63,
+        "wins": {
+          "faheem": 4,
+          "fable": 2
+        }
+      },
+      "Q8": {
+        "subject": "Biology",
+        "grade": "Grade 9",
+        "type": "why-it-matters",
+        "faheem": 8.9,
+        "fable": 8.93,
+        "wins": {
+          "faheem": 3,
+          "fable": 3
+        }
+      },
+      "Q9": {
+        "subject": "Mathematics",
+        "grade": "Grade 12",
+        "type": "concept-simple",
+        "faheem": 8.8,
+        "fable": 8.93,
+        "wins": {
+          "faheem": 3,
+          "fable": 3
+        }
+      },
+      "Q10": {
+        "subject": "Physics",
+        "grade": "Grade 10",
+        "type": "misconception",
+        "faheem": 9.13,
+        "fable": 9.17,
+        "wins": {
+          "faheem": 3,
+          "fable": 3
+        }
+      }
+    }
+  },
+  "judge_scores": {
+    "T1": {
+      "judge": "T1",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 10
+          },
+          "winner": "B",
+          "note": "الإجابتان صحيحتان، لكن (ب) بأسلوب امتحاني منظم (معطيات، خطوات، وحدات) مع تحقق بمعادلة ثانية، بينما (أ) أطول قليلاً."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) أدق وأشمل مصطلحياً (متآصلات، توصيل على امتداد الطبقات) وأقل إطناباً من (ب)."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) أعمق مع تصحيح مفهوم تضاعف DNA مرة واحدة وجدول أوفى، رغم خطأ إملائي بسيط وإطالة."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) موجزة بأسلوب امتحاني مع تحقق وطريقة القانون العام البديلة، بينما (ب) مطنبة وبها هفوة لغوية."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أشمل وأدق مع سياق بحريني (محطات الدور والحد) وعلاقة التدفق، بينما (أ) تضع مراجع [1] وهمية تضعف الثقة."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) فهمت 'قوانين الحركة' كقوانين نيوتن وعالجت جوهر مشكلة التثبيت بالاستدعاء النشط، بينما (ب) سمّت معادلات الحركة 'قوانين' بشكل مضلل."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "مسألة بسيطة؛ (ب) موجزة بخطوات مرقمة ووحدات مع إضافة صحيحة (عدد الجزيئات والحجم القياسي)، بينما (أ) مطنبة."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) أجابت الفوائد اليومية بوضوح وشمول (غذاء، طاقة، مناخ، تطبيقات) بلا إطناب، بينما (ب) أدبية أكثر."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أشمل مع مثال عددي (x² ومشتقتها 2x) وحالات إشارة المشتقة إضافة للتفسير الهندسي، بينما (أ) بلا مثال محسوس."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) موجزة ودقيقة مع دليل تجريبي حقيقي (تجربة أبولو 15 وغاليليو) يعزز الثقة، بينما (ب) أعمق مفاهيمياً لكن أكثر إطناباً."
+        }
+      ]
+    },
+    "T2": {
+      "judge": "T2",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 10
+          },
+          "winner": "A",
+          "note": "كلاهما صحيح (t=3s, v=30 m/s). (أ) يعلّم أكثر: فحص تسلسلي بديهي 10-20-30 وتحذير من الأخطاء الشائعة وسؤال متابعة، رغم عبارة (وهي في يدنا) الركيكة. (ب) أنظف ويتحقق بمعادلة ثانية v²=2gh وهو تحقق ممتاز، لكنه أقل تعليماً. غلبة طفيفة لـ(أ) للقيمة التعليمية."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 7,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) أدقّ: التوصيل جيد على امتداد الطبقات وضعيف عمودياً، وذكر مصطلح التآصل، وربط البنية بالصلادة والتزييت. (ب) قال إن الإلكترونات تتحرك (بين الطبقات) وهو غير دقيق (حركتها ضمن مستوى الطبقة)، وفيه جملة تزيينية (الكهرباء حركة تحتاج حرية)."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أدقّ مفاهيمياً: يفصل المنصف عن الإخصاب ويوضّح غاية التنصيف (عودة 2n عبر الأجيال). (أ) قدّم تصحيحاً ذهبياً (المادة الوراثية تتضاعف مرة واحدة فقط) لكن تشبيه كتاب الوصفات يخلط المنصف بالإخصاب وفيه خطأ إملائي (جديتان). غلبة طفيفة لـ(ب) للدقة والنظافة."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) أنظف ويتحقق بطريقتين (تحليل + القانون العام + تعويض) بلا أخطاء. (ب) أغنى تعليمياً (تعليل الإشارات + تحذير امتحاني + سؤال تدريبي) لكنه مطوّل وفيه هفوة (كأننا وفكك). غلبة لـ(أ) للإحكام وازدواج التحقق."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أشمل وأدق منهجياً: طرق تغيّر التدفق الثلاث وΦ=BAcosθ وربط لينز بحفظ الطاقة وتوطين بحريني حقيقي (محطتا الدور والحد). (أ) صحيح لكن تعيبه علامات [1] الدخيلة في كل سطر (تبدو غير مكتملة) وتشبيه (الناس في القاعة) تزييني."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 6,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "(أ) عالج جوهر الشكوى (لماذا لا تثبت المعلومة) بعلم تعلّم حقيقي: الاستدعاء النشط والتكرار المتباعد والنوم، مع دعم نفسي وخطة ليلة، وقوانين نيوتن صحيحة. (ب) سمّى معادلات الحركة (القانون الأول/الثاني/الثالث) وهو خلط مصطلحي مضلّل، وأهمل جانب الذاكرة."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "كلاهما صحيح (M=44, n=2). (أ) تشبيه العلبة يشرح فعلاً مفهوم المول كوحدة عدّ والكتلة المولية ككتلة للوحدة، مع تحذير خطأ ضرب الأكسجين وسؤال تدريبي. (ب) موجز ويضيف عدد أفوجادرو والحجم عند STP (قيمة 22.4 قابلة للنقاش حسب الاصطلاح مقابل 24 عند rtp) لكنه أقل سقالة تعليمية."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) تشبيه المخبز يشرح المدخلات والمخرجات والطاقة فعلاً (آلية حقيقية)، ويصحّح مفهوماً خاطئاً مهماً: النبات يتنفّس ليلاً ونهاراً والفائض النهاري هو ما نتنفسه، وهذا صدق علمي. (أ) شامل وممتاز ويضيف زاوية الوقود الأحفوري لكنه أقل عمقاً في الآلية والتصحيح."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "السؤال عن (معنى) المشتقة؛ (أ) يوصل المعنى الجوهري عبر النهاية والتمييز الحاسم بين معدل التغير المتوسط واللحظي، مع تحذير امتحاني وتوطين. (ب) جيد ويضيف مثالاً محسوباً f(x)=x² وحالات الميل الثلاث، لكنه أغفل مفهوم النهاية وهو لبّ التعريف."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "كلاهما ممتاز ودقيق. (أ) موجز ويدعم كلامه بتجربة حقيقية موثّقة (أبولو 15، ديفيد سكوت 1971) ويذكر السرعة الحدية = تحقق علمي قوي. (ب) يضيف عمقاً جميلاً (تعادل الكتلة الجذبية والقصورية يفسّر لماذا لا تؤثر الكتلة) لكن تشبيه السوق تزييني بعض الشيء وبلا دليل تجريبي."
+        }
+      ]
+    },
+    "T3": {
+      "judge": "T3",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) تشرح الخطوات مع تحذير من الأخطاء الشائعة وسؤال يوسّع الفهم لموقف جديد؛ (ب) تحقّقت بمعادلة مستقلة v²=2gh وهو ممتاز لكنها أقل تدرّجاً وتعميماً."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "كلاهما دقيق علمياً؛ (ب) تفوّقت بتنبيه ما يبحث عنه المصحح وبسؤال سقراطي عن اتجاه التوصيل. (أ) أضافت خصائص صحيحة إضافية."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) عالجت مفهوماً خاطئاً شائعاً (تضاعف DNA مرة واحدة) وأضافت جدولاً وسؤال تطبيق؛ (ب) أنظف لكن أقل عمقاً، وفي (أ) خطأ مطبعي (جديتان)."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) تحقّقت بطريقتين (تعويض الجذرين + القانون العام) وهو مثالي للثقة؛ (ب) ممتازة أيضاً بشرح منطق الإشارات وسؤال تدريبي."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أشمل وأدق: ذكرت Φ=BAcosθ وطرق تغيير التدفق الثلاث وتنظيماً ممتازاً؛ (أ) بها رموز [1] دخيلة تشوّش العرض وأغفلت تعريف التدفق."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) عالجت جوهر المشكلة (الاستدعاء النشط والتكرار المتباعد والقلق) بقوانين نيوتن الصحيحة؛ (ب) تشبيهاتها وجدول اختيار المعادلة رائعة لكنها سمّت معادلات الحركة قوانين وأعادت الشرح بدل معالجة التثبيت."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) خطوات واضحة + تحقّق منطقي (2×44=88) + تحذير الخطأ الشائع + سؤال تدريبي؛ (ب) صحيحة وأضافت الحجم عند STP وعدد الجزيئات لكن دون تحقّق أو توسيع تعليمي."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) أجابت السؤال (الفوائد اليومية) بخمسة أسباب واقعية متكاملة (وقود أحفوري، زراعة، أوراق صناعية)؛ (ب) أكثر تشويقاً وصحّحت مفهوم التنفّس لكنها أقل شمولاً للفوائد."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أضافت مثالاً عددياً ملموساً f(x)=x² وحالات الميل (موجب/سالب/صفر) فجعلت المفهوم أوضح وأصلح للامتحان؛ (أ) تشبيه أنيق وذكرت النهاية لكنها بقيت مجرّدة بلا مثال محسوب."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) فسّرت لماذا لا تؤثر الكتلة (تعادل الجاذبية والقصور) وطرحت سؤال الورقة المجعّدة لعزل المتغيّر؛ (أ) قوية بدليل تجربة أبولو 15 التاريخي."
+        }
+      ]
+    },
+    "S1": {
+      "judge": "S1",
+      "role": "student",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "الإجابة (ب) مرتبة وقصيرة وفيها خطوات وتحقق واضح، حسيت فهمتها من أول قراءة. (أ) طويلة شوي وفيها كلام زايد."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) مقسمة بعناوين واضحة (ألماس / جرافيت / خلاصة) سهل أراجعها، (ب) كلامها متصل أكثر وفيها جمل شعرية تطول عليّ."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) نقاط وجدول بسيط أحفظه بسرعة للامتحان. تشبيه الكتاب في (أ) لخبطني شوي وطوّل الإجابة."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "معادلة بسيطة و(أ) حلّتها نظيف وسريع مع تحقق، ما احتجت كل الشرح الطويل والقصة اللي في (ب)."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 8,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) مرتبة بعناوين وواضحة. علامات [1] المتكررة في (أ) شتّتتني وخلتني ما أرتاح للإجابة."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 7,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "أنا خايف، و(أ) طمّنتني وأعطتني خطة مذاكرة ليلة الامتحان ونصائح للقلق، حسيت أقدر. (ب) دخلت طول في المعادلات وسمّت قوانين الحركة تسمية لخبطتني."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "تشبيه علبة الحلوى في (أ) خلاني أفهم فكرة المول بسهولة. (ب) صح وقصيرة بس ملاحظة عدد الجزيئات و STP زايدة وما سألت عنها."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) نقاط مرقّمة واضحة أقدر أراجعها بسرعة. (ب) كلامها أدبي حلو بس متصل وطويل شوي عليّ."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) فيها مثال رقمي بسيط (x²) ونقاط للميل موجب/سالب/صفر، ثبّتت الفكرة برأسي. (أ) حلوة بالتشبيه بس بدون مثال."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) واضحة ومختصرة وقصة تجربة أبولو على القمر خلتني أثق وأتذكر الفكرة. (ب) أطول وفيها شرح القصور الذاتي زايد على المطلوب."
+        }
+      ]
+    },
+    "S2": {
+      "judge": "S2",
+      "role": "student",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "الإجابة (أ) شرحت السبب وراء السقوط الحر مع فحص منطقي لتزايد السرعة وسؤال يمدّ التفكير، بينما (ب) دقيقة ونظيفة مع تحقق وتحويل للوحدة (108 كم/س) لكنها أقل عمقاً في (لماذا)."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 7,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "(أ) ذكرت اتجاه توصيل الجرافيت بدقة (داخل الطبقة) وأضافت خصائصه الأخرى، أما (ب) فقالت إن الإلكترونات تتحرك (بين الطبقات) وهذا غير دقيق رغم جودة طرحها وسؤالها."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 10,
+            "language": 8,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) صحّحت وهم تضاعف DNA مرتين في المنصف وأدرجت العبور الوراثي في الجدول، وهذا عمق حقيقي؛ (ب) واضحة ومنظمة مع فكرة ثبات النوع لكنها أقل عمقاً إجمالاً."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "كلاهما صحيح، لكن (ب) فسّرت لماذا يكون العددان سالبين وحذّرت من فخ الإشارات مع تدريب، وهو ما يثبّت الفهم عندي؛ (أ) نظيفة وأشارت للقانون العام كتعميم لطيف."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 6,
+            "pedagogy": 9,
+            "trust": 6
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) أعمق بوضوح: تعريف التدفق Φ=BA cosθ وثلاث طرق لتغييره ولنز كحفظ للطاقة ومحطات البحرين الحقيقية؛ (أ) جيدة لكن رموز [1] المبعثرة أضعفت الوضوح والثقة."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 6,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 6
+          },
+          "winner": "A",
+          "note": "(أ) حدّدت قوانين نيوتن الثلاثة بشكل صحيح وأعطتني خطة استذكار مبنية على الاسترجاع النشط والتباعد والنوم؛ (ب) سمّت معادلات الحركة بـ(القانون الأول/الثاني/الثالث) وهي تسمية مضللة رغم جودة جدول (الرمز الغائب)."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) ربطت المولات بعدد أفوجادرو والحجم المولي 44.8 لتر عند STP، وهو ربط بمستوى أعلى يناسبني كطالبة متفوقة؛ (أ) جيدة بتشبيه العلبة وفخ الأكسجين لكنها أقرب للتبسيط."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) صحّحت وهم أن النبات لا يتنفس (ذكرت الحدّ والاستثناء) بأسلوب حيّ وسؤال مثير؛ (أ) قوية بربط الوقود الأحفوري والورقة الصناعية لكنها أقرب لقائمة فوائد."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "(أ) ذكرت النهاية كأساس للمشتقة وفرّقت بين المعدل المتوسط واللحظي، وهذا (السبب وراء القاعدة) الذي أطلبه أولاً؛ (ب) ممتازة بمثال عددي وتطبيقات هندسية لكنها أغفلت مفهوم النهاية."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) فسّرت لماذا تتساقط الكتل معاً (القوة تكبر لكن القصور الذاتي يكبر فيلغيان) وهو العمق الذي أريده مع فخ مصطلح (السقوط الحر) وسؤال الورقة المجعّدة؛ (أ) رائعة بتجربة أبولو 15 لكنها لم تشرح آلية الإلغاء."
+        }
+      ]
+    },
+    "S3": {
+      "judge": "S3",
+      "role": "student",
+      "grades": [
+        {
+          "q": "Q1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "شرح خطوة بخطوة مع تطمين (10 ثم 20 ثم 30) خلاني أتنفس وأتأكد؛ (ب) مرتب بس ناشف ويشبه الكتاب."
+        },
+        {
+          "q": "Q2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "(ب) بدأ بالجواب المباشر وبنبرة صبورة وجملة (الكهرباء حركة والحركة تحتاج حرية) علقت في راسي؛ (أ) منظم بس أبرد."
+        },
+        {
+          "q": "Q3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "تشبيه كتاب الوصفات العائلي (نسخة كاملة مقابل نص ونص) وصلني تماماً؛ (ب) دقيق بس يشبه ملخص الكتاب."
+        },
+        {
+          "q": "Q4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "(أ) نظيف وقصير وواضح بدون رموز تخوّف مع تحقق سريع؛ (ب) حلو ويشرح الإشارات بس أطول وممكن يشتتني."
+        },
+        {
+          "q": "Q5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "تشبيه الناس الجالسين في القاعة قرّب الفكرة لي؛ (ب) طويل ومقسّم وايد يشتت. علامات [1] في (أ) مزعجة بس الشرح أدفأ وأبسط."
+        },
+        {
+          "q": "Q6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "(أ) فهم إني خايف فعلاً وعطاني خطة تثبيت (استدعاء نشط، نوم، أكتب القوانين بالهامش)؛ (ب) بس درّسني المعادلات وما عالج خوفي ولا مشكلة النسيان."
+        },
+        {
+          "q": "Q7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "علبة الحلوى البحرينية 44 غرام خلتني أفهم المول بسهولة والجواب أول؛ (ب) صح بس زاد معلومات STP وأفوجادرو ولخبطني."
+        },
+        {
+          "q": "Q8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "الورقة كمخبز صغير يشتغل بالشمس تشبيه دافئ وقريب مني و(كل نفس هدية) لمستني؛ (أ) قائمة نقاط واضحة بس أبرد."
+        },
+        {
+          "q": "Q9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "عداد السرعة بشارع خليفة بن سلمان قرّبها لي وبقى على المعنى بدون ما يدخلني بقواعد اشتقاق تلخبطني؛ (ب) زين وفيه مثال رقمي بس أعمق شوي."
+        },
+        {
+          "q": "Q10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "سوق المنامة المزدحم وتجربة الورقة المجعّدة خلتني أحس بالفكرة وأجرّبها بنفسي؛ (أ) دقيق وتجربة أبولو حلوة بس أقل قرباً مني."
+        }
+      ]
+    }
+  },
+  "faheem_answers": {
+    "Q1": {
+      "text": "الكرة ستحتاج إلى 3 ثوانٍ لتصل إلى الأرض، وتصطدم بها بسرعة تبلغ 30 متراً في الثانية.\n\nعندما تسقط الكرة سقوطاً حراً (free fall) من السكون وبإهمال مقاومة الهواء، فهذا يعني أن سرعتها الابتدائية $v_i$ تساوي صفراً، وهي تبدأ في زيادة سرعتها بمقدار 10 أمتار في الثانية في كل ثانية تمر عليها بسبب جاذبية الأرض.\n\nدعنا نحسب الزمن أولاً باستخدام معادلة الحركة الثانية:\n$$d = v_i t + \\frac{1}{2} g t^2$$\n\nبما أن السرعة الابتدائية للكرة وهي في يدنا قبل السقوط تساوي صفراً ($v_i = 0$)، فإن المعادلة تصبح أبسط بكثير:\n$$d = \\frac{1}{2} g t^2$$\n\nالآن، نعوض بالقيم التي لدينا في المسألة، حيث الارتفاع $d = 45$ متراً، وتسارع الجاذبية $g = 10$ م/ث²:\n$$45 = \\frac{1}{2} (10) t^2$$\n$$45 = 5 t^2$$\n\nبقسمة الطرفين على 5 للتخلص من المعامل المجاور للزمن:\n$$t^2 = 9$$\n\nبأخذ الجذر التربيعي للطرفين، نجد أن الزمن هو:\n$$t = 3 \\text{ s}$$\nإذن، تستغرق الكرة 3 ثوانٍ كاملة لتلمس الأرض.\n\nالآن بعد أن عرفنا الزمن، يمكننا بسهولة حساب سرعتها النهائية $v_f$ لحظة الاصطدام باستخدام معادلة الحركة الأولى:\n$$v_f = v_i + g t$$\n$$v_f = 0 + (10)(3)$$\n$$v_f = 30 \\text{ m/s}$$\n\nإذا فكرنا في النتيجة بشكل منطقي وسريع، الكرة بدأت من السكون وتزيد سرعتها بمقدار 10 م/ث في كل ثانية تمر عليها. في الثانية الأولى أصبحت سرعتها 10، وفي الثانية الثانية أصبحت 20، وفي الثانية الثالثة وصلت إلى 30 م/ث. هذا التوافق البسيط يؤكد لنا أن حساباتنا دقيقة ومتناسقة فيزيائياً.\n\nفي الامتحانات، يقع الكثير من الطلاب في فخ نسيان تربيع الزمن $t^2$ أثناء التعويض في معادلة الحركة الثانية، أو ينسون أخذ الجذر التربيعي في الخطوة الأخيرة فيكتبون أن الزمن هو 9 ثوانٍ. انتبه دائماً لهذه التفاصيل الصغيرة لضمان الدرجة الكاملة.\n\nتخيل الآن أننا ألقينا كرة أخرى من نفس الارتفاع (45 متراً)، لكننا لم نتركها تسقط من السكون، بل قذفناها بقوة إلى الأسفل بسرعة ابتدائية. هل تتوقع أن تستغرق زمناً أطول أم أقصر للوصول إلى الأرض مقارنة بالكرة الأولى؟ شاركني توقعك والسبب الذي جعلك تختار ذلك.",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 25.6
+    },
+    "Q2": {
+      "text": "من الطبيعي جداً أن يثير دهشتنا كيف لمادتين مصنوعتين من العنصر نفسه تماماً، وهو الكربون، أن تختلفا بهذا الشكل الكبير في تمرير الكهرباء. السر يكمن بشكل أساسي في طريقة ارتباط هذه الذرات ببعضها البعض.\n\nالسبب المباشر هو أن الجرافيت يحتوي على **إلكترونات حرة الحركة** تستطيع نقل التيار الكهربائي، بينما الألماس يقيد إلكتروناته في روابط قوية جداً في الظروف الطبيعية فلا تجد الكهرباء وسيلة سهلة للمرور من خلاله.\n\nولكي نتخيل المشهد بوضوح، دعنا نتذكر أن كل ذرة كربون لديها 4 إلكترونات في غلافها الخارجي جاهزة للارتباط.\n\nفي الألماس، ترتبط كل ذرة كربون بأربع ذرات أخرى بروابط تساهمية قوية جداً في شبكة ثلاثية الأبعاد. هذا يعني أن الإلكترونات الأربعة مقيدة في أماكنها ضمن هذه الروابط، ولا تتوفر إلكترونات حرة للحركة ونقل الشحنة الكهربائية بسهولة.\n\nأما في الجرافيت، فالوضع مختلف، حيث ترتبط كل ذرة كربون بثلاث ذرات أخرى فقط في طبقات مسطحة تشبه خلايا النحل. هذا يترك الإلكترون الرابع لكل ذرة حراً في الحركة (غير مرتبط برابطة تساهمية تساهم في البناء الشبكي للطبقة)، ويسمى **إلكتروناً غير متمركز** (delocalised electron). هذه الإلكترونات الحرة تتحرك بمرونة فائقة بين الطبقات، وهي التي تحمل التيار الكهربائي وتنقله عند توصيل الجرافيت بالكهرباء.\n\nالكهرباء حركة، والحركة تحتاج إلى حرية؛ الألماس مقيد البنية في ظروفه الاعتيادية، بينما الجرافيت لديه إلكترونات طليقة تسافر بحرية أكبر.\n\nفي أسئلة الامتحانات، يقع الكثير من الطلاب في فخ القول بأن الألماس لا يوصل الكهرباء لأن بنيته صلبة وقاسية، لكن التفسير العلمي الصحيح الذي يبحث عنه المصحح يتعلق بشكل رئيسي بوجود **الإلكترونات غير المتمركزة** الحرة في الجرافيت وغيابها في الألماس.\n\nبناءً على ما عرفناه عن حركة هذه الإلكترونات الحرة بين طبقات الجرافيت، هل تتوقع أن الجرافيت يوصل الكهرباء بشكل أفضل على طول الطبقات (أفقياً) أم عبر الطبقات من الأعلى إلى الأسفل (عمودياً)؟ ولماذا؟",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 21.0
+    },
+    "Q3": {
+      "text": "الخلايا في أجسامنا تجري عمليات مدهشة للحفاظ على حياتنا واستمرارنا، والفرق الجوهري بين هذين الانقسامين يكمن في الهدف النهائي لكل منهما.\n\n**الانقسام المتساوي** (mitosis) يصنع نسختين متطابقتين جينياً (غالباً) من الخلية الأصلية لمساعدتنا على النمو وتعويض الأنسجة التالفة، بينما **الانقسام المنصف** (meiosis) يُنصف عدد الكروموسومات لإنتاج خلايا التكاثر التي نطلق عليها الأمشاج (gametes) التي تحمل نصف الصفات الوراثية.\n\nتخيل أن لديك كتاباً عزيزاً يحتوي على وصفات طبخ عائلية مميزة.\n\nإذا أردت إعطاء نسخة لصديقك ليبقى لديه نفس الكتاب تماماً، فإنك تأخذ الكتاب إلى آلة التصوير وتطبعه كاملاً ورقة بورقة. هذا هو **الانقسام المتساوي**، نسخ متطابق للحفاظ على نفس المعلومات دون تغيير (إلا في حال حدوث أخطاء نادرة أثناء النسخ).\n\nأما إذا أردت أنت وشريك حياتك مستقبلاً ابتكار كتاب وصفات جديد يجمع بين عائلتيكما، فإن كل واحد منكما يأخذ نصف صفحات كتابه فقط ويضعها مع نصف صفحات الآخر ليتكون كتاب جديد فريد. هذا هو **الانقسام المنصف**، نأخذ النصف فقط لكي يلتقي النصفان عند الإخصاب وينتج جيل جديد يحمل مزيجاً رائعاً من الاثنين.\n\nالمتساوي ينسخ ويبني الجسم، والمنصف يُنصف ويبدأ الجيل الجديد.\n\nهذا الجدول يلخص الفروق الأساسية التي تحتاجها لتثبيت المعلومة في ذهنك:\n\n| وجه المقارنة | الانقسام المتساوي | الانقسام المنصف |\n| :--- | :--- | :--- |\n| **الهدف الأساسي** | النمو، وتعويض الخلايا التالفة، والتكاثر اللاجنسي | إنتاج الأمشاج (الحيوانات المنوية والبويضات) للتكاثر الجنسي |\n| **مكان الحدوث** | الخلايا الجسدية (مثل خلايا الجلد والكبد) | الخلايا التناسلية (في الخصية والمبيض) |\n| **عدد الخلايا الناتجة** | خليتان جديتان | أربع خلايا جديدة |\n| **المحتوى الكروموسومي** | ثنائية المجموعة الكروموسومية ($2n$)، نفس عدد الخلية الأصلية | أحادية المجموعة الكروموسومية ($n$)، نصف عدد الخلية الأصلية |\n| **التنوع الوراثي** | الخلايا الناتجة متطابقة جينياً غالباً (باستثناء الطفرات النادرة) | الخلايا الناتجة متنوعة جينياً بسبب عملية العبور الوراثي |\n| **عدد مراحل الانقسام** | انقسام واحد يمر بأربعة أطوار | انقسامان متتاليان (المنصف الأول والمنصف الثاني) |\n\nيقع الكثير من الطلاب في فخ متكرر أثناء الامتحانات، حيث يظنون أن الحمض النووي (DNA) يتضاعف مرتين في الانقسام المنصف لأنه يمر بمرحلتين من الانقسام. الحقيقة الهامة هي أن تضاعف المادة الوراثية يحدث **مرة واحدة فقط** في الطور البيني قبل بدء الانقسام الأول، تماماً كما يحدث في الانقسام المتساوي، ثم تتوزع هذه المادة على الانقسامين المتعاقبين ليتنصف العدد في النهاية.\n\nلتتأكد من أن الفكرة استقرت في ذهنك بشكل كامل، تخيل خلية جسدية في جسم الإنسان تحتوي على 46 كروموسوماً. إذا انقسمت هذه الخلية انقساماً متساوياً، كم كروموسوماً سيكون في الخلايا الناتجة؟ وإذا انقسمت خلية تناسلية في جسم الإنسان انقساماً منصفاً، كم كروموسوماً سنجد في المشيج الناتج؟",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 36.1
+    },
+    "Q4": {
+      "text": "قيمتا $x$ اللتان تجعلان هذه المعادلة صحيحة هما $x = 2$ و $x = 3$.\n\nلحل هذه المعادلة، سنستخدم طريقة بسيطة ومباشرة تسمى **التحليل إلى عوامل** (factoring). فكر في الأمر كأننا وفكك تركيباً معقداً إلى قطعتين أصغر يسهل التعامل معهما بشكل منفصل.\n\nنبدأ بالبحث عن عددين يحققان شرطين معاً:\n* حاصل ضربهما يساوي الحد الأخير الثابت، وهو $+6$.\n* مجموعهما يساوي معامل الحد الأوسط، وهو $-5$.\n\nبما أن حاصل الضرب موجب والجمع سالب، فهذا يخبرنا مباشرة أن العددين يجب أن يكونا سالبين معاً، لأن ضرب سالب في سالب يعطي موجباً، وجمعهما يعطي سالباً. \n\nإذا فكرنا في الأعداد التي حاصل ضربها 6، سنجد أن $-2$ و $-3$ هما الثنائي المطلوب، لأن:\n$$(-2) \\times (-3) = 6$$\n$$(-2) + (-3) = -5$$\n\nالآن، نكتب المعادلة الأصلية في صورة قوسين مضروبين في بعضهما باستخدام هذين العددين:\n$$(x - 2)(x - 3) = 0$$\n\nلكي يكون ناتج ضرب القوسين مساوياً للصفر، يجب أن يكون أحد القوسين على الأقل مساوياً للصفر. وهذا يفتح لنا مسارين للحل:\n\nالمسار الأول، أن يكون القوس الأول هو الصفر:\n$$x - 2 = 0 \\Rightarrow x = 2$$\n\nالمسار الثاني، أن يكون القوس الثاني هو الصفر:\n$$x - 3 = 0 \\Rightarrow x = 3$$\n\nدعنا نتأكد من صحة الحل بالتعويض السريع في المعادلة الأصلية. إذا عوضنا عن $x$ بالرقم 2:\n$$2^2 - 5(2) + 6 = 4 - 10 + 6 = 0$$\nوإذا عوضنا بالرقم 3:\n$$3^2 - 5(3) + 6 = 9 - 15 + 6 = 0$$\nكلا الحلين صحيحان تماماً ويجعلان كفتي المعادلة متوازنتين.\n\nيقع الكثير من الطلاب في فخ إشارات الحل النهائي في الامتحانات. فبعد الوصول إلى الأقواس $(x - 2)(x - 3) = 0$، قد يستعجل البعض ويكتب الحلول مباشرة بنفس الإشارة داخل الأقواس، أي $x = -2$ و $x = -3$. تذكر دائماً أننا ننقل العدد إلى الطرف الآخر بعكس إشارته لنحصل على قيمة $x$ المفردة.\n\nالآن، ما رأيك أن نختبر هذه الطريقة معاً؟ إذا كانت لدينا المعادلة $x^2 - 6x + 8 = 0$، فما هما العددان اللذان حاصل ضربهما $8$ ومجموعهما $-6$؟",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 26.4
+    },
+    "Q5": {
+      "text": "الفكرة العبقرية وراء إضاءة بيوتنا وشحن هواتفنا اليوم تعتمد بالكامل على حركة بسيطة، وهي تحريك مغناطيس بجانب سلك نحاسي [1]. هذا الاكتشاف المذهل هو جوهر **قانون فاراداي في الحث الكهرومغناطيسي** (Faraday's Law of Electromagnetic Induction) [1].\n\nالخلاصة المباشرة لهذا القانون هي أن **التغير** في المجال المغناطيسي الذي يعبر حلقة سلكية هو الذي يولد فيها كهرباء [1]. تذكر جيداً كلمة \"التغير\"، فالمغناطيس الساكن ذو المجال الثابت لا يولد أي تيار مهما كان قوياً [1].\n\nتخيل الإلكترونات داخل السلك النحاسي كأنها مجموعة من الناس الجالسين بهدوء في قاعة. المجال المغناطيسي المستقر يشبه شخصاً واقفاً أمامهم دون حركة، فلن يثير انتباههم ولن يتحركوا من أماكنهم. لكن بمجرد أن يبدأ هذا الشخص بالحركة السريعة والاقتراب والابتعاد (وهو ما يمثل تغير المجال المغناطيسي)، سيتفاعل الناس ويبدأون بالجري في اتجاه معين. هذا الجري الجماعي للإلكترونات هو ما نسميه **التيار الحثي** (induced current) [1].\n\nيعبر فاراداي عن هذه القوة الدافعة الكهربائية الحثية (induced electromotive force) والتي نرمز لها بالرمز $\\mathcal{E}$ (وتقاس بالفولت) بالصيغة الرياضية التالية [1]:\n\n$$\\mathcal{E} = -N \\frac{\\Delta \\Phi_B}{\\Delta t}$$\n\nدعنا نفكك هذه الرموز معاً ببساطة:\n*   $\\mathcal{E}$: القوة الدافعة الكهربائية الحثية المتولدة (الجهد الكهربائي).\n*   $N$: عدد لفات الملف (عدد الحلقات)، فكلما زادت الحلقات تضاعف الجهد المتولد.\n*   $\\Delta \\Phi_B$: التغير في **التدفق المغناطيسي** (magnetic flux)، وهو يعبر عن عدد خطوط المجال المغناطيسي التي تخترق الحلقة [1].\n*   $\\Delta t$: الفترة الزمنية التي حدث فيها هذا التغير.\n*   الإشارة السالبة ($-$) تشير إلى **قانون لينز** (Lenz's Law)، وتعني أن الكهرباء المتولدة تحاول دائماً مقاومة التغير الذي تسبب في وجودها (كأنها ردة فعل معاكسة للتغير) [1].\n\nكيف نستفيد من هذا القانون في توليد الكهرباء التي نستخدمها يومياً؟\n\nفي الواقع، نحن لا نحرك مغناطيساً يدوياً داخل ملف طوال الوقت. بدلاً من ذلك، نستخدم **المولد الكهربائي** (electric generator) [1].\n\nالمولد يحتوي على ملفات نحاسية ضخمة موضوعة بين مغناطيسات قوية جداً [1]. عندما يدور الملف بفعل قوة خارجية (مثل توربينات الرياح، أو بخار الماء الساخن الناتجة عن حرق الوقود، أو تساقط المياه في السدود)، تتغير الزاوية بين خطوط المجال المغناطيسي ومستوى الملف باستمرار [1].\n\nهذا الدوران المستمر يضمن تغيراً متواصلاً في التدفق المغناطيسي، مما ينتج تياراً كهربائياً متناوباً (alternating current) يتدفق عبر الأسلاك ليصل إلى بيوتنا ومدارسنا [1].\n\nلكي تبقي الفكرة راسخة في ذهنك دائماً: **الكهرباء يولدها التغير (سواء بالحركة أو بتغير شدة المجال)، والمغناطيس الساكن ذو المجال الثابت لا يولد تياراً**. الكهرباء الحثية تكره الاستقرار، فهي تولد فقط عندما يتغير عالم المغناطيس من حولها.\n\nفي امتحانات الفيزياء، يقع الكثير من الطلاب في فخ متكرر: يعطيك السؤال مغناطيساً قوياً جداً موضوعاً بشكل ثابت تماماً داخل ملف، ويطلب منك حساب الجهد المتولد. تذكر دائماً أن الجهد في هذه الحالة يساوي صفراً لأن التغير في التدفق ($\\Delta \\Phi_B$) يساوي صفراً. قوة المغناطيس لا تهم لوحدها، ما يهم حقاً هو وجود الحركة والتغير!\n\nالآن، لنختبر هذه الفكرة معاً بحساب بسيط: تخيل أن لدينا ملفاً يتكون من $50$ لفة، وقمنا بزيادة التدفق المغناطيسي عبره بمقدار $0.2\\text{ Wb}$ (ويبر) خلال زمن قدره $0.1$ ثانية. كم ستكون قيمة القوة الدافعة الكهربائية الحثية المتولدة في هذا الملف؟ (تجاهل الإشارة السالبة وركز على المقدار فقط). أرني كيف ستحسبها!",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 30.9
+    },
+    "Q6": {
+      "text": "خذ نفساً عميقاً، ولا بأس أبداً، هذا الخوف طبيعي جداً قبل الامتحان ويحدث لأغلب الطلاب. السبب في أن هذه القوانين لا تثبت في رأسك ليس لأنك لا تستطيع حفظها، بل لأنك تحاول حفظها كرموز جافة ومجردة مثل $v_f$ و $v_i$ و $a$ دون أن تربطها بقصة حقيقية تحدث أمامك في الحياة.\n\nدعنا نتفق أولاً على أن قوانين الحركة الثلاثة هي مجرد \"حكاية\" تصف ما يحدث لسيارة تتحرك في شوارع البحرين، وإذا فهمت القصة، فلن تحتاج لحفظ الرموز صماً بعد الآن.\n\nلنتخيل معاً هذه القصة البسيطة لتفهم كيف ولدت هذه القوانين:\n\n**القانون الأول: قصة زيادة السرعة**\n$$v_f = v_i + at$$\nتخيل أنك تمشي بسيارتك بسرعة ابتدائية ($v_i$) قدرها $10$ أمتار في الثانية. قررت فجأة أن تزيد سرعتك، فبدأت تضغط على دواسة البنزين ليزداد تسارعك ($a$) بمقدار $2$ متر في الثانية، واستمررت في ذلك لمدة ($t$) قدرها $5$ ثوانٍ. كم ستصبح سرعتك النهائية ($v_f$)؟\n\nالأمر يشبه تماماً لو كان في جيبك $10$ دنانير ($v_i$)، ويعطيك والدك دينارين ($a$) كل يوم ($t$) لمدة $5$ أيام. في النهاية سيكون معك: $10$ دنانير أساسية + ($2$ دينار × $5$ أيام) = $20$ ديناراً. \n\nهذا هو القانون الأول بالضبط: سرعتك النهائية تساوي سرعتك التي بدأت بها، مضافاً إليها مقدار الزيادة التي اكتسبتها في كل ثانية مضروبة في عدد الثواني.\n\n**القانون الثاني: قصة المسافة المقطوعة**\n$$d = v_i t + \\frac{1}{2} a t^2$$\nهذا القانون يحسب لك الإزاحة ($d$)، أي المسافة التي قطعتها السيارة. \nلو كنت تسير بسرعة ثابتة دون تسارع، لكانت المسافة ببساطة هي سرعتك مضروبة في الزمن ($v_i t$). لكن لأنك تضغط على البنزين والسيارة تسرع أكثر فأكثر، فإنك تقطع مسافة إضافية، هذه المسافة الإضافية هي \"مكافأة التسارع\" ونعبر عنها بالطرف الثاني: $\\frac{1}{2} a t^2$.\n\n**القانون الثالث: قانون \"الزمن الغائب\"**\n$$v_f^2 = v_i^2 + 2ad$$\nهذا القانون نلجأ إليه بشكل أساسي عندما تقرأ مسألة الامتحان وتجد أن واضع الامتحان لم يذكر لك \"الزمن\" ($t$) ولم يطلبه منك. إنه القانون الوحيد (من بين القوانين الثلاثة الأساسية) الذي لا يحتوي على حرف $t$.\n\nلكي ترتب أفكارك وتسترجعها بسرعة في الامتحان، انظر إلى هذا الجدول البسيط الذي يلخص لك متى تختار كل قانون بناءً على ما هو \"غائب\" ومخفي في السؤال:\n\n| القانون | ما هو الرمز الغائب تماماً عن السؤال؟ | متى تستخدمه؟ |\n| :--- | :--- | :--- |\n| $v_f = v_i + at$ | الإزاحة ($d$) | عندما لا يذكر السؤال أي مسافة ولا يطلبها. |\n| $d = v_i t + \\frac{1}{2} a t^2$ | السرعة النهائية ($v_f$) | عندما تملك الزمن والسرعة الابتدائية وتريد حساب المسافة. |\n| $v_f^2 = v_i^2 + 2ad$ | الزمن ($t$) | عندما يغيب الزمن تماماً عن المعطيات والمطلوب. |\n\nهناك فخ يتكرر كثيراً في امتحانات الفيزياء للصف العاشر في البحرين ويقع فيه الكثير من الطلاب، وهو إشارات التسارع. عندما تقرأ في السؤال كلمة \"تباطأت السيارة\" أو \"ضغط السائق على المكابح\"، فإننا نعوض قيمة التسارع ($a$) بإشارة سالبة (بافتراض أن الحركة في الاتجاه الموجب)، حتى لو كُتِبت قيمتها في السؤال مجردة بدون إشارة. وكذلك في السقوط الحر والحركة الرأسية، عند اختيار الاتجاه نحو الأعلى كاتجاه موجب، فإن تسارع الجاذبية ($g$) يُعوض بإشارة سالبة ($g = -9.8 \\text{ m/s}^2$) دائماً لأن الجاذبية تسحب الأجسام نحو الأسفل، سواء كان الجسم صاعداً أو هابطاً.\n\nالآن، دعنا نثبت هذه الفكرة معاً بخطوة عملية صغيرة تجعلك تشعر بالثقة قبل أن تنام الليلة. \n\nإذا بدأت سيارة حركتها من السكون (وهذا يعني أن سرعتها الابتدائية $v_i = 0$)، وتتحرك بتسارع ($a$) قدره $3 \\text{ m/s}^2$ لمدة زمنية ($t$) قدرها $4$ ثوانٍ. مستعيناً بالقصة التي حكيناها في الأعلى، كم ستكون سرعتها النهائية ($v_f$) بعد مرور هذه الثواني الأربع؟",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 36.1
+    },
+    "Q7": {
+      "text": "الجواب المباشر هو **2 مول** من غاز ثاني أكسيد الكربون ($CO_2$).\n\nلتتخيل الفكرة ببساطة من حياتنا اليومية، تخيل أنك تشتري علباً من الحلوى البحرينية الفاخرة، وكل علبة تبلغ كتلتها تماماً 44 غراماً. إذا كان لديك حقيبة تحتوي على 88 غراماً من هذه الحلوى، فكم علبة لديك؟ بالتأكيد ستقول علبتان!\n\nفي الكيمياء، **المول** (mole) هو بمثابة هذه العلبة، و**الكتلة المولية** (molar mass) هي كتلة العلبة الواحدة.\n\nدعنا نطبق هذا الكلام عملياً على مسألتنا عبر خطوتين بسيطتين:\n\n**أولاً: حساب كتلة \"العلبة الواحدة\" (الكتلة المولية لغاز $CO_2$)**\nيتكون جزيء ثاني أكسيد الكربون من ذرة كربون واحدة وذرتين من الأكسجين. نجمع كتل هذه الذرات معاً:\n$$M = (1 \\times 12) + (2 \\times 16)$$\n$$M = 12 + 32 = 44 \\text{ g/mol}$$\nهذا يعني أن المول الواحد (العلبة الواحدة) من $CO_2$ كتلته 44 غراماً.\n\n**ثانياً: حساب عدد المولات**\nالآن، نقسم الكتلة الكلية التي أعطاك إياها السؤال على كتلة المول الواحد:\n$$\\text{عدد المولات } (n) = \\frac{\\text{الكتلة بالجرام } (m)}{\\text{الكتلة المولية } (M)}$$\n$$n = \\frac{88}{44} = 2 \\text{ mol}$$\n\nالنتيجة منطقية جداً وتتطابق مع حدسنا، فبما أن المول الواحد كتلته 44 غراماً، فإن ضعف هذه الكتلة (88 غراماً) يجب أن يحتوي على مولين بالضبط.\n\nأثناء حل مثل هذه المسائل في الامتحانات، يقع الكثير من الطلاب في فخ نسيان ضرب كتلة الأكسجين في 2 عند حساب الكتلة المولية، فيجمعون $12 + 16$ ويحصلون على نتيجة خاطئة. تذكر دائماً أن تنظر بتمعن إلى الأرقام الصغيرة أسفل العناصر في الصيغة الكيميائية لتضرب الكتلة الذرية في عدد الذرات الصحيح.\n\nالآن، لتتأكد من أن الطريقة ثبتت في ذهنك تماماً، ما رأيك أن تحسب لي كم مولاً يوجد في 36 غراماً من الماء ($H_2O$)؟ (علماً بأن الكتل الذرية هي: H = 1، O = 16).",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 24.3
+    },
+    "Q8": {
+      "text": "عندما ندرس البناء الضوئي في المدرسة، قد يبدو الأمر وكأنه مجرد معادلة كيميائية جافة نحفظها للاختبار، لكن الحقيقة هي أن هذه العملية هي بمثابة \"المصنع الأول\" الذي يدير الحياة على كوكبنا بأكمله، وبدونها لن نجد حتى اللقمة التي نأكلها اليوم.\n\nكل نفس تستنشقه الآن، وأنت تقرأ هذه الكلمات، هو هدية مباشرة من عملية البناء الضوئي (photosynthesis). النباتات تأخذ غاز ثاني أكسيد الكربون الذي نزفره وتطرحه المصانع والسيارات، وتهدينا بدلاً منه الأكسجين النقي الذي يبقينا على قيد الحياة.\n\nفكر في وجبة الغداء اليوم، سواء كانت أرزاً أو خبزاً أو خضاراً. كل هذه الطاقة بدأت عندما أمسكت ورقة شجر خضراء بأشعة الشمس وحولتها إلى سكر نقي. وحتى اللحوم التي نأكلها تأتي من حيوانات تغذت في الأصل على النباتات. نحن حرفياً نأكل طاقة شمسية مخزنة في صورة طعام.\n\nالبناء الضوئي هو أيضاً المكيف الطبيعي لكوكب الأرض. النباتات تمتص كميات هائلة من الكربون الذي يسبب الاحتباس الحراري، مما يحافظ على اعتدال الجو ويمنع الكوكب من الغليان.\n\nتخيل ورقة الشجر الخضراء وكأنها مخبز صغير يعمل بالطاقة الشمسية. يدخل المخبز ماء من الجذور وثاني أكسيد الكربون من الهواء، وتستخدم الورقة أشعة الشمس كفرن لطهي الخبز، وهو السكر الذي يغذي النبات، والفضلات الناتجة عن هذا المخبز التي يتخلص منها في الهواء هي الأكسجين الذي نتنفسه نحن.\n\nالنباتات تطبخ الشمس لتطعم الأرض وتنعش أنفاسنا.\n\nيقع الكثير من الطلاب في فخ متكرر أثناء الامتحانات، حيث يعتقدون أن النباتات تقوم بالبناء الضوئي فقط ولا تتنفس الأكسجين. تذكر دائماً أن النباتات كائنات حية، وهي تتنفس الأكسجين ليلاً ونهاراً مثلنا تماماً لإنتاج الطاقة، لكنها في النهار تنتج عادةً أكسجيناً بالبناء الضوئي أكثر بكثير مما تستهلكه في التنفس، وهذا الفائض هو ما نتنفسه نحن.\n\nلو اختفت أشعة الشمس فجأة عن كوكب الأرض، ما الذي سيحدث لمستويات غاز ثاني أكسيد الكربون في الهواء، وكيف سيؤثر ذلك على طعامنا؟ شاركني توقعك بخطوات بسيطة بناءً على ما ناقشناه.",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 24.3
+    },
+    "Q9": {
+      "text": "تخيل أنك تقود سيارتك على شارع خليفة بن سلمان في البحرين، وتنظر فجأة إلى عداد السرعة لتجده يشير إلى 100 كيلومتر في الساعة. هذه القراءة السريعة في تلك اللحظة بالذات هي أبسط تعريف للمشتقة في الرياضيات.\n\nالمشتقة (derivative) هي ببساطة **معدل التغير اللحظي** (instantaneous rate of change). إنها تجيب عن سؤال واحد: \"ما مدى سرعة تغير شيء ما في هذه اللحظة بالذات؟\"\n\nفي رحلتك بالسيارة، إذا قسنا المسافة الإجمالية على الزمن الإجمالي، فنحن نحسب متوسط السرعة. لكن المشتقة لا تهتم بالرحلة كلها، بل هي مثل كاميرا مراقبة السرعة التي تلتقط سرعتك في جزء من الثانية. المشتقة هي سرعة تغير موقعك بالنسبة للزمن عند لحظة معينة.\n\nإذا رسمنا حركتك على شكل منحنى بياني، فإن المشتقة عند أي نقطة هي ميل الخط المستقيم الذي يمس المنحنى عند تلك النقطة، ونسمي هذا المستقيم **المماس** (tangent). إذا كان المماس مائلاً للأعلى بقوة، فهذا يعني أن التغير سريع جداً وصاعد في تلك اللحظة.\n\nالمشتقة هي لقطة كاميرا المرور، تلتقط حركتك في لحظة خاطفة ولا تلتفت لرحلتك كاملة.\n\nفي امتحانات الرياضيات للمرحلة الثانوية، يقع الكثير من الطلاب في فخ الخلط بين معدل التغير المتوسط والمشتقة. تذكر دائماً أن معدل التغير المتوسط يحتاج إلى نقطتين وفترة زمنية كاملة، بينما المشتقة تبحث عن التغير عند نقطة واحدة محددة تماماً، وذلك بجعل المسافة بين النقطتين تقترب من الصفر باستخدام **النهاية** (limit).\n\nالآن، لنطبق هذا المفهوم معاً: إذا كنا نملأ بركة سباحة بالماء، وبدأنا نلاحظ كيف يتغير حجم الماء بمرور الوقت. ماذا تعني \"مشتقة حجم الماء بالنسبة للزمن\" في هذه الحالة؟ صف لي بالكلمات ماذا تقيس هذه المشتقة في أرض الواقع.",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 22.1
+    },
+    "Q10": {
+      "text": "في حياتنا اليومية، نرى بوضوح أن العملة المعدنية تصل إلى الأرض أولاً وبسرعة، بينما تتمايل الريشة ببطء في الهواء قبل أن تهبط.\n\nالسبب الحقيقي وراء هذا الاختلاف ليس لأن الجاذبية تسحب الأجسام الثقيلة بقوة أكبر لتجعلها تسقط أسرع، بل السبب هو **مقاومة الهواء** (air resistance) التي تعيق حركة الريشة بشكل أكبر بكثير من العملة.\n\nلتتخيل كيف يعمل الهواء، تخيل أنك تحاول الجري في وسط سوق المنامة المزدحم.\n\nإذا كنت تحمل لوحة كرتونية عريضة وخفيفة أمامك، فإن الناس (الذين يمثلون جزيئات الهواء) سيصطدمون بها باستمرار ويعيقون حركتك بشكل كبير. لكن إذا كنت تجري وجسمك منكمش وصغير، فستمر بين الناس بسهولة وتصل أسرع.\n\nهذا تماماً ما يحدث للريشة، فمساحة سطحها الكبيرة بالمقارنة مع وزنها الخفيف تجعل جزيئات الهواء تصطدم بها من الأسفل وتدفعها لأعلى، مما يبطئ سقوطها. أما العملة المعدنية، فحجمها الصغير ووزنها يسمحان لها باختراق جزيئات الهواء بسهولة أكبر لتصل أولاً.\n\nالآن، إليك المفاجأة التي قد تبدو غير مألوفة للوهلة الأولى: لو قمنا بتفريغ الغرفة تماماً من الهواء، أي في حالة الفراغ (vacuum)، وأسقطنا العملة والريشة معاً، فإنهما ستصلان إلى الأرض في **نفس اللحظة تماماً**.\n\nالسبب في ذلك هو أن كوكب الأرض يجذب جميع الأجسام، بغض النظر عن كتلتها، بنفس التسارع وهو **تسارع الجاذبية الأرضية** ($g$) والذي يساوي تقريباً $9.8 \\text{ m/s}^2$. \n\nالكتلة الأكبر للعملة تعني أن قوة الجاذبية المؤثرة عليها أكبر، ولكنها في نفس الوقت تمتلك قصوراً ذاتياً (inertia) أكبر، أي مقاومة أكبر للحركة. هاتان الصفتان تلغيان بعضهما البعض تماماً، مما يجعل جميع الأجسام تسقط بنفس المعدل عندما يختفي الهواء.\n\nتذكر دائماً أن الجاذبية عادلة تسحب الجميع بنفس التسارع، لكن الهواء هو الذي يعيق الخفيف ويبطئ حركته.\n\nفي امتحانات الفيزياء، انتبه جيداً لصياغة السؤال. إذا ذكر السؤال عبارة **سقوط حر** (free fall)، فهذا يعني علمياً أن الحركة تحدث تحت تأثير الجاذبية فقط مع إهمال مقاومة الهواء تماماً. في هذه الحالة، الإجابة الصحيحة دائماً هي أنهما يصلان معاً في نفس اللحظة، ولا تجعل تجاربك اليومية تخدعك وتجعلك تختار الجسم الأثقل.\n\nالآن، دعنا نختبر هذه الفكرة معاً بسؤال بسيط لتتأكد من فهمك: لو أحضرت ورقتين متطابقتين تماماً في الكتلة والحجم، وتركت إحداهما مفرودة كما هي، بينما قمت بتجعيد الأخرى وضغطها بإحكام على شكل كرة صغيرة، ثم أسقطتهما معاً من نفس الارتفاع في غرفتك، أيهما ستصل أولاً؟ ولماذا؟",
+      "verification": "passed",
+      "grounding": null,
+      "outOfSyllabus": false,
+      "sources": [],
+      "latency_s": 26.8
+    }
+  },
+  "fable_answers": {
+    "Q1": "## الحل\n\n**المعطيات:**\n- الارتفاع: h = 45 م\n- السرعة الابتدائية: v₀ = 0 (سقوط حر)\n- تسارع الجاذبية: g = 10 م/ث²\n\n**أولاً: حساب زمن السقوط**\n\nنستخدم معادلة المسافة في السقوط الحر:\n\nh = ½ g t²\n\n45 = ½ × 10 × t²\n\n45 = 5 t²\n\nt² = 45 ÷ 5 = 9\n\n**t = 3 ثوانٍ**\n\n**ثانياً: حساب السرعة لحظة الاصطدام**\n\nنستخدم المعادلة:\n\nv = v₀ + g t\n\nv = 0 + (10 × 3)\n\n**v = 30 م/ث**\n\n**للتحقق:** يمكن استخدام المعادلة v² = v₀² + 2gh، فنجد v² = 2 × 10 × 45 = 900، ومنها v = 30 م/ث، وهي النتيجة نفسها.\n\n**الإجابة النهائية:** تستغرق الكرة **3 ثوانٍ** للوصول إلى الأرض، وتصطدم بها بسرعة **30 م/ث** (أي ما يعادل 108 كم/س).",
+    "Q2": "سؤال ممتاز! السبب يكمن في طريقة ترابط ذرات الكربون في كل منهما، فرغم أن المادتين تتكونان من العنصر نفسه، إلا أن الترتيب الداخلي للذرات مختلف تماما، ولهذا نسميهما \"متآصلات\" الكربون.\n\n**في الألماس:**\nترتبط كل ذرة كربون بأربع ذرات كربون أخرى بروابط تساهمية قوية، في بناء هرمي (رباعي الأوجه) ثلاثي الأبعاد. ولأن ذرة الكربون تملك أربعة إلكترونات تكافؤ، فإن جميع إلكتروناتها الأربعة مشغولة في هذه الروابط. النتيجة: لا توجد إلكترونات حرة الحركة، والتيار الكهربائي يحتاج إلى شحنات حرة تتحرك، لذلك يكون الألماس عازلا للكهرباء.\n\n**في الجرافيت:**\nترتبط كل ذرة كربون بثلاث ذرات فقط، مكونة طبقات من حلقات سداسية تشبه خلايا النحل. وهذا يعني أن كل ذرة تستخدم ثلاثة إلكترونات فقط في الروابط، ويبقى الإلكترون الرابع \"غير مرتبط\" بذرة معينة، بل يصبح إلكترونا حرا (غير متمركز) يتحرك بسهولة على طول الطبقات. هذه الإلكترونات الحرة هي التي تحمل التيار الكهربائي، ولذلك يوصل الجرافيت الكهرباء.\n\n**ملاحظة إضافية مفيدة:**\n- توصيل الجرافيت للكهرباء يكون جيدا على امتداد الطبقات، لكنه ضعيف في الاتجاه العمودي عليها، لأن الإلكترونات الحرة تتحرك ضمن الطبقة نفسها.\n- الاختلاف نفسه في الترابط يفسر صفات أخرى: الألماس أصلد مادة طبيعية بسبب شبكته الثلاثية الأبعاد المتماسكة، بينما الجرافيت لين وتنزلق طبقاته فوق بعضها بسهولة (ولهذا يستخدم في أقلام الرصاص وكمادة تزييت).\n\n**الخلاصة:** العبرة ليست بنوع الذرات فقط، بل بطريقة ترتيبها وترابطها. وجود إلكترونات حرة في الجرافيت يجعله موصلا، وغيابها في الألماس يجعله عازلا.\n\nهل تريد أن أشرح لك مفهوم الإلكترونات غير المتمركزة بتفصيل أكثر؟",
+    "Q3": "# الفرق بين الانقسام المتساوي (Mitosis) والانقسام المنصّف (Meiosis)\n\nكلاهما نوع من انقسام الخلية، لكنهما يختلفان في الهدف والنتيجة. إليك التوضيح:\n\n## أولًا: الانقسام المتساوي (Mitosis)\n- **الهدف:** النمو، وتعويض الخلايا التالفة، والتكاثر اللاجنسي في بعض الكائنات.\n- **مكان حدوثه:** في الخلايا الجسدية (غير التناسلية) مثل خلايا الجلد والعضلات.\n- **عدد الانقسامات:** انقسام واحد فقط.\n- **عدد الخلايا الناتجة:** خليتان.\n- **عدد الكروموسومات:** تبقى كما هي في الخلية الأم (2n)، أي أن الخليتين الناتجتين مطابقتان للأم.\n- **التطابق الوراثي:** الخلايا الناتجة متطابقة وراثيًا مع الخلية الأم.\n\n## ثانيًا: الانقسام المنصّف (Meiosis)\n- **الهدف:** إنتاج الأمشاج (الخلايا الجنسية) مثل الحيوانات المنوية والبويضات.\n- **مكان حدوثه:** في الأعضاء التناسلية (الخصية والمبيض عند الإنسان).\n- **عدد الانقسامات:** انقسامان متتاليان (منصّف أول ومنصّف ثانٍ).\n- **عدد الخلايا الناتجة:** أربع خلايا.\n- **عدد الكروموسومات:** يقلّ إلى النصف (n)، فتصبح الخلايا أحادية العدد.\n- **التطابق الوراثي:** الخلايا الناتجة مختلفة وراثيًا بسبب حدوث **العبور الوراثي (Crossing over)** والتوزيع العشوائي للكروموسومات.\n\n## جدول مقارنة سريع\n\n| وجه المقارنة | الانقسام المتساوي | الانقسام المنصّف |\n|---|---|---|\n| عدد الانقسامات | واحد | اثنان |\n| عدد الخلايا الناتجة | 2 | 4 |\n| عدد الكروموسومات | يبقى (2n) | يقلّ إلى النصف (n) |\n| نوع الخلايا | جسدية | جنسية (أمشاج) |\n| التنوع الوراثي | لا يوجد (تطابق) | يوجد (اختلاف) |\n\n## خلاصة\nالانقسام المتساوي يحافظ على عدد الكروموسومات وينتج خليتين متطابقتين للنمو والترميم، بينما الانقسام المنصّف يقلّل عدد الكروموسومات إلى النصف وينتج أربع خلايا مختلفة وراثيًا لأغراض التكاثر الجنسي.\n\nوأهمية تنصيف الكروموسومات أنه عند الإخصاب (اتحاد المشيجين) يعود العدد إلى طبيعته (2n)، فيحافظ النوع على عدد كروموسوماته ثابتًا عبر الأجيال.\n\nهل تريد شرحًا مفصّلًا لمراحل كل انقسام (التمهيدي والاستوائي والانفصالي والنهائي)؟",
+    "Q4": "حل المعادلة: x² - 5x + 6 = 0\n\n**الطريقة: التحليل إلى عوامل**\n\nنبحث عن عددين حاصل ضربهما (+6) ومجموعهما (-5).\nالعددان هما: (-2) و (-3)، لأن:\n- (-2) × (-3) = +6\n- (-2) + (-3) = -5\n\nإذن نكتب المعادلة على الصورة:\n\n(x - 2)(x - 3) = 0\n\nوبما أن حاصل الضرب يساوي صفرًا، فإن أحد العاملين على الأقل يساوي صفرًا:\n\n- إما x - 2 = 0 ومنها x = 2\n- أو x - 3 = 0 ومنها x = 3\n\n**الحل:** x = 2 أو x = 3\n\n**التحقق:**\n- عند x = 2: (2)² - 5(2) + 6 = 4 - 10 + 6 = 0 ✓\n- عند x = 3: (3)² - 5(3) + 6 = 9 - 15 + 6 = 0 ✓\n\nويمكنك أيضًا الحل بالقانون العام: x = (5 ± √(25 - 24)) / 2 = (5 ± 1) / 2، فتحصل على النتيجتين نفسيهما. إذا أردت شرحًا أكثر تفصيلًا لأي من الطريقتين، أخبرني بذلك.",
+    "Q5": "# قانون فاراداي في الحث الكهرومغناطيسي\n\n## الفكرة الأساسية\n\nاكتشف العالم مايكل فاراداي عام 1831 أن المغناطيسية يمكن أن تولّد كهرباء، لكن بشرط مهم: **التغيّر**. المغناطيس الساكن بجوار سلك لا يولّد شيئًا، أما إذا تحرك المغناطيس أو تحرك الموصل أو تغيّر المجال المغناطيسي، فإن قوة دافعة كهربائية تتولد في الموصل.\n\n## نص القانون\n\nينص قانون فاراداي على أن:\n\n> القوة الدافعة الكهربائية المستحثة في دائرة مغلقة تتناسب طرديًا مع المعدل الزمني لتغيّر التدفق المغناطيسي الذي يخترق تلك الدائرة.\n\nوصيغته الرياضية:\n\n$$\\varepsilon = -N \\frac{\\Delta \\Phi}{\\Delta t}$$\n\nحيث:\n- **ε**: القوة الدافعة الكهربائية المستحثة (بالفولت)\n- **N**: عدد لفات الملف\n- **ΔΦ**: التغير في التدفق المغناطيسي (بالويبر)، والتدفق نفسه يُعطى بالعلاقة Φ = B A cos θ\n- **Δt**: الزمن الذي حدث خلاله التغير\n\nأما **الإشارة السالبة** فتعبّر عن قاعدة لنز، وهي أن التيار المستحث يكون اتجاهه بحيث يقاوم التغير الذي أنتجه. وهذا في جوهره تعبير عن مبدأ حفظ الطاقة، فلا نحصل على كهرباء مجانًا بل نبذل شغلًا ضد هذه المقاومة.\n\n## كيف نغيّر التدفق المغناطيسي؟\n\nيمكن توليد قوة دافعة مستحثة بثلاث طرق:\n1. تغيير شدة المجال المغناطيسي (B)، مثل تقريب مغناطيس من ملف أو إبعاده عنه\n2. تغيير مساحة الدائرة داخل المجال (A)\n3. تغيير الزاوية بين المجال ومستوى الملف (θ)، أي **تدوير الملف داخل المجال**، وهذه هي الطريقة المستخدمة عمليًا في المولدات\n\n## التطبيق في توليد الكهرباء: المولد الكهربائي\n\nالمولد الكهربائي (الدينامو) هو التطبيق الأعظم لهذا القانون، وفكرته بسيطة:\n\n1. **ملف من أسلاك النحاس** يوضع بين قطبي مغناطيس قوي\n2. **مصدر طاقة خارجي يدير الملف** (أو يدير المغناطيس حول الملف في المولدات الكبيرة)\n3. أثناء الدوران تتغير الزاوية θ باستمرار، فيتغير التدفق المغناطيسي عبر الملف\n4. حسب قانون فاراداي، يتولد في الملف قوة دافعة كهربائية وتيار **متردد (AC)** يعكس اتجاهه مع كل نصف دورة\n\nوالسؤال المهم: من أين يأتي الدوران؟ هنا تختلف محطات التوليد فقط في مصدر الحركة، أما المبدأ الفيزيائي فواحد:\n\n- **المحطات الحرارية والغازية** (وهي الأساس في البحرين مثل محطات الدور والحد): يُحرق الغاز الطبيعي لتسخين الماء وإنتاج بخار يدفع التوربين فيدور المولد\n- **المحطات الكهرومائية**: سقوط الماء من سد يدير التوربين\n- **طاقة الرياح**: الرياح تدير شفرات العنفة المتصلة بالمولد\n- **المحطات النووية**: حرارة الانشطار تنتج البخار الذي يدير التوربين\n\nلاحظ أن سلسلة تحول الطاقة هي: طاقة كيميائية أو حركية ← طاقة حركية دورانية ← طاقة كهربائية، وقانون فاراداي هو حلقة الوصل في الخطوة الأخيرة.\n\n## تطبيقات أخرى لنفس القانون\n\n- **المحولات الكهربائية**: ترفع الجهد أو تخفضه لنقل الكهرباء عبر المسافات الطويلة، وتعتمد على تيار متردد يولّد تدفقًا متغيرًا يستحث جهدًا في ملف ثانٍ\n- **الشحن اللاسلكي** للهواتف\n- **مواقد الحث الحراري** في المطابخ\n- **الميكروفونات** وقارئات البطاقات الممغنطة\n\n## الخلاصة\n\nقانون فاراداي يخبرنا أن تغيّر التدفق المغناطيسي عبر ملف يولّد قوة دافعة كهربائية تتناسب مع سرعة هذا التغيّر وعدد اللفات. وكل الكهرباء تقريبًا التي تصل إلى منزلك تبدأ من هذه الفكرة: شيء ما يدير ملفًا داخل مجال مغناطيسي، فيتولد التيار الذي يضيء العالم.\n\nإذا أردت، يمكنني أن أحل معك مسألة عددية على القانون لترسيخ الفهم، أو أشرح قاعدة لنز بتفصيل أكبر.",
+    "Q6": "لا تخف، الذي يحدث معك طبيعي جدا، وليس معناه أن ذاكرتك ضعيفة. السبب الحقيقي أن أغلب الطلاب يذاكرون القوانين بالقراءة والتكرار فقط، والدماغ لا يثبت المعلومة بهذه الطريقة، بل يثبتها عندما يستخدمها ويستعيدها بنفسه. إليك خطة عملية لليلة واحدة قبل الامتحان:\n\n**أولا: افهم القانون كقصة، لا كنص للحفظ**\n\nقوانين نيوتن للحركة ثلاثة، ولكل واحد منها فكرة بسيطة:\n\n1. **القانون الأول (القصور الذاتي):** الجسم \"كسول\"، يبقى على حاله. الساكن يظل ساكنا، والمتحرك يظل متحركا بنفس السرعة والاتجاه، ما لم تؤثر عليه قوة محصلة. تذكر: عندما تتوقف السيارة فجأة يندفع جسمك للأمام، لأن جسمك يريد الاستمرار في الحركة.\n\n2. **القانون الثاني (القوة والتسارع):** القوة المحصلة = الكتلة في التسارع، أي (ق = ك × ت). كلما زادت القوة زاد التسارع، وكلما زادت الكتلة قل التسارع. تذكر: دفع عربة فارغة أسهل من دفع عربة مليئة.\n\n3. **القانون الثالث (الفعل ورد الفعل):** لكل فعل رد فعل مساو له في المقدار ومعاكس له في الاتجاه. تذكر: عندما تقفز من قارب صغير، يندفع القارب للخلف بينما تندفع أنت للأمام.\n\n**ثانيا: طريقة التثبيت الليلة (الاستدعاء النشط)**\n\n- أغلق الكتاب، وخذ ورقة بيضاء، واكتب القوانين الثلاثة من ذاكرتك مع مثال لكل قانون. ستخطئ في البداية، وهذا ممتاز، لأن الخطأ ثم التصحيح هو ما يثبت المعلومة.\n- اشرح كل قانون بصوت عال كأنك تدرس زميلا لك. إذا لم تستطع شرحه ببساطة، فأنت لم تفهمه بعد، فارجع للنقطة الغامضة فقط.\n- حل ثلاث أو أربع مسائل من نهاية الفصل. القوانين تثبت بالاستخدام في المسائل أكثر من مئة قراءة.\n- كرر كتابة القوانين من الذاكرة مرة أخرى قبل النوم مباشرة، ومرة صباح غد. التكرار المتباعد أقوى وسيلة للتثبيت.\n\n**ثالثا: بخصوص القلق**\n\n- نم مبكرا الليلة، فالسهر يمحو ما ذاكرته لأن الدماغ يثبت المعلومات أثناء النوم.\n- في الامتحان، أول ما تستلم الورقة اكتب القوانين الثلاثة والرموز في الهامش، ثم حل بهدوء.\n- إذا نسيت قانونا أثناء الامتحان، تذكر المثال (السيارة، العربة، القارب) وسيرجع لك القانون.\n\nالخوف قبل الامتحان دليل اهتمام، لا دليل ضعف. ذاكر الليلة بالطريقة أعلاه وستدخل الامتحان وأنت أثبت بكثير. وإذا أردت، أرسل لي مسألة تصعب عليك الآن وسأحلها معك خطوة بخطوة. بالتوفيق!",
+    "Q7": "لحساب عدد المولات نستخدم العلاقة:\n\n**عدد المولات (n) = الكتلة (m) ÷ الكتلة المولية (M)**\n\n**الخطوة الأولى: حساب الكتلة المولية لثاني أكسيد الكربون CO₂**\n\nيتكون جزيء CO₂ من ذرة كربون واحدة وذرتي أكسجين:\n\nM = 12 + (2 × 16) = 12 + 32 = **44 غم/مول**\n\n**الخطوة الثانية: حساب عدد المولات**\n\nn = m ÷ M = 88 ÷ 44 = **2 مول**\n\n**النتيجة:** عدد المولات في 88 غراماً من غاز CO₂ يساوي **2 مول**.\n\nملاحظة مفيدة: هذا يعني أن العينة تحتوي على 2 × 6.022 × 10²³ = 1.204 × 10²⁴ جزيئاً من CO₂، وتشغل حجماً قدره 2 × 22.4 = 44.8 لتراً في الظروف القياسية (STP).",
+    "Q8": "البناء الضوئي (التمثيل الضوئي) عملية تقوم بها النباتات والطحالب وبعض البكتيريا، تحوّل فيها طاقة الشمس مع الماء وثاني أكسيد الكربون إلى غذاء (سكر) وأكسجين. قد تبدو عملية بعيدة عن حياتنا، لكنها في الحقيقة أساس بقائنا. وإليك أهم أسباب تعلّمها وفوائدها في حياتنا اليومية:\n\n**1. الأكسجين الذي نتنفسه**\nكل نفَس نأخذه يعتمد على الأكسجين الذي تطلقه النباتات أثناء البناء الضوئي. بدون هذه العملية لا يوجد هواء صالح للتنفس.\n\n**2. الغذاء ومصدر كل طعامنا**\nالنباتات تصنع غذاءها بنفسها، ونحن نأكلها مباشرة (الخبز، الأرز، الفواكه، الخضار)، أو نأكل الحيوانات التي تتغذى عليها. إذن كل السلسلة الغذائية تبدأ من البناء الضوئي.\n\n**3. تنظيف الهواء ومواجهة التغير المناخي**\nتمتص النباتات ثاني أكسيد الكربون، وهو من الغازات المسببة للاحتباس الحراري. فهم البناء الضوئي يساعدنا على إدراك أهمية الأشجار والغابات في حماية كوكبنا.\n\n**4. مصدر الطاقة التي نستخدمها**\nالوقود مثل النفط والغاز والفحم تكوّن أصلاً من بقايا نباتات وكائنات قديمة خزّنت طاقة الشمس عبر البناء الضوئي منذ ملايين السنين. حتى الطاقة التي نستعملها اليوم جذورها في هذه العملية.\n\n**5. فوائد عملية وتطبيقية**\nفهم هذه العملية يفيد في الزراعة (كيف نزيد إنتاج المحاصيل)، وفي العناية بالنباتات المنزلية، وفي أبحاث حديثة مثل صناعة وقود نظيف أو أوراق صناعية تحاكي عمل النبات.\n\n**باختصار:** نتعلم البناء الضوئي لأنه ببساطة العملية التي توفّر لنا الهواء والغذاء والطاقة. إنه حلقة الوصل بين الشمس وكل صور الحياة على الأرض، وفهمه يجعلنا أكثر وعياً بكيفية حماية بيئتنا وتحسين حياتنا.\n\nهل تحب أن أشرح لك خطوات العملية نفسها بشكل مبسّط؟",
+    "Q9": "المشتقة هي أداة رياضية تقيس **معدل التغير اللحظي** لشيء ما. بمعنى آخر: ما مدى سرعة تغيّر كمية معينة عند لحظة محددة بالضبط؟\n\n**مثال من الحياة اليومية:**\nتخيّل أنك في سيارة، وعداد السرعة يشير إلى 80 كم/ساعة. هذا الرقم هو في الحقيقة \"مشتقة\" المسافة بالنسبة للزمن، أي أنه يخبرك بمدى سرعة تغيّر موقعك في تلك اللحظة بالذات، وليس متوسط سرعتك خلال الرحلة كلها.\n\n**المعنى الهندسي:**\nإذا رسمت منحنى دالة على ورقة، فإن المشتقة عند نقطة معينة تساوي **ميل المماس** (الخط المستقيم الذي يلامس المنحنى) عند تلك النقطة:\n- إذا كانت المشتقة موجبة، فالدالة تتزايد (المنحنى صاعد).\n- إذا كانت المشتقة سالبة، فالدالة تتناقص (المنحنى هابط).\n- إذا كانت المشتقة صفرًا، فالمنحنى مستوٍ عند تلك النقطة (غالبًا قمة أو قاع).\n\n**مثال عددي بسيط:**\nخذ الدالة f(x) = x²، ومشتقتها هي f'(x) = 2x.\n- عند x = 3 تكون المشتقة 6، أي أن الدالة تتزايد بسرعة.\n- عند x = 0 تكون المشتقة 0، وهذه هي النقطة الدنيا للمنحنى.\n\n**لماذا نهتم بها؟**\nلأنها تُستخدم في كل مكان: في الفيزياء لحساب السرعة والتسارع، وفي الاقتصاد لدراسة تغيّر الأرباح، وفي الهندسة لإيجاد أفضل التصاميم، ولإيجاد القيم العظمى والصغرى لأي كمية.\n\n**الخلاصة في جملة واحدة:** المشتقة تجيب عن السؤال: \"بأي سرعة يتغير هذا الشيء الآن؟\"\n\nإذا أردت، يمكنني أن أشرح لك كيف نحسب المشتقة خطوة بخطوة باستخدام قواعد الاشتقاق الأساسية.",
+    "Q10": "في الهواء العادي، ستصل العملة المعدنية إلى الأرض أولاً، لكن السبب ليس أنها أثقل، بل هو مقاومة الهواء.\n\n**التفسير:**\n\nبحسب قوانين الجاذبية، تسقط جميع الأجسام بنفس التسارع تقريباً (تسارع الجاذبية الأرضية g ≈ 9.8 م/ث²) بغض النظر عن كتلتها. فلو لم يكن هناك هواء، لوصلت العملة والريشة إلى الأرض في نفس اللحظة تماماً.\n\nلكن في وجود الهواء، تتدخل قوة معاكسة تسمى **مقاومة الهواء**، وتأثيرها يختلف كثيراً بين الجسمين:\n\n- **الريشة:** مساحة سطحها كبيرة مقارنة بوزنها الصغير جداً، لذلك تكون مقاومة الهواء مؤثرة عليها بشدة، فتتباطأ بسرعة وتصل إلى ما يسمى \"السرعة الحدية\" وهي سرعة صغيرة ثابتة، فتتهادى نحو الأرض ببطء.\n- **العملة المعدنية:** كثافتها عالية وشكلها مدمج، فوزنها كبير مقارنة بمقاومة الهواء التي تواجهها، لذلك تظل تتسارع نحو الأرض دون تأثر يذكر.\n\n**دليل تجريبي شهير:**\n\nفي عام 1971، أجرى رائد الفضاء ديفيد سكوت من مهمة أبولو 15 تجربة على سطح القمر، حيث لا يوجد غلاف جوي، فأسقط مطرقة وريشة من نفس الارتفاع وفي نفس اللحظة، فوصلتا إلى سطح القمر معاً في الوقت نفسه تماماً. وهذا يؤكد ما توصل إليه العالم غاليليو غاليلي قبل قرون: الكتلة لا تحدد سرعة السقوط، والاختلاف الذي نراه في حياتنا اليومية سببه الوحيد هو مقاومة الهواء.\n\n**الخلاصة:** العملة تصل أولاً في الهواء بسبب مقاومة الهواء الكبيرة على الريشة، أما في الفراغ فيصلان معاً في نفس اللحظة."
+  }
+}

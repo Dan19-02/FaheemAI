@@ -15,9 +15,40 @@
 import { pool, corpusChunksForBoardGrade, type CorpusChunk } from "./db.js";
 import { cosine } from "./knowledge.js";
 
+// Gate tied to the EMBEDDING model (gemini-embedding-001), not the generation
+// tier; re-tune if the embedder changes.
 const RETRIEVAL_GATE = () => Number(process.env.RETRIEVAL_GATE) || 0.62;
-const TOP_K = 4;
+const TOP_K = 2; // 1-2 chunks corroborate; more crowds the teaching persona and amplifies anchoring
 const MAX_CHUNK_CHARS = 900;
+
+// Which boards actually have a seeded textbook corpus. Grounding can only ever
+// fire for these, so for every other board (the Bahrain MoE flagship included)
+// we skip the retrieval-query embedding entirely instead of embedding, loading a
+// corpus, and finding nothing on 100% of requests. Env-overridable as corpora grow.
+const GROUNDED_BOARDS = new Set(
+  (process.env.GROUNDED_BOARDS || "cbse").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+);
+export function boardHasCorpus(board?: string): boolean {
+  const bk = boardKey(board);
+  return bk != null && GROUNDED_BOARDS.has(bk);
+}
+
+/** Trim a chunk to the last sentence boundary before `max`, so the model is
+ *  never handed a half-sentence it might treat as authoritative. Falls back to
+ *  the hard cap when no boundary is found; guards decimals (9.8 m/s²) and
+ *  includes Arabic terminators. */
+function trimToSentence(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  let cut = -1;
+  for (const m of head.matchAll(/[.!?؟]\s|[\n؛]/g)) {
+    const i = (m.index ?? 0) + 1;
+    // not a decimal point between digits (e.g. "9.8")
+    if (/[.]/.test(m[0]) && /\d/.test(head[i] || "") && /\d/.test(head[(m.index ?? 0) - 1] || "")) continue;
+    cut = i;
+  }
+  return (cut > max * 0.5 ? head.slice(0, cut) : head).trim();
+}
 
 // In-process cache of a grade's corpus vectors. Loading + JSON-parsing the
 // whole board+grade corpus from Postgres on EVERY question is the single
@@ -107,7 +138,7 @@ export async function groundQuery(
 
   const picked = scored.slice(0, TOP_K);
   const reference = picked
-    .map((x) => `[${x.c.unitTitle} · ${x.c.sectionLabel}] ${x.c.contentDisplay.slice(0, MAX_CHUNK_CHARS)}`)
+    .map((x) => `[${x.c.unitTitle} · ${x.c.sectionLabel}] ${trimToSentence(x.c.contentDisplay, MAX_CHUNK_CHARS)}`)
     .join("\n\n");
   return {
     reference,

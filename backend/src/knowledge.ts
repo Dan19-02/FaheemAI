@@ -165,7 +165,7 @@ export async function verifyAnswer(question: string, answer: string): Promise<Ve
                   text:
                     `Student's question:\n${question}\n\nDraft answer to review:\n${answer}\n\n` +
                     `Carefully check it for: (1) any factual error, wrong formula, or calculation mistake; ` +
-                    `(2) any FALSE ABSOLUTE, a rule of thumb stated as "always" or "never" (in any language) that has real exceptions, which you must soften to "usually" or "in most cases" WITHOUT weakening a genuinely universal law; ` +
+                    `(2) any FALSE ABSOLUTE, a rule of thumb stated as "always", "never", "دائماً" or "أبداً" that has real exceptions, which you must soften to "usually", "in most cases" or "غالباً" WITHOUT weakening a genuinely universal law; ` +
                     `(3) the MAIN worked solution left with only a method but no final numerical result, which you should finish. ` +
                     `CRITICAL: preserve exactly as-is the closing self-check question the tutor poses to the student. NEVER answer, solve, hint at, or complete that closing question; it must stay open and unanswered. Item (3) applies only to the main solution, never to the closing check. ` +
                     `If you find a real issue in (1) to (3), return a corrected version in the SAME format, language, and warm tone. ` +

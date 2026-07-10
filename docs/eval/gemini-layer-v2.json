@@ -1,0 +1,2709 @@
+{
+  "meta": {
+    "test": "v2 Faheem-Gemini (gemini-3.5-flash + v2 answer layer) vs raw Fable 5",
+    "judges": 6,
+    "roles": "3 Bahrain teachers + 3 students (AI personas)",
+    "questions": "10 Arabic + 10 English",
+    "blind": true,
+    "gradings": 120,
+    "result": "parity: 8.80 vs 8.78, 60-60 best-answer wins, pedagogy +0.90"
+  },
+  "summary": {
+    "overall": {
+      "faheem": 8.8,
+      "fable": 8.78
+    },
+    "by_dim": {
+      "faheem": {
+        "accuracy": 9.32,
+        "curriculum": 8.48,
+        "language": 8.75,
+        "pedagogy": 8.97,
+        "trust": 8.5
+      },
+      "fable": {
+        "accuracy": 9.47,
+        "curriculum": 8.86,
+        "language": 8.88,
+        "pedagogy": 8.07,
+        "trust": 8.62
+      }
+    },
+    "by_lang": {
+      "ar": {
+        "faheem": 8.72,
+        "fable": 8.69
+      },
+      "en": {
+        "faheem": 8.89,
+        "fable": 8.87
+      }
+    },
+    "wins": {
+      "faheem": 60,
+      "fable": 60
+    },
+    "per_judge": {
+      "S1": {
+        "role": "student",
+        "faheem": 8.12,
+        "fable": 9.0,
+        "wins": {
+          "faheem": 0,
+          "fable": 20
+        }
+      },
+      "S2": {
+        "role": "student",
+        "faheem": 8.59,
+        "fable": 8.16,
+        "wins": {
+          "faheem": 13,
+          "fable": 7
+        }
+      },
+      "S3": {
+        "role": "student",
+        "faheem": 8.81,
+        "fable": 8.22,
+        "wins": {
+          "faheem": 17,
+          "fable": 3
+        }
+      },
+      "T1": {
+        "role": "teacher",
+        "faheem": 8.87,
+        "fable": 9.14,
+        "wins": {
+          "faheem": 3,
+          "fable": 17
+        }
+      },
+      "T2": {
+        "role": "teacher",
+        "faheem": 9.12,
+        "fable": 9.18,
+        "wins": {
+          "faheem": 12,
+          "fable": 8
+        }
+      },
+      "T3": {
+        "role": "teacher",
+        "faheem": 9.32,
+        "fable": 8.98,
+        "wins": {
+          "faheem": 15,
+          "fable": 5
+        }
+      }
+    }
+  },
+  "questions": [
+    {
+      "id": "AR1",
+      "lang": "ar",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "numerical",
+      "text": "سقطت كرة من ارتفاع 45 متراً عن سطح الأرض. احسب الزمن الذي تستغرقه الكرة للوصول إلى الأرض وسرعتها لحظة الاصطدام. (اعتبر g = 10 م/ث²)"
+    },
+    {
+      "id": "AR2",
+      "lang": "ar",
+      "subject": "Chemistry",
+      "grade": "Grade 10",
+      "type": "concept-why",
+      "text": "لماذا يوصل الجرافيت الكهرباء بينما الألماس لا يوصلها مع أن كليهما مكوّن من الكربون؟"
+    },
+    {
+      "id": "AR3",
+      "lang": "ar",
+      "subject": "Biology",
+      "grade": "Grade 11",
+      "type": "comparison",
+      "text": "ما الفرق بين الانقسام المتساوي والانقسام المنصف؟"
+    },
+    {
+      "id": "AR4",
+      "lang": "ar",
+      "subject": "Mathematics",
+      "grade": "Grade 10",
+      "type": "solve",
+      "text": "حل المعادلة: x^2 - 5x + 6 = 0"
+    },
+    {
+      "id": "AR5",
+      "lang": "ar",
+      "subject": "Physics",
+      "grade": "Grade 12",
+      "type": "concept-applied",
+      "text": "اشرح لي قانون فاراداي في الحث الكهرومغناطيسي وكيف نستفيد منه في توليد الكهرباء."
+    },
+    {
+      "id": "AR6",
+      "lang": "ar",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "stressed-student",
+      "text": "أنا خايف من امتحان الفيزياء باكر، كل ما أذاكر قوانين الحركة أنساها بسرعة. ليش ما تثبت في راسي؟ ساعدني."
+    },
+    {
+      "id": "AR7",
+      "lang": "ar",
+      "subject": "Chemistry",
+      "grade": "Grade 11",
+      "type": "numerical",
+      "text": "احسب عدد المولات في 88 غراماً من غاز ثاني أكسيد الكربون CO2. (الكتل الذرية: C = 12، O = 16)"
+    },
+    {
+      "id": "AR8",
+      "lang": "ar",
+      "subject": "Biology",
+      "grade": "Grade 9",
+      "type": "why-it-matters",
+      "text": "ليش لازم نتعلم البناء الضوئي؟ شنو فايدته في حياتنا اليومية؟"
+    },
+    {
+      "id": "AR9",
+      "lang": "ar",
+      "subject": "Mathematics",
+      "grade": "Grade 12",
+      "type": "concept-simple",
+      "text": "ما معنى المشتقة في الرياضيات؟ اشرحها لي ببساطة."
+    },
+    {
+      "id": "AR10",
+      "lang": "ar",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "misconception",
+      "text": "إذا أسقطت عملة معدنية وريشة من نفس الارتفاع وفي نفس اللحظة، أيهما يصل إلى الأرض أولاً ولماذا؟"
+    },
+    {
+      "id": "EN1",
+      "lang": "en",
+      "subject": "Physics",
+      "grade": "Grade 11",
+      "type": "numerical",
+      "text": "A 2 kg block is pushed with a constant horizontal force of 10 N across a frictionless floor. Find its acceleration and how far it travels in 4 seconds."
+    },
+    {
+      "id": "EN2",
+      "lang": "en",
+      "subject": "Chemistry",
+      "grade": "Grade 11",
+      "type": "concept-why",
+      "text": "Why does ice float on water, even though most solids sink in their own liquid?"
+    },
+    {
+      "id": "EN3",
+      "lang": "en",
+      "subject": "Biology",
+      "grade": "Grade 12",
+      "type": "comparison",
+      "text": "What is the difference between DNA and RNA?"
+    },
+    {
+      "id": "EN4",
+      "lang": "en",
+      "subject": "Mathematics",
+      "grade": "Grade 11",
+      "type": "solve",
+      "text": "Solve the simultaneous equations: 2x + y = 11 and x - y = 1."
+    },
+    {
+      "id": "EN5",
+      "lang": "en",
+      "subject": "Physics",
+      "grade": "Grade 12",
+      "type": "concept-applied",
+      "text": "Explain Newton's law of universal gravitation and how it explains why the Moon orbits the Earth."
+    },
+    {
+      "id": "EN6",
+      "lang": "en",
+      "subject": "Mathematics",
+      "grade": "Grade 10",
+      "type": "stressed-student",
+      "text": "I have a maths exam tomorrow and I keep panicking, trigonometry just won't stick in my head no matter how much I revise. Why does this keep happening and can you help me?"
+    },
+    {
+      "id": "EN7",
+      "lang": "en",
+      "subject": "Chemistry",
+      "grade": "Grade 10",
+      "type": "numerical",
+      "text": "Balance this equation and explain each step: C3H8 + O2 -> CO2 + H2O."
+    },
+    {
+      "id": "EN8",
+      "lang": "en",
+      "subject": "Biology",
+      "grade": "Grade 9",
+      "type": "why-it-matters",
+      "text": "Why do we even need to learn about cells? What does it have to do with real life?"
+    },
+    {
+      "id": "EN9",
+      "lang": "en",
+      "subject": "Mathematics",
+      "grade": "Grade 12",
+      "type": "concept-simple",
+      "text": "What does it actually mean to take the integral of a function? Explain it simply."
+    },
+    {
+      "id": "EN10",
+      "lang": "en",
+      "subject": "Physics",
+      "grade": "Grade 10",
+      "type": "misconception",
+      "text": "If a heavy truck and a small car collide head-on, which one experiences the bigger force, and why?"
+    }
+  ],
+  "mapping": {
+    "AR1": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "AR2": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "AR3": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "AR4": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "AR5": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "AR6": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "AR7": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "AR8": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "AR9": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "AR10": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "EN1": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "EN2": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "EN3": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "EN4": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "EN5": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "EN6": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "EN7": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "EN8": {
+      "A": "fable",
+      "B": "faheem"
+    },
+    "EN9": {
+      "A": "faheem",
+      "B": "fable"
+    },
+    "EN10": {
+      "A": "fable",
+      "B": "faheem"
+    }
+  },
+  "faheem_v2_answers": {
+    "AR2": "من الطبيعي جداً أن نتساءل كيف لمادة واحدة، وهي الكربون، أن تظهر بوجهين مختلفين تماماً، والسر يكمن في طريقة ارتباط الذرات معاً، وتحديداً في وجود **الإلكترونات الحرة** (free electrons) من عدمه.\n\nالألماس عازل ممتاز للكهرباء في الظروف العادية لأن كل ذرة كربون فيه تستهلك جميع إلكتروناتها الأربعة في تكوين روابط تساهمية قوية، بينما الجرافيت موصل لأن كل ذرة كربون فيه تترك إلكتروناً واحداً حراً (غير متموقع) يمكنه الحركة ونقل الكهرباء.\n\nدعنا نتخيل ذرات الكربون كأشخاص في ساحة مدرسة، لكل منهم أربعة أذرع، وهي إلكترونات التكافؤ (valence electrons) الأربعة.\n\nفي الألماس (diamond)، يمسك كل شخص بأيدي أربعة أشخاص آخرين بإحكام شديد في شبكة تساهمية ثلاثية الأبعاد. لا توجد أي يد فارغة، والجميع مقيدون في أماكنهم، لذلك لا يمكن لأي شحنة كهربائية أن تمر عبرهم بسهولة.\n\nأما في الجرافيت (graphite)، فيصطف الأشخاص في طبقات مسطحة سداسية الشكل، ويمسك كل شخص بأيدي ثلاثة أشخاص فقط. هذا يعني أن كل شخص لديه ذراع رابعة حرة تماماً، يمكنها استقبال كرة، وهي الشحنة الكهربائية، وتمريرها بسرعة إلى الشخص المجاور، وهكذا يتدفق التيار الكهربائي بسلاسة.\n\nالكهرباء تيار يجري، والجري يحتاج مساحة حرة، الألماس مقيد بالروابط الأربعة، والجرافيت يوصل لأنه يملك الإلكترون الرابع الطليق.\n\nفي الامتحانات، يقع الكثير من الطلاب في فخ الخلط بين سبب توصيل الجرافيت للكهرباء وسبب كونه طرياً وقابلاً للانزلاق. تذكر دائماً أن القوى الضعيفة بين الطبقات (قوى فان دير فالس) هي التي تجعله طرياً وسهل التفتت، لكنها ليست السبب في توصيل الكهرباء. السبب الرئيسي للتوصيل هو وجود **الإلكترونات غير المتموقعة** (delocalised electrons) التي تتحرك بحرية داخل الطبقة نفسها.\n\nالآن، بناءً على هذا التصور للطبقات، إذا قمنا بتوصيل بطارية بقطعة من الجرافيت، هل تعتقد أن التيار الكهربائي سيسري بشكل أفضل وأسهل على طول الطبقة السداسية نفسها، أم عبر الانتقال عمودياً من طبقة إلى طبقة أخرى؟ فكر في مكان وجود الإلكترونات الحرة وأخبرني برأيك وتفسيرك.",
+    "AR3": "تنقسم العديد من الخلايا في أجسامنا باستمرار بناءً على ما تحتاجه: إما بناء الجسم نفسه وإصلاحه، أو التمهيد لجيل جديد.\n\nتخيل أن لديك كتاباً قيماً وتريد التعامل معه بطريقتين:\n\nفي **الانقسام المتساوي** (Mitosis)، أنت تقوم بتصوير الكتاب بالكامل عبر آلة نسخ لتعطي صديقك نسخة طبق الأصل تماماً، دون تغيير حرف واحد في الحالات الطبيعية، لكي يدرس نفس المحتوى.\n\nأما في **الانقسام المنصف** (Meiosis)، فالأمر أشبه بأخذ نصف صفحات كتاب الطبخ الخاص بوالدك ونصف صفحات كتاب والدتك، وخلطهما معاً لإنتاج كتاب وصفات جديد وفريد تماماً لا يشبه أي منهما بنسبة مئة بالمئة.\n\nهذا الجدول يلخص لك الفروق الأساسية التي تحتاج لمعرفتها:\n\n| وجه المقارنة | الانقسام المتساوي (Mitosis) | الانقسام المنصف (Meiosis) |\n| :--- | :--- | :--- |\n| **مكان الحدوث** | الخلايا الجسدية، مثل خلايا الجلد والعضلات | الخلايا التناسلية، لإنتاج الأمشاج |\n| **الهدف الرئيسي** | النمو، وتعويض الخلايا التالفة | التكاثر الجنسي، والحفاظ على ثبات عدد الكروموسومات |\n| **عدد الخلايا الناتجة** | خليتان متطابقتان تماماً في الظروف الطبيعية | أربع خلايا مختلفة جينياً |\n| **المجموعة الكروموسومية** | نفس عدد الخلية الأم (ثنائية المجموعة الكروموسومية 2n في الإنسان والحيوان) | نصف عدد الخلية الأم (أحادية المجموعة الكروموسومية 1n) |\n| **التنوع الجيني** | لا يحدث تنوع جيني في الحالات الطبيعية (باستثناء الطفرات النادرة) | يحدث تنوع جيني كبير بسبب عملية **العبور الجيني** (Crossing over) |\n\nولكي لا تختلط عليك الأمور في ورقة الامتحان، تذكر هذه الفكرة المبسطة: المتساوي يصنع توأماً متطابقاً ليرمم الجسم، والمنصف ينصف العدد ويخلط الصفات ليصنع التنوع.\n\nمن الأخطاء الشائعة التي يقع فيها الطلاب في الامتحانات هي نسيان الهدف من اختزال عدد الكروموسومات إلى النصف في الانقسام المنصف. الهدف الحقيقي هو أنه عندما يلتقي المشيج الذكري (1n) مع المشيج الأنثوي (1n) عند الإخصاب، يعود العدد كاملاً وثابتاً (2n) في الجنين الجديد، ولو لم ينصف الانقسام العدد لتضاعفت الكروموسومات في كل جيل بشكل مدمر.\n\nلنختبر هذه الفكرة معاً ونرى كيف ستطبقها: إذا كانت خلية كبد في جسم غزال تحتوي على 30 كروموسوماً، فكم كروموسوماً تتوقع أن تجد في الحيوان المنوي (المشيج الذكري) لهذا الغزال بعد اكتمال الانقسام المنصف؟",
+    "AR1": "تبدو مسألة **السقوط الحر** (free fall) هذه واضحة وممتعة، والجميل فيها أن أرقامها متناسقة وتسهل علينا الحساب والتحقق ذهنيّاً.\n\nالزمن الذي تستغرقه الكرة للوصول إلى الأرض هو **3 ثوانٍ**، وسرعتها لحظة الاصطدام بالأرض هي **30 م/ث**.\n\nدعنا نمر على الخطوات معاً خطوة بخطوة وبكل هدوء.\n\n**لإيجاد زمن السقوط**\n\nعندما تسقط الكرة سقوطاً حراً، تكون سرعتها الابتدائية صفراً. نستخدم معادلة الحركة الثانية التي تربط المسافة بالزمن:\nd = v_i × t + ½ × g × t²\n\nوبما أن السرعة الابتدائية (v_i) تساوي صفراً، تتبسط المعادلة لتصبح:\nd = ½ × g × t²\n\nالآن، نعوض بالأرقام التي لدينا في المسألة (الارتفاع 45 متراً، وتسارع الجاذبية 10 م/ث²):\n45 = ½ × 10 × t²\n45 = 5 × t²\n\nبقسمة الطرفين على 5، نحصل على مربع الزمن:\nt² = 9\n\nبأخذ الجذر التربيعي للطرفين، نجد أن الزمن (t) يساوي **3 ثوانٍ**.\n\n**لإيجاد سرعة الاصطدام**\n\nالآن بعد أن عرفنا أن الكرة استغرقت 3 ثوانٍ في الهواء، يمكننا حساب سرعتها النهائية (v_f) بسهولة باستخدام معادلة الحركة الأولى:\nv_f = v_i + g × t\n\nوبما أن السرعة الابتدائية صفر:\nv_f = g × t\nv_f = 10 × 3 = **30 م/ث**\n\n**التحقق من صحة الحل**\n\nلنتأكد من صحة حساباتنا بطريقة مستقلة تماماً باستخدام معادلة الحركة الثالثة التي لا تعتمد على الزمن:\nv_f² = 2 × g × d\nv_f² = 2 × 10 × 45 = 900\nv_f = √900 = 30 م/ث\n\nبما أن الطريقتين أعطتا النتيجة نفسها، فنحن واثقون تماماً من الحل. ومن الناحية الفيزيائية، سرعة 30 م/ث (والتي تعادل حوالي 108 كم/ساعة) هي سرعة منطقية جداً لجسم يسقط من ارتفاع مبنى بارتفاع 45 متراً (حوالي 15 طابقاً).\n\nتذكر أن الجاذبية الأرضية (بإهمال مقاومة الهواء) تزيد من سرعة الجسم الساقط بمقدار 10 م/ث في كل ثانية تمر، لذا بعد 3 ثوانٍ من الطبيعي جداً أن تصبح سرعتها 30 م/ث.\n\nيقع الكثير من الطلاب في فخ البحث عن السرعة الابتدائية في نص السؤال ويتشتتون، لكن كلمة \"سقطت\" في أسئلة الفيزياء هي مفتاحك السري الذي يخبرك غالباً أن السرعة الابتدائية تساوي صفراً (عند البدء من السكون).\n\nلو سقطت هذه الكرة نفسها من ارتفاع 20 متراً فقط عن سطح الأرض، كم ثانية تعتقد أنها ستستغرق لتلمس الأرض؟ جرب حسابها ذهنيّاً وأخبرني بنتيجتك.",
+    "AR4": "قيمتا x اللتان تجعلان هذه المعادلة صحيحة هما x = 2 و x = 3. دعنا نرى معاً كيف نصل إلى هذه النتيجة بخطوات ممتعة وواضحة.\n\nهذه المعادلة تسمى **معادلة تربيعية** (quadratic equation). لحلها بطريقة التحليل، نبحث عن عددين يحققان شرطين معاً:\nالشرط الأول: حاصل ضربهما يساوي الحد الثابت الأخير، وهو 6.\nالشرط الثاني: حاصل جمعهما يساوي معامل الحد الأوسط، وهو -5.\n\nإذا فكرنا في الأعداد التي حاصل ضربها 6، قد يخطر ببالنا 2 و 3. لكن جمعهما يعطي 5 وليس -5. \n\nلكي نحصل على جمع بالسالب وضرب بالموجب، نختار العددين بالإشارة السالبة، وهما -2 و -3:\nحاصل ضربهما: (-2) × (-3) = 6 (لأن ضرب سالب في سالب يعطي موجباً).\nحاصل جمعهما: (-2) + (-3) = -5.\n\nالآن نكتب المعادلة في صورة قوسين مضروبين في بعضهما:\n(x - 2)(x - 3) = 0\n\nعندما يكون حاصل ضرب كميتين يساوي صفراً، فهذا يعني أن إحداهما على الأقل يجب أن تكون صفراً. هذا يعطينا احتمالين:\n\nالاحتمال الأول:\nx - 2 = 0\nوعندما ننقل -2 إلى الطرف الآخر بإشارة معاكسة، نحصل على:\nx = 2\n\nالاحتمال الثاني:\nx - 3 = 0\nوعندما ننقل -3 إلى الطرف الآخر بإشارة معاكسة، نحصل على:\nx = 3\n\nدعنا نتأكد معاً بالتعويض المباشر في المعادلة الأصلية لنرى إن كان الحل صحيحاً:\nإذا عوضنا عن x بالعدد 2:\n2² - 5(2) + 6 = 4 - 10 + 6 = 0 (وهذا صحيح).\n\nوإذا عوضنا عن x بالعدد 3:\n3² - 5(3) + 6 = 9 - 15 + 6 = 0 (وهذا صحيح أيضاً).\n\nيقع الكثير من الطلاب في فخ الإشارات عند التحليل، فيختارون العددين بموجب (2 و 3) لأن ضربهما 6، وينسون أن جمعهما يجب أن يعطي -5 وليس 5. تذكر دائماً أن تنظر لإشارة الحد الأوسط بعناية قبل تحديد إشارات الأعداد داخل الأقواس.\n\nالآن، ما رأيك أن تجرب تطبيق هذه الخطوات بنفسك؟ إذا كانت لدينا المعادلة x² - 6x + 8 = 0، فما هما العددان اللذان حاصل ضربهما 8 ومجموعهما -6؟",
+    "AR6": "طبيعي جداً يا بطل أن تشعر بالخوف والتوتر قبل الامتحان، خاصة عندما تشعر أن القوانين تتطاير من مخيلتك بمجرد إغلاق الكتاب، فخذ نفساً عميقاً، ولا تقلق، سنبسط الأمر معاً الآن لتستعيد ثقتك بنفسك وتدخل الامتحان وأنت مستعد تماماً.\n\nالسبب في أن هذه القوانين لا تثبت في رأسك هو أنك تحاول حفظها كرموز جافة منفصلة، بينما هي في الواقع تروي قصة بسيطة ومترابطة، فإذا فهمت القصة، ستتذكر القانون تلقائياً حتى لو شعرت بالارتباك في قاعة الامتحان.\n\nدعنا أولاً نتعرف على أبطال قصتنا الخمسة، وهم:\nالسرعة الابتدائية ($v_i$) والسرعة النهائية ($v_f$).\nالتسارع ($a$) والزمن ($t$).\nالإزاحة ($d$).\n\nالسر في حل أي مسألة هو البحث عن \"البطل الغائب\"، فكل معادلة من المعادلات الثلاث تحتوي على أربعة أبطال فقط، ويغيب عنها بطل واحد دائماً، وبمعرفة البطل الغائب ستعرف فوراً أي قانون تختار.\n\nالمعادلة الأولى: تصف كيف تتغير سرعتك مع مرور الزمن.\n$v_f = v_i + at$\nالبطل الغائب هنا هو الإزاحة ($d$). تذكرها هكذا: إذا لم تذكر المسألة أي شيء عن المسافة أو الإزاحة، فهذا هو قانونك المناسب.\n\nالمعادلة الثانية: تحسب الإزاحة التي قطعتها.\n$d = v_i t + ½ a t^2$\nالبطل الغائب هنا هو السرعة النهائية ($v_f$). استخدمها عندما لا تطلب منك المسألة حساب السرعة النهائية ولا تعطيها لك كمعطى.\n\nالمعادلة الثالثة: تربط السرعات بالإزاحة دون الحاجة لمعرفة الزمن.\n$v_f^2 = v_i^2 + 2ad$\nالبطل الغائب هنا هو الزمن ($t$). تذكرها دائماً بـ \"معادلة بلا زمن\"، فإذا خلت مسألتك من الزمن تماماً، فهذه هي منقذتك.\n\nأكبر فخ يقع فيه الطلاب في امتحان الفيزياء هو إشارة التسارع ($a$). فعندما يتباطأ الجسم، أو يضغط السائق على المكابح (الفرامل)، فإننا في معظم الحالات (عندما نعتبر اتجاه الحركة موجباً) نعوض عن التسارع بإشارة سالبة لأن اتجاهه يكون عكس اتجاه الحركة، وإلا قد تحصل على نتيجة غير منطقية حسابياً لجسم يتباطأ. أيضاً، انتبه دائماً لتربيع السرعات في المعادلة الثالثة، فالكثير من الطلاب ينسون وضع التربيع أثناء الحساب.\n\nالآن، لنختبر هذه الطريقة معاً بشكل سريع وهادئ:\nإذا بدأت سيارة حركتها من السكون بتسارع منتظم مقداره 3 م/ث²، وطلب منك المعلم حساب سرعتها النهائية بعد مرور 5 ثوانٍ. \n\nما هو \"البطل الغائب\" تماماً عن هذه المعطيات والمطلوب؟ وأي المعادلات الثلاث هي الأنسب لحل هذه المسألة؟",
+    "AR5": "ترتبط الكهرباء التي تضيء منازلنا في البحرين اليوم بحركة بسيطة اكتشفها العالم مايكل فاراداي، وهي أن المغناطيس المتحرك يمكنه دفع الإلكترونات لتوليد تيار كهربائي.\n\nالفكرة الأساسية لـ **قانون فاراداي في الحث الكهرومغناطيسي** (Faraday's Law of Electromagnetic Induction) هي أن التغير في المجال المغناطيسي الذي يعبر حلقة موصلة هو الذي يولد فيها قوة دافعة كهربائية (electromotive force) تحرك الشحنات، وليس مجرد وجود المجال نفسه.\n\nتخيل أنك تقف في يوم عاصف على ساحل البحر، وتمسك بإطار نافذة فارغ في مواجهة الهواء.\nالهواء المتدفق عبر الإطار يمثل **الفيض المغناطيسي** (magnetic flux)، وهو يعبر عن عدد خطوط المجال التي تمر عبر مساحة معينة.\nإذا ثبتَّ الإطار تماماً في مواجهة الهواء، سيمر الكثير من الهواء عبره، لكن لن يتغير شيء داخل الإطار.\nأما إذا بدأت بتدوير الإطار بسرعة، فإن كمية الهواء التي تعبره ستتغير باستمرار بين الزيادة والنقصان.\nهذا التغير السريع في كمية الهواء العابرة هو بالضبط ما يفعله التغير في الفيض المغناطيسي، فهو الذي يولد \"الحركة\" (التيار الكهربائي) في السلك.\n\nنعبر عن هذا رياضياً بقانون فاراداي:\n$$\\mathcal{E} = -N (\\Delta \\Phi)/(\\Delta t)$$\n\nحيث تعبر $\\mathcal{E}$ عن القوة الدافعة الكهربائية المستحثة المقاسة بالفولت.\nوتعبر $N$ عن عدد لفات الملف.\nأما الكسر $\\Delta \\Phi / \\Delta t$ فهو معدل تغير الفيض المغناطيسي بالنسبة للزمن.\nوتشير الإشارة السالبة (قانون لينز) إلى أن التيار المستحث يقاوم التغير الذي سببه، مثل ردة فعل تعاكس التغير المسبب لها لتثبيت الوضع.\n\nفي محطات توليد الكهرباء، نستخدم هذا القانون بشكل عملي ومستمر عبر **المولد الكهربائي** (generator).\nنضع ملفاً من أسلاك النحاس بين مغناطيسين قويين، ونقوم بتدوير هذا الملف باستخدام طاقة خارجية، مثل توربينات الرياح، أو توربينات البخار الناتجة عن تسخين المياه.\nأثناء دوران الملف، تتغير الزاوية بين خطوط المجال المغناطيسي ومساحة الملف باستمرار.\nهذا الدوران يضمن تغيراً متواصلاً في الفيض المغناطيسي الذي يعبر الملف، مما ينتج تياراً كهربائياً متردداً (alternating current) يتدفق عبر الأسلاك إلى شبكة الكهرباء.\n\nتذكر دائماً أن الكهرباء يولدها التغير لا السكون؛ فالمغناطيس ذو المجال الثابت والساكن تماماً بالنسبة للملف لا ينتج تياراً مهما كان قوياً، بل يجب أن يحدث تغير في الفيض المغناطيسي (سواء بحركة المغناطيس، أو بحركة الملف، أو بتغير مساحته، أو بتغير شدة المجال نفسه).\n\nيقع الكثير من الطلاب في فخ عند حل المسائل، حيث يعتقدون أن وجود مجال مغناطيسي قوي في السؤال يعني بالضرورة وجود تيار مستحث كبير.\nالحقيقة هي أنه حتى لو كان المجال المغناطيسي بآلاف التسلا، إذا كان الفيض المغناطيسي الكلي الذي يعبر الملف ثابتاً ولا يتغير (أي لا تتغير شدة المجال، ولا مساحة الملف، ولا زاويته)، فإن القوة الدافعة الكهربائية المستحثة تساوي صفراً تماماً.\nابحث دائماً في نص المسألة عن كلمة تدل على التغير، مثل \"تغير المجال\"، أو \"دوران الملف\"، أو \"تغير المساحة\".\n\nالآن، لنختبر هذه الفكرة معاً: إذا كان لدينا ملف دائري مغمور بالكامل في مجال مغناطيسي منتظم وثابت، وقمنا فجأة بشد أطراف الملف لتوسيع مساحته ليصبح أكبر في نفس المجال، هل ستتولد فيه قوة دافعة كهربائية مستحثة أم لا؟ وكيف يفسر قانون فاراداي ذلك؟",
+    "AR7": "الجواب هو **2 مول** من غاز ثاني أكسيد الكربون ($CO_2$).\n\nتخيل أن \"المول\" يشبه صندوقاً كبيراً يحتوي على عدد محدد وثابت من الجزيئات، ولكل مادة وزن خاص لصندوقها. إذا عرفنا وزن الصندوق الواحد (الكتلة المولية)، وعرفنا الوزن الإجمالي الذي لدينا، يمكننا بسهولة معرفة عدد الصناديق التي نملكها.\n\nلإيجاد كتلة الصندوق الواحد (الكتلة المولية لغاز $CO_2$):\nنجمع الكتل الذرية للعناصر المكونة له، مع الانتباه إلى أن جزيء ثاني أكسيد الكربون يحتوي على ذرة كربون واحدة وذرتي أكسجين:\nالكتلة المولية لـ $CO_2$ = 12 + (2 × 16) = 12 + 32 = 44 غرام/مول.\n\nلإيجاد عدد المولات في العينة:\nنقسم الكتلة الكلية التي لدينا على كتلة المول الواحد:\nعدد المولات = الكتلة بالجرام ÷ الكتلة المولية\nعدد المولات = 88 ÷ 44 = 2 مول.\n\nإذا أردنا التأكد من منطقية الحل، نلاحظ أن الـ 88 غراماً هي ضعف الـ 44 غراماً تماماً، مما يعني أن لدينا جزيئات تكفي لملء صندوقين كاملين، وهذا يجعل الناتج طبيعياً ومنطقياً جداً.\n\nيقع الكثير من الطلاب في فخ متكرر أثناء الامتحانات عند حساب الكتلة المولية، حيث ينسون ضرب الكتلة الذرية للأكسجين في 2، فيحسبون الكتلة المولية كـ (12 + 16 = 28) ويستكملون الحل بناءً عليها. تذكر دائماً أن تنظر بتركيز إلى الأرقام الصغيرة أسفل الرموز الكيميائية لتضرب الكتلة الذرية في عدد الذرات الصحيح لكل عنصر.\n\nالآن، ما رأيك أن نجرب تطبيق هذه الخطوات معاً؟ إذا كان لديك 90 غراماً من الماء ($H_2O$)، علماً بأن الكتل الذرية هي (H = 1، O = 16)، كم مولاً تعتقد أنك ستجد في هذه الكمية؟ شاركني طريقتك في الحساب لنرى كيف ستصل للناتج.",
+    "AR8": "هل تخيلت يوماً أن كل لقمة نأكلها، وكل نفس نتنفسه في طابور الصباح بالمدرسة، يرجع الفضل فيهما لورقة شجر خضراء صغيرة؟ \n\nعملية **البناء الضوئي** (photosynthesis) ليست مجرد درس جاف في كتاب العلوم للحفظ، بل هي المصنع السري الذي يدير الحياة على كوكبنا بأكمله، وبدونها ستتوقف الحياة تدريجياً.\n\nتخيل ورقة الشجر كأنها مخبز صغير ذكي يعمل بالطاقة الشمسية بالكامل. هذا المخبز يأخذ مواد أولية مجانية وبسيطة جداً من حولنا: غاز **ثاني أكسيد الكربون** (carbon dioxide) من الهواء، والماء من التربة. وباستخدام أشعة الشمس كطاقة لتشغيل هذا المخبز، ينتج لنا شيئين لا يمكننا كبشر العيش بدونهما: الغذاء والأكسجين.\n\nوهذا ينعكس على حياتنا اليومية في ثلاثة أمور أساسية:\n\n**أولاً: كبسولة الأكسجين اليومية**\nكل أسطوانة أكسجين طبيعي نتنفسها مجاناً كل ثانية تساهم النباتات والمخلوقات المنتجة الأخرى (كالطحالب) في صنعها. وبدون هذه العملية، سينفد الأكسجين تدريجياً من الغلاف الجوي وتختنق معظم الكائنات الحية.\n\n**ثانياً: مصدر طعامك (حتى لو كنت لا تحب الخضار!)**\nقد تقول \"أنا لا آكل أوراق الشجر\"، لكن الحقيقة أن جلّ طعامنا يبدأ من هنا. الخبز الذي تأكله أصله قمح قام بالبناء الضوئي، واللحوم التي نتناولها جاءت من مواشٍ تغذت على أعشاب نمت بالبناء الضوئي. النباتات والطحالب هي من أهم المنتجين للغذاء على الأرض، والبقية مستهلكون.\n\n**ثالثاً: مكيف طبيعي لجو البحرين**\nفي أوقات الصيف الحار، تمتص النباتات غاز ثاني أكسيد الكربون، وهو الغاز الأساسي المسؤول عن حبس الحرارة في الجو (الاحتباس الحراري). وجود المساحات الخضراء يلطف الجو ويقلل من حدة الحرارة عن طريق امتصاص هذا الغاز وإطلاق بخار الماء.\n\nالورقة الخضراء هي بمثابة المطبخ الكوني الأساسي الذي يحوّل ضوء الشمس الضائع في الفضاء إلى لقمة نأكلها ونفس نتنفسه.\n\nهناك فخ يقع فيه الكثير من الطلاب في الامتحانات، حيث يظنون أن النباتات تقوم بالبناء الضوئي لتصنع الأكسجين لنا فقط، أو أنها لا تتنفس مثلنا. الحقيقة هي أن النبات يصنع الغذاء لنفسه أولاً لكي ينمو، وهو يتنفس الأكسجين طوال الوقت (ليلاً ونهاراً) تماماً مثلنا ليعيش، لكنه في النهار ينتج أكسجيناً أكثر بكثير مما يستهلكه، وهذا الفائض هو ما ينقذ حياتنا.\n\nالآن، فكر معي في هذا السؤال: لو قمنا بتغطية نبتة صغيرة في حديقة المنزل بصندوق كرتوني مظلم يمنع دخول الضوء تماماً لعدة أيام، ماذا تتوقع أن يحدث لنمو هذه النبتة؟ وكيف سيؤثر ذلك على صنعها للغذاء؟",
+    "AR9": "تبدو كلمة \"المشتقة\" في البداية كأنها مصطلح غامض من كتب الرياضيات المعقدة، لكن الحقيقة هي أنك تفهم معناها وتتعامل معه في حياتك اليومية كلما ركبت السيارة وتأملت لوحة القيادة.\n\nباختصار شديد، **المشتقة** (derivative) هي مقياس لسرعة تغير شيء ما في لحظة واحدة محددة.\n\nتخيل أنك تقود سيارتك من المنامة إلى الزلاق. إذا قطعت مسافة 40 كيلومتراً في نصف ساعة، فإن سرعتك المتوسطة هي 80 كيلومتراً في الساعة. لكن هل كانت سرعتك ثابتة طوال الطريق؟ بالطبع لا، فقد توقفت عند بعض الإشارات وتجاوزت سيارات أخرى.\n\nإذا نظرت إلى عداد السرعة في سيارتك عند لحظة معينة بدقة، ورأيت الإبرة تشير إلى 100 كم/ساعة، فهذه القيمة المحددة هي \"المشتقة\". المشتقة هنا تخبرنا بمعدل تغير موقعك بالنسبة للزمن في تلك الثانية الواحدة فقط.\n\nفي الرسم البياني، تعلمنا سابقاً أن الميل (slope) للخط المستقيم يقيس مدى انحداره، ونحسبه بقسمة التغير الرأسي على التغير الأفقي:\nالميل = Δy ÷ Δx\n\nلكن ماذا لو كان لدينا منحنى متموج وليس خطاً مستقيماً؟ هنا يختلف الانحدار من نقطة إلى أخرى. المشتقة هي الأداة التي تقيس لنا ميل هذا المنحنى عند نقطة واحدة محددة، وهي تمثل ميل الخط المستقيم الذي يلمس المنحنى عند تلك النقطة، ونسميه **المماس** (tangent).\n\nدعنا نلخص الفرق بين المفهومين اللذين يختلطان على الكثيرين في جدول بسيط يمكنك العودة إليه دائماً:\n\n| معدل التغير المتوسط | المشتقة (معدل التغير اللحظي) |\n| :--- | :--- |\n| يحسب التغير بين نقطتين متباعدتين | يحسب التغير عند نقطة واحدة محددة |\n| يمثل ميل الخط القاطع الذي يمر بنقطتين | يمثل ميل الخط المماس الذي يلمس نقطة واحدة |\n| مثال: سرعتك المتوسطة طوال الرحلة | مثال: قراءة عداد السرعة في لحظة معينة |\n\nيمكنك تشبيه المشتقة بكاميرا السرعة (ساهر) التي تلتقط سرعتك في لحظة خاطفة، وليست وقت الرحلة الإجمالي.\n\nفي امتحانات التفاضل والتكامل للصف الثاني عشر، يقع الكثير من الطلاب في فخ شائع وهو الخلط بين \"إيجاد المشتقة عند نقطة\" و\"معادلة المماس\". تذكر أن المشتقة عند نقطة - في حال وجودها - هي مجرد **عدد** يمثل ميل المنحنى عند تلك النقطة (مثلاً، المشتقة تساوي 5)، بينما معادلة المماس هي **معادلة خط مستقيم** كاملة تحتوي على متغيرات وتكتب عادةً بصورة مثل y = 5x + 2.\n\nالآن، لنختبر هذا المفهوم معاً بسؤال بسيط لتثبيت الفكرة في ذهنك: إذا كنت تنفخ بالونة بالهواء، وبدأت تتسع تدريجياً. ماذا تمثل \"المشتقة\" لحجم البالونة بالنسبة للزمن عند اللحظة التي يبلغ فيها قطرها 10 سنتيمترات؟ حاول صياغة الإجابة بأسلوبك الخاص بناءً على ما ناقشناه.",
+    "EN1": "You are looking at a classic physics scenario where we get to see Isaac Newton's laws in action on a perfectly smooth surface. The block will accelerate at 5 m/s² and travel a total distance of 40 meters over those 4 seconds. \n\nTo find out how quickly the block speeds up, we look at the relationship between force, mass, and acceleration. You can think of this like pushing a shopping cart at Lulu Hypermarket. If you push a light, empty cart with a strong shove, it takes off quickly. If the cart is packed with heavy groceries, that same shove makes it speed up much slower. \n\nWe calculate this acceleration using Newton's second law:\nAcceleration = Force ÷ Mass\na = 10 N ÷ 2 kg = 5 m/s²\n\nThis means that for every single second the block is pushed, its speed increases by 5 meters per second. \n\nNow that we know how fast it is speeding up, we can find out how far it travels. Assuming the block starts from rest (meaning its initial speed is 0 m/s), we can find the distance using our kinematic formula:\nDistance = (Initial speed × Time) + (½ × Acceleration × Time²)\n\nLet's plug in our numbers:\nDistance = (0 × 4) + (½ × 5 × 4²)\nDistance = 0 + (½ × 5 × 16)\nDistance = 5 × 8 = 40 meters\n\nLet's do a quick physical sanity check to see if this distance makes sense. At the start, the block is stationary. By the end of the 4 seconds, accelerating at 5 m/s² means its final speed reaches 20 m/s. Because the acceleration is steady, its average speed over the whole trip is exactly halfway between its starting speed and ending speed, which is 10 m/s. If you travel at an average speed of 10 m/s for 4 seconds, you cover exactly 40 meters. The physics holds up beautifully.\n\nA very common slip in exams is forgetting to square the time in the distance formula, or accidentally multiplying the half by the acceleration and time before squaring. Writing down the formula with blank parentheses, like ½ × (a) × (t)², before plugging in the numbers is a great way to keep your page clean and avoid this.\n\nTo make sure you feel completely comfortable with how these pieces connect, what would happen if we kept the same 10 N force and 4-second time, but doubled the mass of the block to 4 kg? Take a moment to calculate the new distance and let me know what you get!",
+    "EN2": "It is incredibly lucky for life on Earth that water behaves so strangely. If ice behaved like almost every other solid, our seas and lakes would freeze solid from the bottom up, making marine life virtually impossible. \n\nIce floats simply because it is less dense than liquid water. This is highly unusual because freezing normally makes substances shrink and pack tighter, but water does the exact opposite. \n\nTo understand why, we have to look at how water molecules behave when they are warm versus when they get cold. \n\nIn liquid water, molecules have a lot of energy. They constantly slide, tumble, and crowd closely together, breaking and reforming connections very quickly. \n\nAs water cools down to 4 °C, it behaves like most other liquids, contracting and becoming denser. \n\nBut once the temperature drops below 4 °C, the molecules slow down enough that their intermolecular attractions, known as **hydrogen bonds**, begin to dominate. \n\nInstead of letting the molecules crowd closer, these bonds force the water molecules to line up in a highly organized, hexagonal pattern. \n\nThis rigid structure keeps the molecules fixed at a specific distance from each other, leaving lots of empty space in the middle of each hexagon. \n\nBecause of this empty space, the same amount of water occupies a larger volume when it is solid ice than when it is liquid water. \n\nSince **density** is mass divided by volume, increasing the volume while keeping the mass the same makes ice less dense than liquid water, allowing it to float. \n\nThink of a busy majlis or a crowded room where people are constantly moving around, squeezing past each other, and packing tightly. If everyone suddenly had to stop, stretch out their arms, and hold hands to form rigid hexagons, the crowd would instantly expand and take up much more space. The people are the water molecules, and their stretched-out arms are the **hydrogen bonds** locking into place. \n\nIce is water with elbow room. \n\nIn exams, a very common mistake is stating that ice floats because of trapped air bubbles. While commercial ice cubes often have cloudy centers from trapped air, pure, bubble-free ice still floats because the spacious, cage-like spacing is built directly into the molecular structure of the water itself. \n\nTo help us lock this concept in, imagine we fill a glass bottle completely to the brim with liquid water, seal it tightly, and place it in the freezer. Based on how water molecules rearrange themselves as they freeze, what do you predict will happen to the bottle, and why?",
+    "EN3": "DNA acts as a cell's permanent, secure master blueprint kept safe inside the nucleus (in eukaryotic cells), while RNA is the temporary, mobile photocopy that takes those instructions out to the workshop to build proteins. \n\nIn this cellular workshop analogy for eukaryotes, the nucleus is the library, the master blueprint is **DNA** (Deoxyribonucleic Acid), the photocopied page is **RNA** (Ribonucleic Acid), and the workshop floor where proteins are manufactured is the ribosome.\n\nHere is how these two vital molecules compare side-by-side:\n\n| Feature | DNA (Deoxyribonucleic Acid) | RNA (Ribonucleic Acid) |\n| :--- | :--- | :--- |\n| **Structure** | Double-stranded helix (like a twisted ladder) | Usually single-stranded (shorter chains) |\n| **Sugar Type** | Deoxyribose (missing one oxygen atom at the 2' carbon) | Ribose (has a hydroxyl -OH group at the 2' carbon) |\n| **Nitrogenous Bases** | Adenine, Thymine, Guanine, Cytosine | Adenine, Uracil, Guanine, Cytosine |\n| **Base Pairing** | Adenine pairs with Thymine (A to T) | Adenine pairs with Uracil (A to U) |\n| **Location** | In eukaryotes, stays inside the nucleus, mitochondria, and chloroplasts; in prokaryotes, it is in the cytoplasm | Created in the nucleus (or cytoplasm in prokaryotes), functions in the cytoplasm and ribosomes |\n| **Stability** | Highly stable and long-lasting | Relatively unstable and temporary |\n\nThe name itself tells us about the sugar. The \"D\" in DNA stands for deoxyribose, which is a sugar molecule that has a hydrogen atom (-H) instead of a hydroxyl group (-OH) on its second carbon. The \"R\" in RNA stands for ribose, which has its oxygen intact in the form of a hydroxyl (-OH) group. That single missing oxygen makes DNA chemically much more stable, allowing it to preserve genetic code over the long term.\n\nWhile both molecules use the genetic letters A, C, and G, they differ on the fourth letter. DNA uses Thymine (T) to pair with Adenine, whereas RNA replaces Thymine with Uracil (U). Uracil is chemically simpler and cheaper for the cell to build, which is highly efficient since many RNA molecules, such as messenger RNA (mRNA), are temporary and get recycled quickly.\n\nTo easily remember which base goes where, think: DNA has **T**hymine for **T**enacious, long-term storage, while RNA has **U**racil for **U**nstable, temporary messages.\n\nA common trap in exams is assuming that RNA is always single-stranded and DNA is always double-stranded. While this is true for all cellular organisms, certain viruses carry single-stranded DNA or double-stranded RNA as their genetic material. Always read the question carefully to see if it specifies cellular organisms or viruses.\n\nIf a segment of a DNA template strand has the sequence 3' TACGAT 5', what would be the complementary sequence of the RNA strand transcribed from it, and what is the main chemical reason this new RNA strand is more reactive than the DNA template?",
+    "EN4": "Looking at these two equations, you might notice a perfect setup: we have a positive $y$ in the first equation and a negative $y$ in the second. This means we can add the two equations together directly to make the $y$ terms completely disappear.\n\nTo find $x$, let us stack and add the two equations:\n2x + y = 11\nx - y = 1\n\nWhen we add them straight down:\n(2x + x) + (y - y) = 11 + 1\n3x = 12\n\nDividing both sides by 3 gives:\nx = 4\n\nTo find $y$, we can plug our value of x = 4 into either of the original equations. The second equation, x - y = 1, is very simple to work with:\n4 - y = 1\n\nSubtracting 4 from both sides:\n-y = -3\n\nMultiplying both sides by -1:\ny = 3\n\nLet us verify this by plugging both x = 4 and y = 3 back into the first equation, 2x + y = 11, to make sure it holds true:\n2(4) + 3 = 8 + 3 = 11\n\nSince 11 = 11, our values are absolutely correct. Our final solution is x = 4 and y = 3.\n\nA common slip in exams happens when subtracting equations instead of adding them, especially when negative signs are involved. If you had chosen to subtract the second equation from the first to eliminate the $x$ terms instead, you would have to compute y - (-y), which becomes y + y = 2y. Forgetting that double negative is where many marks are lost, so adding them to let the opposite signs cancel naturally is usually the safest path when you can.\n\nTo make sure you feel completely confident with this method, how would you start solving this similar pair of equations: 3x + 2y = 12 and x - 2y = 4? What would you get for $x$ if you added them together?",
+    "AR10": "أهلاً بك يا صديقي. هذا السؤال من كلاسيكيات الفيزياء التي تبدو محيرة للوهلة الأولى، لأن ما نراه بأعيننا كل يوم يبدو كأنه يعارض معادلات الفيزياء التي ندرسها في المدرسة!\n\nالجواب المباشر يعتمد تماماً على المكان الذي نسقطها فيه: في غرفتنا العادية (بوجود الهواء) ستصل العملة المعدنية أولاً بكثير، أما لو أسقطناهما في أنبوب مفرغ تماماً من الهواء، فسيصلان إلى الأرض في اللحظة نفسها تماماً.\n\n**لماذا يسقطان معاً في غياب الهواء؟**\n\nالجاذبية الأرضية تسحب كل الأجسام نحو الأسفل بنفس المعدل تماماً، وهو ما نسميه **تسارع الجاذبية الأرضية** (acceleration due to gravity) ونرمز له بالرمز $g$ وقيمته تقريباً 9.8 م/ث².\n\nقد يبدو هذا غريباً، أليس المفترض أن تجذب الأرض العملة الثقيلة بقوة أكبر؟ نعم، هذا صحيح، فقوة الجاذبية (الوزن) المؤثرة على العملة أكبر بكثير من القوة المؤثرة على الريشة. لكن العملة لديها أيضاً \"قصور ذاتي\" (inertia) أكبر، أي أنها تقاوم الحركة أكثر لأن كتلتها أكبر وتتطلب قوة أكبر لتحريكها.\n\nإذا نظرنا إليها رياضياً حسب قانون نيوتن الثاني، سنجد أن كتلة الجسم تلغي نفسها تماماً:\n$$a = F/m = (mg)/m = g$$\n\nالكتلة ($m$) في البسط تلغي الكتلة في المقام، مما يعني أن تسارع أي جسم يسقط سقوطاً حراً لا يعتمد على كتلته، بل يساوي $g$ للأجسام كلها في الموقع نفسه.\n\n**إذن، ما الذي يفعله الهواء في غرفتنا؟**\n\nالهواء ليس فراغاً، بل هو مليء بجزيئات الغازات التي تصطدم بالأجسام الساقطة وتدفعها للأعلى، وهذا ما نسميه **مقاومة الهواء** (air resistance).\n\nتخيل أنك تحاول السير في ممر مزدحم جداً بالناس. الشخص النحيف الذي يضم ذراعيه (مثل العملة المعدنية) سيمر بسهولة بين الناس دون أن يعطلوه كثيراً. أما لو حاول شخص فتح مظلة واسعة جداً والسير بها (مثل الريشة بمساحتها الكبيرة ووزنها الخفيف)، فإن الناس سيصطدمون بالمظلة ويعيقون حركته تماماً ويبطئونه.\n\nالريشة خفيفة جداً ومساحة سطحها كبيرة مقارنة بوزنها، لذلك تتساوى مقاومة الهواء للأعلى مع قوة وزنها للأسفل بسرعة كبيرة، فتتوقف عن التسارع وتهبط ببطء شديد. أما العملة فكتلتها مركزة ومساحتها صغيرة، لذا تخترق الهواء بسهولة دون أن تتأثر حركتها به كثيراً في المسافات القصيرة.\n\nالجاذبية عادلة تسحب الجميع معاً، والهواء هو الذي يعطل صاحب المساحة الأكبر.\n\nانتبه جيداً عند قراءة أسئلة الامتحانات: إذا ذكر السؤال كلمة **سقوط حر** (free fall)، فهذا يعني تلقائياً في الفيزياء أننا نهمل مقاومة الهواء تماماً. في هذه الحالة، يجب أن تجيب بأن العملة والريشة يصلان معاً وفي نفس اللحظة، ولا تنخدع بالواقع اليومي الذي نعيشه بوجود الهواء.\n\nالآن، بناءً على ما تعلمناه عن دور الهواء ومساحة السطح: لو قمنا بتجعيد الريشة وضغطها بقوة بشريط لاصق حتى أصبحت كرة صغيرة جداً ومكتنزة، ثم أسقطناها مع العملة في غرفتنا العادية، فهل ستصلان معاً تقريباً أم ستتأخر الريشة المجعدة كثيراً كما كانت في السابق؟ انتظر تفكيرك الذكي!",
+    "EN5": "The Moon stays in orbit because Earth's gravity constantly pulls it inward, while the Moon's own forward speed keeps it from crashing down. \n\nTo picture this, imagine swinging a small tennis ball tied to a string around your head. The tension in the string pulls the ball toward your hand, forcing it to travel in a circle. If you suddenly let go of the string, the ball would fly off in a straight line. \n\nIn space, Earth's gravity acts exactly like that string. The Moon has a high forward speed, and it wants to fly off into deep space in a straight line. However, Earth's gravity constantly tugs it inward, bending its path into a nearly circular loop.\n\nIsaac Newton realized that this pull is not unique to Earth and the Moon. His **law of universal gravitation** states that every single object in the universe attracts every other object with a gravitational force. \n\nThis force depends on two things: the masses of the objects, and how far apart they are. We write this mathematically as:\n\n$$F = G (M m)/r^2$$\n\nIn this formula, $F$ is the gravitational force, $M$ and $m$ are the masses of the two objects, $r$ is the distance between their centers, and $G$ is a tiny, constant number called the **universal gravitational constant**. \n\nBecause the distance $r$ is squared and sits at the bottom of the fraction, distance has a massive impact. If you move twice as far away, the gravitational pull does not just halve, it drops to one quarter of its original strength.\n\nTo understand why this pull causes an orbit instead of a crash, Newton suggested a famous thought experiment. Imagine standing on the peak of Jebel Al Dukhan and firing a cannon horizontally. \n\nIf you fire the cannonball slowly, gravity pulls it down, and it hits the ground nearby. If you fire it much faster, it travels much farther before landing. \n\nNow, if you could fire that cannonball incredibly fast, a beautiful thing happens. Neglecting air resistance, as gravity pulls the cannonball down, the surface of the round Earth curves away beneath it at the exact same rate. The cannonball keeps falling, but it does not hit the ground because the Earth keeps curving out of the way. It is in a state of free fall, which is exactly what an orbit is.\n\nIn an ideal stable orbit, the orbiting body is essentially falling indefinitely without hitting the ground.\n\nWhen solving exam questions on this topic, a very common trap is thinking that because the Earth is so much larger than the Moon, it pulls on the Moon with a much stronger force than the Moon pulls on the Earth. In reality, Newton's third law tells us that forces always come in equal and opposite pairs. The Earth pulls on the Moon with the exact same amount of force that the Moon pulls on the Earth. The only reason the Moon does most of the moving is because it has much less mass, making it far easier to accelerate.\n\nTo help us lock this concept in, let us try a quick calculation together. If we were to suddenly move the Moon so that it was three times further away from the Earth than it is right now, what would happen to the gravitational force between them? Would it increase or decrease, and by what factor?",
+    "EN6": "It is completely natural to feel your mind blanking out when looking at trigonometry, especially with your exam tomorrow. When we get anxious, our brain struggles to hold onto random, abstract formulas, and trigonometry often feels like a massive alphabet soup of letters. \n\nThe reason this keeps happening is that you are likely trying to memorize trigonometry as a list of abstract rules, rather than a single, simple picture. When stress hits, memorized letters are often among the first things to vanish from our working memory. \n\nLet us throw out the textbook for a moment and look at what a right-angled triangle actually is. \n\nImagine you are standing in front of a slide at a park in Manama. If the slide is very steep, the climb up is high, and the ground distance is short. If the slide is gentle, the climb is low, and the ground distance is long. \n\nTrigonometry is just a tool that tells us how these three lengths (the height, the ground, and the slide itself) change when we change the angle of the slide. \n\nEvery right-angled triangle has three sides relative to the angle you are looking from:\nThe side opposite to your angle (the height of the slide).\nThe side adjacent to your angle (the ground under the slide).\nThe hypotenuse (the slide itself, always the longest side opposite the 90-degree corner).\n\nTo help ensure you don't scramble these tomorrow, draw a tiny triangle on the corner of your exam paper as soon as you sit down, and write this simple phrase:\n\n**S**ome **O**ld **H**orse **C**aught **A**nother **H**orse **T**aking **O**at **A**way.\n\nThis gives you **SOH CAH TOA** instantly:\n**S**ine = **O**pposite / **H**ypotenuse\n**C**osine = **A**djacent / **H**ypotenuse\n**T**angent = **O**pposite / **A**djacent\n\nLet us put this to work with a real problem you might see tomorrow. \n\nSuppose a 10-meter ladder is leaning against a wall, making a 60° angle with the ground. We want to find how high up the wall the ladder reaches. \n\nTo identify our sides:\nThe ladder is the longest side, so the Hypotenuse is 10.\nThe height up the wall is opposite the 60° angle, so this is our Opposite.\n\nTo choose our formula:\nWe know the Hypotenuse (10) and want to find the Opposite. Looking at our horse phrase, **S**ome **O**ld **H**orse (**SOH**) uses both. \n\nSo we write:\nsin(60°) = Opposite / Hypotenuse\nsin(60°) = height / 10\nheight = 10 × sin(60°)\n\nSince sin(60°) is about 0.866, the height is:\nheight = 10 × 0.866 = 8.66 meters.\n\nLet us do a quick sanity check. The ladder is 10 meters long. The height up the wall (8.66 meters) is shorter than the ladder itself, which makes perfect physical sense because the hypotenuse must always be the longest side. If you got an answer like 12 meters, you would instantly know a calculation went wrong.\n\nA classic trap in Grade 10 exams is forgetting to check your calculator's mode. If your calculator is set to Radians (R) instead of Degrees (D), almost every trigonometry calculation you do tomorrow will give you the wrong number, even if your steps are perfect. Look for a tiny \"D\" or \"DEG\" at the top of your calculator screen before you start.\n\nIf that same 10-meter ladder was leaning against the wall, but we wanted to find the distance from the bottom of the ladder to the wall (the ground distance, which is adjacent to our 60° angle), which of our three ratios (Sine, Cosine, or Tangent) would you use to solve it?",
+    "EN7": "Propane is the gas we often use in the blue cylinders for cooking or outdoor grills here in Bahrain. When it burns in oxygen, it undergoes this exact combustion reaction. \n\nThe fully balanced chemical equation is:\n\n$$\\text{C}_3\\text{H}_8 + 5\\text{O}_2 \\rightarrow 3\\text{CO}_2 + 4\\text{H}_2\\text{O}$$\n\nThink of balancing an equation like assembling a model toy: you cannot have any leftover wheels or gears. Every single atom that enters the reaction must come out on the other side, just rearranged into new molecules. \n\nTo balance any hydrocarbon combustion like this without getting stuck in a loop, we usually follow one simple rule: balance the atoms in alphabetical order: **C**arbon first, then **H**ydrogen, and save **O**xygen for last.\n\n### Counting our starting parts\n\nBefore we add any numbers, let us look at what we have on both sides of the arrow:\n*   Reactants (left): 3 Carbon, 8 Hydrogen, 2 Oxygen\n*   Products (right): 1 Carbon, 2 Hydrogen, 3 Oxygen (2 in $\\text{CO}_2$ and 1 in $\\text{H}_2\\text{O}$)\n\n### Balancing the Carbon atoms\n\nWe have 3 Carbons on the left, but only 1 on the right. \n\nTo fix this, we place a big coefficient of 3 in front of $\\text{CO}_2$:\n\n$$\\text{C}_3\\text{H}_8 + \\text{O}_2 \\rightarrow 3\\text{CO}_2 + \\text{H}_2\\text{O}$$\n\nNow we have 3 Carbons on both sides.\n\n### Balancing the Hydrogen atoms\n\nWe have 8 Hydrogens on the left, but only 2 on the right inside the water molecule. \n\nSince each water molecule has 2 Hydrogens, we need 4 water molecules to get 8 Hydrogens in total (since 4 × 2 = 8). We place a 4 in front of $\\text{H}_2\\text{O}$:\n\n$$\\text{C}_3\\text{H}_8 + \\text{O}_2 \\rightarrow 3\\text{CO}_2 + 4\\text{H}_2\\text{O}$$\n\nNow we have 8 Hydrogens on both sides.\n\n### Balancing the Oxygen atoms\n\nNow that Carbon and Hydrogen are set, we count how many Oxygen atoms we have on the right side:\n*   In $3\\text{CO}_2$, we have 3 × 2 = 6 Oxygen atoms.\n*   In $4\\text{H}_2\\text{O}$, we have 4 × 1 = 4 Oxygen atoms.\n\nThis gives us a total of 10 Oxygen atoms on the right side. \n\nTo get 10 Oxygen atoms on the left side, we need 5 pairs of $\\text{O}_2$ molecules (since 5 × 2 = 10). We place a 5 in front of $\\text{O}_2$:\n\n$$\\text{C}_3\\text{H}_8 + 5\\text{O}_2 \\rightarrow 3\\text{CO}_2 + 4\\text{H}_2\\text{O}$$\n\n### Double-checking our work\n\nLet us do a final count to be absolutely sure everything is perfectly balanced:\n*   Left side: 3 Carbons, 8 Hydrogens, 10 Oxygens (5 × 2)\n*   Right side: 3 Carbons, 8 Hydrogens, 10 Oxygens (6 from $\\text{CO}_2$ + 4 from $\\text{H}_2\\text{O}$)\n\nEvery single atom we started with is accounted for.\n\nA common trap in these reactions is trying to change the small subscript numbers (like turning $\\text{H}_2\\text{O}$ into $\\text{H}_8\\text{O}$) to make the atoms match. Remember, you can only ever change the big coefficient numbers in front of the molecules. Changing the subscripts would actually change the substance itself, turning water into a completely different chemical.\n\nTo make sure you have got the hang of this scaling: if we decided to burn 2 molecules of propane ($2\\text{C}_3\\text{H}_8$) instead of just 1, how many molecules of $\\text{O}_2$ would we need to react with it completely?",
+    "EN8": "It is completely natural to feel like cells are just abstract circles drawn in a textbook that have nothing to do with your day-to-day life, especially since we cannot see them with our bare eyes. \n\nBut the truth is, every single thing you did today, from tasting your breakfast to reading these words, was entirely run by your cells. You are not just one person, you are actually a walking, talking alliance of about 30 trillion tiny, living workers.\n\nWe learn about cells because they are the absolute foundation of health, medicine, and how our bodies actually work. When you get sick, it is not your whole body that is failing all at once. Instead, it is usually just a specific group of cells that are struggling, and understanding how they work is how we design medicines to help them heal.\n\nTo picture this, think of your body like a massive, bustling shopping mall, like City Centre Bahrain. \n\nThe mall itself does not actually do any of the work. Instead, the mall functions because it is made of hundreds of individual shops. One shop bakes bread, another manages the lights, and another handles security. \n\nIn this picture, your body is the mall, and your cells are the individual shops. If the bakery shop runs out of flour, the mall loses its bread. Similarly, if your muscle cells run out of energy, your whole body feels tired. \n\nHere is how this plays out in your real life every single day:\n\nWhen you scrape your knee, you do not just magically grow new skin. Your existing skin cells literally detect the tear, start dividing to make identical copies of themselves, and stitch the gap back together.\n\nWhen you eat a meal, your digestive system breaks it down, but it is your individual cells that take in that sugar and convert it into the actual chemical energy you use to run, think, or play video games.\n\nWhen you catch a cold, a virus has hijacked your throat cells to turn them into virus-making factories. Your immune cells are the security guards that hunt down and destroy the hijacked cells to make you feel better.\n\nTo keep this clear in your mind, remember this simple picture: your body is not a single machine, it is a bustling city, and your cells are the citizens doing all the daily chores.\n\nWhen you study this in school, a very common mix-up is confusing cells with atoms, since both are called building blocks. The key difference is that atoms make up all physical matter, including non-living things like water, air, and metal. Cells are only found in living things, and they are the smallest units that are actually alive. A single cell is made of trillions of atoms, but an atom is never alive on its own.\n\nTo see how this fits together, think about an active muscle cell in your leg versus a protective skin cell on your arm. Which of these two do you think would need more mitochondria, the tiny power plants that generate energy for the cell, and why?",
+    "EN9": "Integrating a function is simply a fancy way of adding up a massive number of microscopic pieces to find a total. \n\nIt is completely natural to look at that giant, stretched-out integration symbol and feel like it is just a bunch of abstract rules. In reality, integration is just multiplication's upgrade for a world where things are constantly changing.\n\nTo see what this means, imagine you are driving a car from Manama to Zallaq. If you drive at a steady speed of 80 km/h for half an hour, finding your total distance is simple multiplication: speed multiplied by time. \n\nBut in the real world, your speed is constantly changing. You slow down for roundabouts, speed up on the highway, and stop at traffic lights. You cannot just multiply your total time by one speed because your speed was never constant.\n\nTo solve this, you could look at your speedometer every single millisecond. For that split second, your speed is basically constant. If you multiply that speed by that tiny fraction of time, you get a microscopic distance. If you add up all those millions of microscopic distances from every millisecond of the trip, you get your exact total distance. \n\nIntegration is the mathematical superpower that does this infinite addition for us instantly. \n\nOn a graph, the height of the curve represents your changing speed, and the horizontal axis represents time. \n\nIf we slice the area under that curve into millions of ultra-thin vertical strips, each strip is so thin that its top is practically flat. The area of one strip is just its height multiplied by its tiny width. \n\nThe integration symbol $\\int$ is actually a stretched-out letter \"S\", which stands for **Sum**. It tells us to sum up the areas of all those microscopic strips. This is why we often say the integral of a function gives us the **area under the curve** (or more precisely, the net signed area if the curve dips below the horizontal axis).\n\nIntegration is multiplication for things that change.\n\nWhen you start solving these in your exams, you will typically see a $dx$ or $dt$ at the end of the integral, like $\\int f(x) dx$. A very common trap is treating this $dx$ as a useless decoration. It is actually a vital part of the math: it represents the microscopic width of your slices. If you use a method like u-substitution to change your variable, you must transform that $dx$ too, because changing the variable changes the scale of your slices.\n\nIf we have a graph showing the rate at which water is leaking out of a broken pipe, measured in liters per minute, what physical quantity would we get if we took the integral of that leakage function over a two-hour period?",
+    "EN10": "It feels completely natural to think the massive truck must deliver a much harder blow to the small car, especially when we picture the car getting badly crushed while the truck barely has a dent.\n\nBut here is the surprising truth: both the truck and the car experience the exact same amount of force during the collision.\n\nIf you high-five a friend as hard as you can, your hand stings, and their hand stings. Even if your friend is much bigger than you, your hand cannot hit theirs without their hand hitting yours back with the exact same strength. The contact is mutual, and the interaction is shared.\n\nThis is the core of **Newton's Third Law of Motion**, which tells us that forces always come in matched, equal pairs. The force of the truck pushing on the car is perfectly equal in size, and opposite in direction, to the force of the car pushing on the truck.\n\nIf the forces are identical, why does the car end up in such a bad shape?\n\nThis is where **Newton's Second Law of Motion** comes in, which connects force, mass, and acceleration (a = F/m). \n\nLet us look at a quick calculation to see how this works. Imagine the collision force is 50,000 Newtons.\n\nFor the heavy truck with a mass of 10,000 kg:\nAcceleration = 50,000 N ÷ 10,000 kg = 5 m/s²\n\nFor the small car with a mass of 1,000 kg:\nAcceleration = 50,000 N ÷ 1,000 kg = 50 m/s²\n\nEven though the force on both vehicles is exactly the same, the car experiences ten times the deceleration of the truck. This sudden, violent change in speed is what crushes the car's frame and makes the impact so much more devastating for the passengers inside.\n\nEqual sting, unequal spring. The force is always identical, but the lighter object reacts much more violently.\n\nIn physics exams, a very common trap is confusing the damage or the acceleration with the force itself. Examiners will often show you a dramatic crash and ask which object felt the bigger force, hoping you will choose the smaller, damaged one. Always keep the force and the acceleration separate in your mind: the forces are perfectly equal, but the accelerations are not.\n\nIf a tiny mosquito splats against the windshield of a speeding bus on the highway, how does the force the mosquito exerts on the windshield compare to the force the windshield exerts on the mosquito?"
+  },
+  "fable_answers": {
+    "AR1": "**المعطيات:**\n- الارتفاع: h = 45 م\n- السرعة الابتدائية: v₀ = 0 (سقوط حر)\n- g = 10 م/ث²\n\n**أولاً: حساب زمن السقوط**\n\nنستخدم المعادلة:\nh = ½ g t²\n\n45 = ½ × 10 × t²\n\n45 = 5 t²\n\nt² = 9\n\n**t = 3 ثوانٍ**\n\n**ثانياً: حساب السرعة لحظة الاصطدام**\n\nنستخدم المعادلة:\nv = v₀ + g t\n\nv = 0 + 10 × 3\n\n**v = 30 م/ث**\n\n**للتحقق** يمكن استخدام المعادلة: v² = v₀² + 2gh = 0 + 2 × 10 × 45 = 900، ومنها v = 30 م/ث، وهي النتيجة نفسها.\n\n**الإجابة النهائية:** تستغرق الكرة 3 ثوانٍ للوصول إلى الأرض، وتصطدم بها بسرعة 30 م/ث.",
+    "AR2": "سؤال ممتاز! السر ليس في نوع الذرات، بل في طريقة ترابطها. الجرافيت والألماس كلاهما كربون نقي، لكنهما شكلان تآصليان مختلفان، أي أن ذرات الكربون فيهما مرتبة بطرق مختلفة.\n\n**أولا: تذكر أن ذرة الكربون تملك 4 إلكترونات تكافؤ**\n\nالتوصيل الكهربائي يحتاج إلى شحنات حرة الحركة (إلكترونات حرة عادة). فالسؤال الحقيقي هو: أين ذهبت إلكترونات التكافؤ الأربعة في كل مادة؟\n\n**في الألماس:**\n- كل ذرة كربون ترتبط بأربع ذرات كربون أخرى بروابط تساهمية قوية، في ترتيب هرمي رباعي الأوجه ثلاثي الأبعاد.\n- النتيجة: الإلكترونات الأربعة كلها \"محجوزة\" في الروابط، ولا يوجد أي إلكترون حر يتحرك عبر البلورة.\n- لذلك الألماس عازل كهربائي ممتاز (لكنه، للمفارقة، موصل ممتاز للحرارة بسبب صلابة شبكته البلورية).\n\n**في الجرافيت:**\n- كل ذرة كربون ترتبط بثلاث ذرات فقط، مكوّنة طبقات مستوية من حلقات سداسية تشبه خلية النحل.\n- الإلكترون الرابع لا يدخل في رابطة ثابتة، بل يصبح إلكترونا غير متمركز (حرا)، يتحرك بحرية فوق الطبقة وتحتها.\n- هذه الإلكترونات الحرة هي حاملات الشحنة، فعندما نطبق فرق جهد تنساب عبر الطبقات ويسري التيار.\n\n**ملاحظة لطيفة:** توصيل الجرافيت أفضل بكثير على امتداد الطبقات منه عبر الطبقات (عموديا عليها)، لأن الإلكترونات الحرة مقيدة بالحركة داخل مستوى الطبقة تقريبا. وهذه الطبقات نفسها مرتبطة ببعضها بقوى ضعيفة، ولهذا ينزلق الجرافيت بسهولة ويترك أثرا على الورق عند الكتابة بقلم الرصاص.\n\n**الخلاصة في سطر واحد:**\nفي الألماس كل الإلكترونات مقيدة في روابط، فلا توصيل. في الجرافيت يوجد إلكترون حر غير متمركز لكل ذرة، فيسري التيار.\n\nإذا أردت، أستطيع أن أشرح لك الفكرة نفسها بلغة المدارات (التهجين sp3 في الألماس مقابل sp2 في الجرافيت) فهي الطريقة التي قد تظهر في أسئلة الامتحانات المتقدمة.",
+    "AR3": "الفرق بين الانقسام المتساوي (الميتوزي) والانقسام المنصّف (الميوزي) يكمن في الهدف منهما، وعدد الخلايا الناتجة، وعدد الكروموسومات فيها. وإليك التوضيح:\n\n## الانقسام المتساوي (Mitosis)\n- **الهدف:** النمو، وتعويض الخلايا التالفة، والتكاثر اللاجنسي.\n- **مكان حدوثه:** في الخلايا الجسدية (غير التناسلية).\n- **عدد الانقسامات:** انقسام واحد فقط.\n- **عدد الخلايا الناتجة:** خليتان (2).\n- **عدد الكروموسومات في الخلايا الناتجة:** يبقى كما هو في الخلية الأم (عدد ثنائي = 2n)، أي لا يتغيّر.\n- **التشابه الوراثي:** الخليتان الناتجتان **متطابقتان** وراثيًا مع الخلية الأم.\n\n## الانقسام المنصّف (Meiosis)\n- **الهدف:** إنتاج الأمشاج (الخلايا التناسلية: الحيوانات المنوية والبويضات) من أجل التكاثر الجنسي.\n- **مكان حدوثه:** في الخلايا التناسلية (في الأعضاء التناسلية).\n- **عدد الانقسامات:** انقسامان متتاليان (منصّف أول ومنصّف ثانٍ).\n- **عدد الخلايا الناتجة:** أربع خلايا (4).\n- **عدد الكروموسومات في الخلايا الناتجة:** يُختزل إلى النصف (عدد أحادي = n).\n- **التشابه الوراثي:** الخلايا الناتجة **مختلفة** وراثيًا عن بعضها وعن الخلية الأم، بسبب حدوث **العبور الوراثي (Crossing over)** والتوزيع العشوائي للكروموسومات.\n\n## ملخّص سريع\n\n| وجه المقارنة | الانقسام المتساوي | الانقسام المنصّف |\n|---|---|---|\n| عدد الانقسامات | واحد | اثنان |\n| عدد الخلايا الناتجة | 2 | 4 |\n| عدد الكروموسومات | يبقى ثابتًا (2n) | يُختزل إلى النصف (n) |\n| نوع الخلايا | جسدية | تناسلية |\n| الوراثة | متطابقة | مختلفة (تنوّع وراثي) |\n| الهدف | النمو والتعويض | إنتاج الأمشاج |\n\n**الفكرة الجوهرية:** الانقسام المتساوي يُنتج خليتين متماثلتين بنفس عدد الكروموسومات، بينما الانقسام المنصّف يُنتج أربع خلايا بنصف عدد الكروموسومات لضمان ثبات العدد الوراثي عبر الأجيال عند الإخصاب.\n\nهل تريد شرحًا لمراحل كلٍّ منهما بالتفصيل؟",
+    "AR4": "**حل المعادلة: x² − 5x + 6 = 0**\n\n**الطريقة: التحليل إلى عوامل**\n\nنبحث عن عددين حاصل ضربهما (+6) ومجموعهما (−5).\n\nالعددان هما: −2 و −3، لأن:\n- (−2) × (−3) = 6\n- (−2) + (−3) = −5\n\nإذن نكتب المعادلة على الصورة:\n\n(x − 2)(x − 3) = 0\n\nبما أن حاصل الضرب يساوي صفرًا، فإن أحد العاملين على الأقل يساوي صفرًا:\n\n- x − 2 = 0 ⟵ x = 2\n- x − 3 = 0 ⟵ x = 3\n\n**الحل: x = 2 أو x = 3**\n\n**التحقق:**\n- عند x = 2: (2)² − 5(2) + 6 = 4 − 10 + 6 = 0 ✓\n- عند x = 3: (3)² − 5(3) + 6 = 9 − 15 + 6 = 0 ✓\n\nملاحظة: يمكنك أيضًا استخدام القانون العام x = (−b ± √(b² − 4ac)) / 2a حيث a = 1 و b = −5 و c = 6، وستحصل على النتيجتين نفسيهما. إذا أردت شرح أي خطوة بتفصيل أكثر، أخبرني.",
+    "AR5": "# قانون فاراداي في الحث الكهرومغناطيسي\n\n## الفكرة الأساسية\n\nاكتشف العالم مايكل فاراداي عام 1831 أنه يمكن توليد تيار كهربائي دون الحاجة إلى بطارية، وذلك باستخدام المغناطيسية فقط. لاحظ أنه عندما يتحرك مغناطيس بالقرب من ملف من الأسلاك، يتولد تيار كهربائي في الملف.\n\n## نص القانون\n\nينص قانون فاراداي على أن:\n\n**القوة الدافعة الكهربائية المستحثة في دائرة مغلقة تتناسب طرديا مع المعدل الزمني لتغير التدفق المغناطيسي الذي يخترق الدائرة.**\n\nويكتب رياضيا بالصورة:\n\n$$\\varepsilon = -N \\frac{\\Delta \\Phi}{\\Delta t}$$\n\nحيث:\n- **ε**: القوة الدافعة الكهربائية المستحثة (بوحدة الفولت)\n- **N**: عدد لفات الملف\n- **ΔΦ**: التغير في التدفق المغناطيسي (بوحدة الويبر)\n- **Δt**: الزمن الذي حدث خلاله التغير (بالثانية)\n- الإشارة السالبة تعبر عن **قانون لنز**: التيار المستحث يقاوم التغير الذي أحدثه (وهذا يتفق مع مبدأ حفظ الطاقة)\n\n## ما هو التدفق المغناطيسي؟\n\nالتدفق المغناطيسي (Φ) هو مقدار خطوط المجال المغناطيسي التي تخترق سطح الملف، ويحسب من العلاقة:\n\n$$\\Phi = B \\times A \\times \\cos\\theta$$\n\nحيث B شدة المجال المغناطيسي، وA مساحة الملف، وθ الزاوية بين المجال والعمودي على سطح الملف.\n\n## كيف نغير التدفق لتوليد تيار؟\n\nيمكن توليد قوة دافعة كهربائية بثلاث طرق:\n1. **تغيير شدة المجال المغناطيسي** (تقريب المغناطيس من الملف أو إبعاده)\n2. **تغيير مساحة الملف** داخل المجال\n3. **تدوير الملف** داخل المجال، فتتغير الزاوية θ باستمرار\n\n## الاستفادة منه في توليد الكهرباء\n\nهذا القانون هو أساس **المولد الكهربائي (الدينامو)**، وهو مصدر معظم الكهرباء في العالم، وطريقة عمله كالتالي:\n\n1. يوضع ملف كبير من الأسلاك النحاسية بين قطبي مغناطيس قوي.\n2. تدور طاقة خارجية هذا الملف (أو تدور المغناطيس حول الملف).\n3. أثناء الدوران يتغير التدفق المغناطيسي عبر الملف باستمرار.\n4. حسب قانون فاراداي، يتولد في الملف تيار كهربائي، وهو **تيار متردد (AC)** لأن اتجاه التغير ينعكس مع كل نصف دورة.\n\nأما مصدر طاقة الدوران فيختلف حسب نوع المحطة:\n- **محطات الغاز والبخار**: مثل محطات الكهرباء في البحرين، حيث يحرق الغاز الطبيعي لتسخين الماء وإنتاج بخار يدير التوربينات المتصلة بالمولد.\n- **السدود المائية**: تدفق الماء يدير التوربين.\n- **طاقة الرياح**: الرياح تدير شفرات التوربين.\n- **المحطات النووية**: حرارة الانشطار النووي تنتج البخار.\n\nلاحظ أن جميع هذه الطرق تشترك في الفكرة نفسها: تحويل طاقة حركية إلى طاقة كهربائية عن طريق تغيير التدفق المغناطيسي.\n\n## تطبيقات أخرى\n\n- **المحولات الكهربائية**: ترفع الجهد أو تخفضه لنقل الكهرباء عبر المسافات الطويلة.\n- **الشحن اللاسلكي** للهواتف.\n- **مواقد الطهي بالحث** (Induction cookers).\n- **الميكروفونات** وقارئات البطاقات المصرفية.\n\n## مثال بسيط\n\nإذا كان لدينا ملف من 200 لفة، وتغير التدفق المغناطيسي عبره بمقدار 0.06 ويبر خلال 0.3 ثانية، فإن القوة الدافعة المستحثة:\n\n$$\\varepsilon = 200 \\times \\frac{0.06}{0.3} = 40 \\text{ فولت}$$\n\nإذا كان لديك سؤال عن جزئية معينة، مثل قانون لنز أو المولدات، فأخبرني وسأشرحها لك بتفصيل أكثر.",
+    "AR6": "لا تخف، هذا شعور طبيعي جدًا قبل الامتحان، وسببه غالبًا طريقة المذاكرة وليس ذاكرتك. القوانين لا تثبت في الرأس عندما نحفظها كنص فقط، لكنها تثبت عندما نفهم معناها ونربطها بمواقف من حياتنا. تعال نحلها معًا الليلة بخطة بسيطة.\n\n**أولًا: افهم القوانين كقصة، لا كنص للحفظ**\n\n**قانون نيوتن الأول (القصور الذاتي):**\nالجسم يبقى على حالته (ساكنًا أو متحركًا بسرعة ثابتة في خط مستقيم) ما لم تؤثر عليه قوة محصلة.\nتذكره هكذا: عندما تتوقف السيارة فجأة، يندفع جسمك للأمام. جسمك \"يرفض\" تغيير حالته. هذا هو القصور الذاتي.\n\n**قانون نيوتن الثاني:**\nالقوة المحصلة = الكتلة × التسارع، أي **ق = ك × ت** (F = ma)\nتذكره هكذا: دفع عربة تسوق فارغة سهل، ودفع عربة ممتلئة يحتاج قوة أكبر لنفس التسارع. كلما زادت الكتلة، احتجت قوة أكبر.\n\n**قانون نيوتن الثالث:**\nلكل فعل رد فعل مساوٍ له في المقدار ومعاكس له في الاتجاه.\nتذكره هكذا: عندما تسبح، تدفع الماء للخلف فيدفعك الماء للأمام. القوتان تؤثران على جسمين مختلفين، وهذه نقطة يسأل عنها كثيرًا في الامتحانات.\n\n**ثانيًا: لماذا تنسى؟ ولماذا لن تنسى بعد الآن**\n\nالدماغ ينسى ما يقرؤه مرة واحدة، لكنه يثبّت ما يسترجعه بنفسه. جرب هذه الطريقة الليلة:\n\n1. اقرأ القانون مرة واحدة بتركيز.\n2. أغلق الكتاب واكتبه من ذاكرتك بأسلوبك الخاص، مع مثال من عندك.\n3. حل مسألتين أو ثلاثًا على كل قانون. حل المسائل أقوى وسيلة لتثبيت الفهم.\n4. قبل النوم، اشرح القوانين الثلاثة بصوت مسموع كأنك تعلّم صديقًا. إن استطعت شرحها، فقد فهمتها.\n5. نم جيدًا. السهر ليلة الامتحان يضعف الذاكرة أكثر من قلة المذاكرة نفسها.\n\n**ثالثًا: نصيحة سريعة للامتحان**\n\nفي مسائل القانون الثاني، اكتب دائمًا: المعطيات، المطلوب، القانون، ثم التعويض بالوحدات (نيوتن، كغم، م/ث²). كثير من الدرجات تضيع بسبب نسيان الوحدات وليس بسبب نسيان القانون.\n\nأنت لست ضعيف الذاكرة، أنت فقط كنت تحفظ بدل أن تفهم. اتبع الخطوات أعلاه الليلة، وإن أردت، أرسل لي مسألة من كتابك ونحلها معًا خطوة بخطوة. بالتوفيق غدًا، أنت قادر على هذا.",
+    "AR7": "**الحل:**\n\n**الخطوة 1: حساب الكتلة المولية لثاني أكسيد الكربون CO₂**\n\nالجزيء يتكون من ذرة كربون واحدة وذرتين أكسجين:\n\nالكتلة المولية = 12 + (2 × 16) = 12 + 32 = **44 غ/مول**\n\n**الخطوة 2: تطبيق قانون عدد المولات**\n\nعدد المولات (n) = الكتلة (m) ÷ الكتلة المولية (M)\n\nn = 88 ÷ 44 = **2 مول**\n\n**النتيجة:** عدد المولات في 88 غراماً من غاز CO₂ يساوي **2 مول**.",
+    "AR8": "البناء الضوئي ليس مجرد درس نحفظه للامتحان، بل هو العملية التي تقوم عليها الحياة على الأرض تقريبًا. إليك لماذا يستحق أن نتعلمه، وكيف يظهر أثره في حياتنا اليومية:\n\n## ما هو باختصار\nالبناء الضوئي هو العملية التي تستخدم فيها النباتات والطحالب وبعض البكتيريا طاقة الضوء لتحويل ثاني أكسيد الكربون (CO₂) والماء (H₂O) إلى غذاء (سكر الجلوكوز) مع إطلاق الأكسجين (O₂). ويمكن تلخيصه بالمعادلة:\n\n6CO₂ + 6H₂O + طاقة ضوئية → C₆H₁₂O₆ + 6O₂\n\n## فوائده في حياتنا اليومية\n\n**1. الأكسجين الذي نتنفسه**\nكل نفس نأخذه تقريبًا يعتمد على الأكسجين الناتج من البناء الضوئي، سواء من النباتات على اليابسة أو من الطحالب في البحر. بدون هذه العملية لن يكون هناك هواء صالح للتنفس.\n\n**2. الغذاء الذي نأكله**\nكل طعامنا يعود أصله إلى البناء الضوئي. الخبز والأرز والفواكه والخضار نتاج مباشر له. وحتى اللحوم والحليب والبيض تأتي من حيوانات تتغذى على النباتات. فالنبات هو أول حلقة في السلسلة الغذائية.\n\n**3. الطاقة والوقود**\nالفحم والنفط والغاز الطبيعي هي في الأصل بقايا كائنات قامت بالبناء الضوئي قبل ملايين السنين، فخزنت طاقة الشمس فيها. حتى الطاقة التي نحصل عليها من حرق الخشب مصدرها هذه العملية.\n\n**4. تنظيم مناخ الأرض**\nالنباتات تسحب ثاني أكسيد الكربون من الجو، وهو من الغازات المسببة للاحتباس الحراري. لذلك فهم البناء الضوئي يساعدنا على فهم قضايا التغير المناخي وأهمية حماية الغابات والمسطحات الخضراء.\n\n## لماذا يهمك أن تتعلمه أنت تحديدًا\n- **يبني تفكيرك العلمي**: يربط بين الضوء والطاقة والكيمياء والأحياء في صورة واحدة متكاملة.\n- **يفتح مجالات مستقبلية**: الزراعة، والطب، والطاقة المتجددة، وعلوم البيئة كلها تبدأ من فهم هذه العملية.\n- **يجعلك مواطنًا واعيًا**: قرارات مثل ترشيد استهلاك الطاقة وزراعة الأشجار والحفاظ على البيئة تصبح مفهومة لك بعمق.\n\nباختصار: البناء الضوئي هو الجسر الذي يحوّل ضوء الشمس إلى غذاء وأكسجين وطاقة، وهو سبب استمرار الحياة كما نعرفها. تعلّمه يعني أن تفهم كيف يعمل العالم من حولك حقًا.\n\nهل تحب أن أشرح لك المرحلة الضوئية والمرحلة المظلمة بتفصيل أكثر، أو أساعدك في تجربة بسيطة توضح العملية؟",
+    "AR9": "المشتقة هي أداة رياضية تقيس **معدل تغيّر** شيء ما، أي: ما مدى سرعة تغيّر كمية عندما تتغير كمية أخرى.\n\n## فكرة بسيطة\n\nتخيل أنك تركب سيارة، والمسافة التي قطعتها تزداد مع الوقت:\n\n- المسافة هي الدالة.\n- **سرعة** السيارة في لحظة معينة هي المشتقة.\n\nفإذا نظرت إلى عداد السرعة ورأيت 80 كم/ساعة، فأنت تنظر فعليا إلى مشتقة المسافة بالنسبة للزمن في تلك اللحظة.\n\n## بلغة الرسم البياني\n\nإذا رسمت منحنى دالة ما، فإن المشتقة عند نقطة معينة هي **ميل المماس** للمنحنى عند تلك النقطة:\n\n- ميل موجب: الدالة تتزايد (المنحنى يصعد).\n- ميل سالب: الدالة تتناقص (المنحنى ينزل).\n- ميل يساوي صفرا: الدالة ثابتة لحظيا (قمة أو قاع غالبا).\n\n## مثال عددي\n\nالدالة: f(x) = x²\nمشتقتها: f′(x) = 2x\n\nماذا يعني هذا؟\n\n- عند x = 1: المشتقة = 2، أي أن الدالة تتزايد بمعدل 2.\n- عند x = 3: المشتقة = 6، أي أنها تتزايد بشكل أسرع.\n- عند x = 0: المشتقة = 0، وهنا يكون المنحنى في أدنى نقطة له.\n\n## لماذا هي مهمة؟\n\nنستخدم المشتقة في:\n\n- الفيزياء: السرعة هي مشتقة المسافة، والتسارع هو مشتقة السرعة.\n- الاقتصاد: معرفة معدل تغيّر التكلفة أو الربح.\n- إيجاد أكبر قيمة أو أصغر قيمة لدالة (مسائل القيم القصوى).\n\n**الخلاصة:** المشتقة تجيب عن السؤال: \"بأي سرعة يتغير هذا الشيء الآن؟\"\n\nإذا أردت، أشرح لك كيف نحسب المشتقة خطوة بخطوة باستخدام التعريف أو قواعد الاشتقاق.",
+    "AR10": "سؤال جميل! الجواب يعتمد على المكان الذي تجري فيه التجربة:\n\n**في الهواء (مثل غرفة الصف):**\nتصل العملة المعدنية إلى الأرض أولاً. والسبب ليس أنها \"أثقل\" بحد ذاته، بل هو **مقاومة الهواء**:\n\n- الريشة خفيفة الوزن وذات مساحة سطح كبيرة مقارنةً بكتلتها، لذلك تكون قوة مقاومة الهواء المؤثرة عليها كبيرة نسبياً مقارنةً بوزنها، فتتباطأ كثيراً وتتهادى في سقوطها.\n- العملة المعدنية كتلتها أكبر ومساحة سطحها صغيرة، فتكون مقاومة الهواء ضئيلة جداً مقارنةً بوزنها، فتسقط بسرعة تكاد تكون سقوطاً حراً.\n\n**في الفراغ (بدون هواء):**\nتصل العملة والريشة إلى الأرض **في اللحظة نفسها**! لأن جميع الأجسام تسقط بتسارع الجاذبية نفسه (g ≈ 9.8 م/ث²) بغضّ النظر عن كتلتها. صحيح أن قوة الجاذبية على العملة أكبر، لكن كتلتها أكبر أيضاً بالنسبة نفسها، فيكون التسارع متساوياً وفق قانون نيوتن الثاني:\n\na = F / m = mg / m = g\n\n**تجربة شهيرة تثبت ذلك:**\nفي عام 1971، قام رائد الفضاء ديفيد سكوت خلال رحلة أبولو 15 بإسقاط مطرقة وريشة على سطح القمر (حيث لا يوجد غلاف جوي)، فوصلتا إلى السطح معاً في اللحظة نفسها، مؤكداً ما تنبأ به جاليليو قبل قرون.\n\n**الخلاصة:** الاختلاف في زمن السقوط على الأرض سببه مقاومة الهواء وليس اختلاف الكتلة، فلولا الهواء لسقط الجسمان معاً.",
+    "EN1": "Nice straightforward Newton's second law problem. Let's work through it step by step.\n\n**Given:**\n- Mass: m = 2 kg\n- Force: F = 10 N (constant, horizontal)\n- Frictionless floor, so F is the net force\n- Time: t = 4 s\n- Block starts from rest (assumed, since no initial velocity is given)\n\n**Step 1: Find the acceleration**\n\nUsing Newton's second law:\n\n$$a = \\frac{F}{m} = \\frac{10\\ \\text{N}}{2\\ \\text{kg}} = 5\\ \\text{m/s}^2$$\n\n**Step 2: Find the distance travelled in 4 s**\n\nSince acceleration is constant and the block starts from rest, use the kinematics equation:\n\n$$d = ut + \\frac{1}{2}at^2 = 0 + \\frac{1}{2}(5)(4)^2 = \\frac{1}{2}(5)(16) = 40\\ \\text{m}$$\n\n**Answers:**\n- Acceleration = **5 m/s²**\n- Distance travelled in 4 s = **40 m**\n\nQuick sanity check: after 4 s the velocity would be v = at = 20 m/s, and the average velocity is (0 + 20)/2 = 10 m/s, so distance = 10 × 4 = 40 m. It matches.",
+    "EN2": "Great question! Ice floating is actually one of water's strangest and most important properties. Here's why it happens.\n\n**The short answer:** Ice is about 9% less dense than liquid water, and anything less dense than a liquid floats on it.\n\n**Why is ice less dense? It comes down to hydrogen bonds.**\n\nA water molecule (H2O) is \"polar\": its oxygen side carries a slight negative charge and its hydrogen side a slight positive charge. This lets water molecules stick to each other through weak attractions called hydrogen bonds.\n\n- **In liquid water**, the molecules have enough energy to move around. Hydrogen bonds constantly break and re-form, so molecules can slide close together and pack fairly tightly.\n- **In ice**, the molecules lose that energy and lock into a fixed crystal structure. The hydrogen bonds force each molecule into a rigid, hexagonal (six-sided) arrangement with lots of empty space inside it, like a honeycomb.\n\nSo freezing actually pushes water molecules slightly *apart*. The same mass ends up taking more volume, which means lower density (density = mass ÷ volume). Liquid water is about 1.00 g/cm³, while ice is about 0.92 g/cm³. By Archimedes' principle, the ice is buoyed up and floats, with roughly 90% of it sitting below the surface (that's the \"tip of the iceberg\").\n\n**Why most other solids sink:** in most substances, cooling just makes molecules pack closer and closer, so the solid is denser than the liquid. Water is unusual because its hydrogen bonds impose that open, spacious crystal structure. In fact, water is densest at 4°C, not at 0°C, which is already a hint that something odd happens as it approaches freezing.\n\n**Why it matters:** because ice floats, lakes and seas freeze from the top down. The ice layer insulates the water below, so fish and other aquatic life survive winter. If ice sank, water bodies would freeze solid from the bottom up, and aquatic life as we know it probably couldn't exist.\n\nA fun everyday example: this is also why a water bottle can crack if you freeze it full. The water expands as it turns to ice!",
+    "EN3": "DNA and RNA are both nucleic acids that carry genetic information, but they differ in several important ways.\n\n**1. Sugar**\n- DNA contains **deoxyribose** sugar (it lacks one oxygen atom).\n- RNA contains **ribose** sugar (it has one more oxygen atom).\n\n**2. Nitrogenous bases**\n- Both share adenine (A), guanine (G), and cytosine (C).\n- DNA uses **thymine (T)**, while RNA uses **uracil (U)** instead of thymine.\n\n**3. Number of strands**\n- DNA is usually **double-stranded** (the famous double helix).\n- RNA is usually **single-stranded**.\n\n**4. Function**\n- DNA stores and preserves genetic information long-term, like a master blueprint.\n- RNA mainly carries out instructions from DNA, for example by helping to build proteins. There are several types, such as messenger RNA (mRNA), transfer RNA (tRNA), and ribosomal RNA (rRNA).\n\n**5. Location**\n- In cells with a nucleus (eukaryotes), DNA is found mostly in the **nucleus**.\n- RNA is made in the nucleus but works mainly in the **cytoplasm**.\n\n**6. Stability**\n- DNA is more chemically **stable** (good for long-term storage).\n- RNA is less stable and shorter-lived.\n\n**Quick summary table**\n\n| Feature | DNA | RNA |\n|---|---|---|\n| Sugar | Deoxyribose | Ribose |\n| Bases | A, T, G, C | A, U, G, C |\n| Strands | Double | Single |\n| Main role | Stores genetic info | Makes proteins / carries info |\n| Stability | More stable | Less stable |\n\nIn short: DNA is the permanent \"library\" of genetic instructions, and RNA is the \"working copy\" that helps put those instructions into action.",
+    "EN4": "Adding the two equations is the quickest way here, because the +y and -y cancel out.\n\n**Step 1: Add the equations**\n\n  2x + y = 11\n  x - y = 1\n  ----------------\n  3x = 12\n\n**Step 2: Solve for x**\n\n  x = 12 / 3 = **4**\n\n**Step 3: Substitute x = 4 into one of the equations**\n\nUsing x - y = 1:\n  4 - y = 1\n  y = **3**\n\n**Step 4: Check in the other equation**\n\n  2(4) + 3 = 8 + 3 = 11 ✓\n\n**Answer: x = 4, y = 3**",
+    "EN5": "# Newton's Law of Universal Gravitation\n\nNewton's law of universal gravitation states that **every object in the universe attracts every other object** with a force that depends on their masses and the distance between them.\n\n## The Law in Words\n\nThe gravitational force between two objects is:\n- **Directly proportional to the product of their masses** (bigger masses mean a stronger pull)\n- **Inversely proportional to the square of the distance between their centres** (double the distance, and the force becomes four times weaker)\n\n## The Formula\n\n$$F = G \\frac{m_1 m_2}{r^2}$$\n\nwhere:\n- **F** = gravitational force between the two objects (in newtons, N)\n- **m₁ and m₂** = the masses of the two objects (in kg)\n- **r** = the distance between their centres (in m)\n- **G** = the universal gravitational constant, about **6.67 × 10⁻¹¹ N·m²/kg²**\n\nNotice how tiny G is. That is why you do not feel a pull from your desk or your friend. Gravity only becomes noticeable when at least one of the masses is enormous, like a planet or a moon.\n\n## Why the Moon Orbits the Earth\n\nHere is the key idea, and it surprises many students: **the Moon is constantly falling toward the Earth.** It just never hits us. Here is why:\n\n**1. Gravity provides the pull.**\nThe Earth's gravity pulls the Moon toward the Earth's centre. Without this force, the Moon would fly off in a straight line into space (Newton's first law says a moving object continues in a straight line unless a force acts on it).\n\n**2. The Moon also has sideways speed.**\nThe Moon is moving \"sideways\" (tangentially) at about 1 km/s. So in every second, two things happen at once:\n- The Moon moves forward along its path\n- Gravity pulls it slightly inward, toward Earth\n\n**3. Falling and missing.**\nThe inward pull bends the Moon's straight-line path into a curve. Because the Moon moves sideways fast enough, the amount it \"falls\" toward Earth exactly matches the amount the Earth's surface curves away beneath it. The result is a nearly circular path: the Moon keeps falling around the Earth forever.\n\nIn physics terms, **gravity acts as the centripetal force** that keeps the Moon in orbit:\n\n$$F_{gravity} = F_{centripetal} \\quad \\Rightarrow \\quad G\\frac{M_E m_M}{r^2} = \\frac{m_M v^2}{r}$$\n\n**Newton's famous insight:** the same force that makes an apple fall from a tree also holds the Moon in orbit. The apple and the Moon are both simply falling toward Earth. The only difference is that the Moon has enough sideways speed to keep missing.\n\n## A Quick Balance Check\n\n- If the Moon moved **slower**, gravity would win and it would spiral inward.\n- If it moved **faster**, it would escape to a wider orbit or fly away.\n- At its actual speed and distance, the pull of gravity is exactly what is needed to keep bending its path into an orbit.\n\nThe same reasoning explains why the Earth orbits the Sun, and why satellites orbit the Earth. If anything here needs more detail, such as how to calculate the orbital speed or period, just ask.",
+    "EN6": "First, take a breath. What you're describing is really common, and it's fixable. Let me explain what's going on and then give you a plan for tonight.\n\n**Why this keeps happening**\n\n1. **Panic blocks memory.** When you're anxious, your brain goes into threat mode and the part that handles recall and reasoning works worse. So it's not that trig \"won't stick,\" it's that stress is interfering with both storing it and retrieving it. The panic and the forgetting feed each other.\n\n2. **Re-reading feels like learning but isn't.** If your revision is mostly reading notes or watching solutions, the material feels familiar but you can't reproduce it in an exam. Trig especially is a *doing* subject, like swimming. You learn it by solving, not by looking.\n\n3. **Trig is cumulative.** If one link in the chain is shaky (say, which side is the hypotenuse, or what sin actually means), everything built on it feels random. That's why it seems like nothing sticks.\n\n**Your plan for tonight (2 to 3 hours, then stop)**\n\n*Step 1: Lock in the core (30 min).* Almost all school trig comes from a small set of facts:\n- **SOH CAH TOA**: sin = opposite/hypotenuse, cos = adjacent/hypotenuse, tan = opposite/adjacent\n- The special angles (30, 45, 60 degrees). Write the table out from memory three times, checking each time.\n- Key identities you've covered, usually: sin²θ + cos²θ = 1, and tan θ = sin θ / cos θ\n- If your syllabus includes them: sine rule (a/sin A = b/sin B) and cosine rule (a² = b² + c² − 2bc·cos A)\n\nWrite these on ONE page by hand. Handwriting them forces recall in a way reading doesn't.\n\n*Step 2: Solve, don't read (60 to 90 min).* Take past paper or textbook questions and attempt each one **before** looking at the solution. Struggling for a couple of minutes and then checking is what makes it stick. Do maybe 8 to 12 problems covering: finding a side, finding an angle, a sine/cosine rule question, and an identity question. Quality over quantity.\n\n*Step 3: Redo your mistakes (20 min).* Any question you got wrong, close the solution and solve it again from scratch. This is the highest-value 20 minutes of the whole night.\n\n*Step 4: Sleep.* Seriously. Memory consolidates during sleep. Staying up until 2am revising makes you perform worse, not better. Stop at a reasonable hour, glance at your one-page summary in the morning, and go in.\n\n**In the exam, when panic hits**\n\n- Slow breathing for 30 seconds: in for 4, hold for 4, out for 6. It genuinely lowers the stress response.\n- As soon as the exam starts, jot your key formulas on the rough space. Now they're \"outside your head\" and you can stop worrying about forgetting them.\n- Start with the question that looks easiest. One solved problem calms you down and builds momentum.\n- For any triangle question: draw it, label what you know, ask \"which sides/angles are involved?\" and that tells you which ratio or rule to use. It's a procedure, not inspiration.\n\nIf you tell me which topics are on tomorrow's exam (right-angled triangles? sine and cosine rules? identities? graphs?), I can give you targeted practice questions right now and walk through them with you. Want to try one?",
+    "EN7": "Balanced equation:\n\n**C₃H₈ + 5O₂ → 3CO₂ + 4H₂O**\n\nHere is how to get there, step by step.\n\n**Step 1: Count the atoms on each side (unbalanced).**\n\n| Element | Left (C₃H₈ + O₂) | Right (CO₂ + H₂O) |\n|---------|------------------|-------------------|\n| C | 3 | 1 |\n| H | 8 | 2 |\n| O | 2 | 3 |\n\nNot balanced, so we add coefficients (never change the small subscript numbers, only the big numbers in front).\n\n**Step 2: Balance carbon first.**\nThe left side has 3 carbons (in C₃H₈), so we need 3 CO₂ on the right:\n\nC₃H₈ + O₂ → **3**CO₂ + H₂O\n\n**Step 3: Balance hydrogen next.**\nThe left has 8 hydrogens. Each H₂O has 2 hydrogens, so we need 4 water molecules (4 × 2 = 8):\n\nC₃H₈ + O₂ → 3CO₂ + **4**H₂O\n\n**Step 4: Balance oxygen last.**\nWe save oxygen for the end because it appears alone as O₂, so it is the easiest to adjust. Count the oxygens now needed on the right:\n- 3 CO₂ gives 3 × 2 = 6 oxygens\n- 4 H₂O gives 4 × 1 = 4 oxygens\n- Total = 10 oxygens\n\nEach O₂ molecule brings 2 oxygens, so we need 10 ÷ 2 = 5 O₂:\n\nC₃H₈ + **5**O₂ → 3CO₂ + 4H₂O\n\n**Step 5: Final check.**\n\n| Element | Left | Right |\n|---------|------|-------|\n| C | 3 | 3 ✓ |\n| H | 8 | 8 ✓ |\n| O | 10 | 10 ✓ |\n\nBalanced! This is the complete combustion of propane (the gas used in cooking cylinders): it burns in oxygen to give carbon dioxide and water.\n\n**Tip to remember:** for hydrocarbon combustion, always balance in the order C → H → O. Balancing oxygen last saves you from redoing your work.",
+    "EN8": "Cells matter way more to your everyday life than they might seem at first. Here is the real-world connection.\n\n**Cells are the reason you exist and stay alive**\nEvery part of you (your skin, muscles, brain, blood) is built from cells. Understanding them is understanding how your own body works. When you eat, breathe, heal a cut, or fight off a cold, that is cells doing their jobs.\n\n**Health and medicine**\n- When you get sick, it is often because cells are affected. Bacteria are single cells; viruses hijack your cells. Knowing how cells work is how doctors figure out treatments.\n- Cancer is basically cells dividing out of control. Almost all cancer research starts with understanding normal cells first.\n- Vaccines, antibiotics, and most medicines are designed based on how they act on cells.\n\n**Everyday things you already benefit from**\n- Bread, yogurt, and cheese exist because of the activity of yeast and bacteria cells.\n- The reason you feel tired after exercise is connected to how your muscle cells produce energy.\n- Sunburn, bruising, and healing are all cell-level events.\n\n**Future and career doors**\nFields like medicine, nursing, pharmacy, biotechnology, genetics, agriculture, and even some engineering all build on cell biology. In Bahrain and the wider Gulf, healthcare and biotech are growing areas, so this is a genuinely useful foundation.\n\n**The bigger idea**\nLearning about cells trains you to understand that big, complex things (a whole living organism) are made of tiny units following clear rules. That way of thinking (breaking something huge down into its basic building blocks) is useful far beyond biology.\n\nSo it is not just memorizing parts of a diagram. It is learning the basic machinery behind life, health, food, and medicine, all of which touch your daily life directly.\n\nIs there a specific part of cells you are studying right now? I can connect it to something concrete.",
+    "EN9": "Great question, because the notation makes integration look scarier than the idea actually is.\n\n**The core idea: an integral is a smart way of adding up infinitely many tiny pieces.**\n\nHere is the intuition step by step:\n\n**1. Start with a simple problem**\n\nSuppose a car moves at a constant 60 km/h for 2 hours. Distance = speed x time = 120 km. Easy. Notice that on a speed-time graph, this is just the area of a rectangle: height 60, width 2.\n\n**2. Now make it realistic**\n\nReal cars speed up and slow down, so the speed is a curve, not a flat line. You can no longer just multiply \"speed x time\" because the speed keeps changing. So what do you do?\n\n**3. The trick: slice it up**\n\nChop the 2 hours into tiny slivers of time, say a millisecond each. During one millisecond, the speed barely changes, so you can pretend it is constant. Distance for that sliver = (speed at that moment) x (tiny time). Do this for every sliver and add them all up. You get an excellent estimate of the total distance.\n\n**4. The integral is the perfect version of this**\n\nMake the slices thinner and thinner, infinitely thin, and the sum becomes exact. That limit of \"add up all the tiny pieces\" is the integral:\n\n$$\\int_0^2 v(t)\\, dt$$\n\nRead it like a sentence: the stretched S (∫) means \"sum up,\" v(t) is the value at each instant, and dt is the infinitely thin slice of time. Geometrically, you have just computed the exact area under the curve.\n\n**5. Why \"area under the curve\" matters**\n\nArea is just the picture. The real meaning is **accumulation**:\n\n- Integrate speed over time, you get total distance travelled\n- Integrate flow rate of water, you get total volume in the tank\n- Integrate force over distance, you get work done\n- Integrate current, you get total charge\n\nWhenever a quantity is changing and you want the total effect, integration is the tool.\n\n**6. The beautiful shortcut**\n\nAdding infinite slices by hand is impossible, but there is a shortcut: integration is the reverse of differentiation. If differentiating position gives speed, then integrating speed gives position back. That is the Fundamental Theorem of Calculus, and it is why you learn antiderivatives: they let you compute these infinite sums instantly.\n\n**One-line summary:** differentiation asks \"how fast is it changing right now?\" while integration asks \"what does all that change add up to?\"",
+    "EN10": "Great question, because the intuitive answer is usually wrong!\n\n**Both experience exactly the same force.** This is Newton's third law: when the car pushes on the truck, the truck pushes back on the car with a force that is equal in size and opposite in direction. The forces come in pairs, and there is no way for one object to \"push harder\" than it gets pushed back.\n\n**So why does the car get wrecked while the truck barely notices?**\n\nThe difference is not the force, it is the *effect* of that force. Newton's second law says:\n\n$$a = \\frac{F}{m}$$\n\nThe force F is the same on both vehicles, but their masses are very different:\n\n- **Small car (small m):** same F divided by a small mass gives a **large acceleration**. It gets violently slowed down or even thrown backwards, and its occupants feel a huge change in motion.\n- **Heavy truck (large m):** same F divided by a large mass gives a **small acceleration**. Its motion barely changes.\n\n**A quick example:** suppose the collision force is 100,000 N, the truck is 10,000 kg, and the car is 1,000 kg.\n\n- Truck: a = 100,000 / 10,000 = 10 m/s²\n- Car: a = 100,000 / 1,000 = 100 m/s² (about 10g!)\n\nSame force, ten times the acceleration for the car. That is why the car suffers far more damage and its passengers are at much greater risk.\n\n**Key takeaway for exams:** if a question asks \"which experiences the greater force,\" the answer is *neither, the forces are equal (Newton's third law)*. If it asks \"which experiences the greater acceleration or damage,\" the answer is *the lighter vehicle (Newton's second law)*."
+  },
+  "judge_scores": {
+    "T1": {
+      "judge": "T1",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B تنسيق امتحاني مثالي (معطيات/خطوات/تحقق/إجابة) لمسألة بسيطة؛ A صحيح لكن مطنب."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A أدق علمياً وأكثر إحكاماً ويعرض sp2/sp3 للأسئلة المتقدمة؛ B تشبيه لطيف لكنه أطول."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B أكمل امتحانياً (عدد الانقسامات والتكاثر اللاجنسي)؛ جدول A يغفل صف عدد الانقسامات."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A تحليل مختصر مع تحقق وإشارة للقانون العام؛ B مطنب لمعادلة تربيعية بسيطة."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B أكمل للصف 12: صيغة الفيض Φ=BAcosθ والوحدات ومثال محلول 40V؛ A جيد لكن بلا مثال أو صيغة فيض."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A يجيب مباشرة عن سبب النسيان بعلم الذاكرة مع خطة وتهدئة؛ B طريقة البطل الغائب للمعادلات ذكية أيضاً."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B خطوات امتحانية نظيفة (كتلة مولية ثم n=m/M)؛ A صحيح لكن مطنب لحساب بسيط."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A شامل ومنظم مع المعادلة وتعداد الفوائد اليومية والمهنية؛ B مشوّق ويصحح مفهوم التنفس لكنه أضيق."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A يميز المتوسط عن اللحظي ويحذر من فخ الخلط بين المشتقة ومعادلة المماس؛ B جيد بمثال f'(x)=2x."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A مختصر ودقيق ويستشهد بتجربة أبولو 15 وغاليليو (توثيق حقيقي)؛ B مشوّق لكنه أطول."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B exam-clean (Given/Steps/sanity check) for a simple numeric; A correct but padded."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A rigorous and complete (densities, Archimedes, 90% iceberg, 4C, ecology); B engaging with good air-bubble myth fix."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A adds accurate G12 depth (2'-OH chemistry, ssDNA/dsRNA viral exception); B clean and complete but standard."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A crisp elimination with check; B verbose for a trivial pair of equations."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B links gravity to orbit via centripetal equation and gives G value + ~1 km/s; A strong with cannon experiment and 3rd-law point."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A answers 'why it keeps happening' with memory science plus full night plan and exam tactics; B teaches with worked ladder example and superb DEG/RAD tip."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B exemplary atom-count tables C->H->O with verification (model exam method); A equally correct but wordier."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B best G9 engagement (mall analogy), fixes cells-vs-atoms confusion, excellent mitochondria follow-up; A broader but more list-like."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B includes the Fundamental Theorem of Calculus and accumulation examples (core G12); A strong with signed-area and dx/u-sub nuance."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A precise with clean exam takeaway (force vs acceleration question); B engaging with excellent mosquito follow-up."
+        }
+      ]
+    },
+    "T2": {
+      "judge": "T2",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both correct (3 s, 30 m/s) with independent third-equation check. A teaches the 'سقطت = v_i=0' cue and adds a transfer question; B is clean but bare. A's 'واثقون تماماً' is mild over-assertion, still fine."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is more precise: delocalised electron, in-plane vs cross-plane anisotropy, and sp2/sp3 offer (Cambridge-level). B's schoolyard-hands analogy carries some mechanism but leans decorative and adds a slogan line."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Close. A has warmer pedagogy (why halving restores 2n, mnemonic, diagnostic Q) but omits the defining 'two divisions' point and asexual reproduction. B is more complete and precise on the core curriculum facts."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Both factor correctly with substitution check. B teaches the sign-of-the-roots trap explicitly and gives a practice question; A is correct but minimal."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "A's 'change not magnitude' emphasis and expanding-coil follow-up are excellent, but the window-in-wind analogy conflates flux with airflow and leans decorative. B adds Φ=BAcosθ, a correct worked EMF example (40 V), and applications, fitting G12 better."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A directly answers 'why won't it stick' with encoding/retrieval science plus a concrete tonight plan and unit tip, and matches the literal 'قوانين نيوتن' reading. B's 'missing hero' kinematics framework is clever but reinterprets the question as formula-selection."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both get 2 mol via M=44. A warns about the common (2×16) molar-mass slip, sanity-checks 88=2×44, and sets a parallel water problem; B is correct but skeletal."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A gives the balanced equation and broad, accurate relevance (O2, food chain, fossil fuels, climate, careers). B is engaging with a good respiration day/night misconception fix and follow-up, but 'أسطوانة/كبسولة أكسجين مجاناً' is loose."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both frame derivative as instantaneous rate/tangent slope. A adds the average-vs-instantaneous table and the key G12 trap (derivative value = a number vs tangent = an equation). B's f(x)=x² numeric example is nice but shallower."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Both correct: air resistance vs vacuum, a=mg/m=g. A cites the real Apollo 15 hammer-feather demo (strong trust). B's corridor/umbrella analogy carries the surface-area mechanism and adds a crumpled-feather transfer question; edges it on engagement."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both get 5 m/s² and 40 m. A's average-velocity sanity check is genuine, warns about squaring t, and extends with a doubled-mass question; B is crisp and correct but minimal."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is quantitatively complete: 1.00 vs 0.92 g/cm³, max density at 4 °C, Archimedes, top-down freezing/ecology. B's majlis analogy bears mechanism and the air-bubble misconception fix is good, but it's less precise."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A reaches A-level depth (2' carbon –OH vs –H, ssDNA/dsRNA viral exceptions, transcription follow-up) while staying accurate. B is a clean, correct comparison but stays at foundation level."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Both eliminate correctly to x=4, y=3 with a check. B explains why adding beats subtracting here (the y−(−y) double-negative trap) and adds practice; A is efficient but terse."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both accurate. A's string + cannonball thought experiment truly explains orbit-as-freefall and corrects the Newton's-third-law equal-forces trap. B is strong and adds the explicit G Mm/r² = mv²/r link and G value; very close."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A answers the 'why' (panic blocks recall, re-reading isn't learning) and gives a full tonight plan plus in-exam coping. B's worked ladder example and DEG/RAD calculator tip are genuinely useful, but the mnemonic is a little forced."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both reach C3H8+5O2→3CO2+4H2O via C→H→O with a final count. A adds the coefficients-not-subscripts trap and a scaling follow-up; B's tables are very clean and the 'why O last' note is good."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A directly and comprehensively answers the relevance question (body/health, medicine, food, careers, systems thinking) with no filler. B is engaging with a mall analogy, a solid cell-vs-atom clarification and follow-up, but spends length on the metaphor."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both explain integral as summing infinitesimal slices = area/accumulation. A fits 'explain simply' best, plus the ∫=sum, signed-area, and dx-in-substitution nuance and a transfer question. B validly adds the Fundamental Theorem link; very close."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Both correct: equal forces (3rd law), unequal acceleration (a=F/m) with numbers. A's exam takeaway is sharp and filler-free. B's high-five analogy is mutual-force-accurate and the mosquito-vs-bus follow-up is an excellent transfer check."
+        }
+      ]
+    },
+    "T3": {
+      "judge": "T3",
+      "role": "teacher",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both correct with independent verification (v_f^2=2gd). A adds a physical sanity check, the 'سقطت ⇒ v_i=0' insight, and a follow-up that builds independent skill. B is a clean exam-format solution but pedagogically thin."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "Both correctly pin conduction on delocalised electrons. A is more precise (allotropes, tetrahedral, even the directional-conductivity note) and offers sp2/sp3 for advanced exams; B's four-arms analogy and directional follow-up are vivid. A edges it on rigor and completeness."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "B is factually more complete (states one vs two divisions, which A omits). A wins narrowly on the book analogy, the 'why halve ⇒ restore 2n at fertilisation' reasoning, and an application question (deer 30→15)."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "winner": "B",
+          "note": "Both factor correctly and verify both roots. B adds sign-trap coaching and a parallel practice problem (x^2-6x+8), directly building transfer; A is clean and correct but pedagogically lighter."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "A's flux-in-the-wind analogy and probing follow-up are excellent, but it gives no flux definition or worked number. B adds Phi=BAcos(theta) and a fully worked EMF example (40 V), which a G12 exam demands. B on completeness."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Both warm and reassuring. A treats it as Newton's three laws plus a study plan; B reads 'قوانين الحركة' as the kinematic equations and hands over a reusable 'missing-variable' heuristic plus a practice question, better equipping the student to choose the right equation under pressure."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 6,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "Both compute M=44, n=2 correctly. A adds a divisibility sanity check, the common 'forgot to double O' trap, and a water follow-up. B is a correct but minimal solution."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "For a 'why is this useful in daily life' question, A answers most fully: oxygen, food, fuels, climate, careers, plus the equation. B's bakery analogy, respiration misconception and follow-up are engaging, but A wins on breadth of the real-life relevance actually asked."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both correct. A distinguishes average vs instantaneous rate in a table and flags the 'derivative-at-a-point (a number) vs tangent equation' confusion with a follow-up; B adds a clean f(x)=x^2 worked example. A's exam-confusion coaching gives the edge."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Both correct (a=F/m=g). A cites the Apollo 15 demo as nice evidence; B shows the mass-cancellation derivation, the air-resistance analogy, the free-fall exam note, and a follow-up (crumpled feather) that tests the concept. B on teaching depth."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 6,
+            "trust": 10
+          },
+          "winner": "A",
+          "note": "Both get a=5 m/s^2, d=40 m and both sanity-check via average velocity. A adds the shopping-cart intuition, the 'square t' trap, and a mass-doubling follow-up. B is clean with good notation but pedagogically thinner."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Both explain hydrogen-bonded open hexagonal ice. A is more quantitative (0.92 vs 1.00 g/cm^3, densest at 4C, Archimedes). B adds the crowd analogy, the 'trapped air' misconception, and a predictive follow-up (sealed bottle) that builds reasoning. Narrow B."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 6,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "Both correct. A gives genuine G12 depth (2' carbon, ssDNA/dsRNA virus exception), a mnemonic and a transcription follow-up; B is a clean but more basic comparison. A clearly."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "winner": "B",
+          "note": "Both solve by elimination (x=4, y=3) and verify. B explains the add-vs-subtract sign trap and sets a parallel practice pair; A is clean and correct but lighter on transfer."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "A's cannon thought-experiment, inverse-square emphasis and Newton's-third-law trap are excellent teaching. But for G12 B is more complete: it states G's value and, crucially, sets gravity = centripetal force (GMm/r^2 = mv^2/r), the core of 'why it orbits.' B on curriculum."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both warm and practical. A best diagnoses the actual question ('why does this keep happening': panic + passive re-reading + cumulative trig) and gives a full tonight-plan and in-exam strategy while still covering SOHCAHTOA/special angles/rules. B's worked ladder example, calculator-mode trap and follow-up are strong too. Narrow A."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 10
+          },
+          "winner": "A",
+          "note": "Both reach C3H8+5O2->3CO2+4H2O with a final atom count. A adds the C->H->O rationale, the 'never change subscripts' trap, and a scaling follow-up (2 propane); B's tables are clean but pedagogically lighter."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Both connect cells to real life. A is broader (health, food, careers, reductionist thinking). B's mall analogy, the cells-vs-atoms misconception, and an application follow-up (muscle vs skin mitochondria) make the student reason, which edges it for a motivational question. Very close."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "Both use the slicing/area intuition well. B adds the Fundamental Theorem link (why antiderivatives); A adds net-signed-area precision, the 'dx is not decoration' point, and a follow-up (leaking pipe -> volume) that tests transfer. Narrow A."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 10,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Both correct: equal forces (3rd law), unequal accelerations (2nd law), with numbers. A's explicit 'greater force vs greater acceleration' exam coaching is valuable; B's high-five analogy and mosquito-vs-bus follow-up push the student to apply the idea to a new case. Narrow B."
+        }
+      ]
+    },
+    "S1": {
+      "judge": "S1",
+      "role": "student",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B is clean givens-steps-answer, exactly like I'd write in the exam. A is correct and calm but too long with extra facts I don't need."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A gives a one-line summary I can memorize plus tidy diamond/graphite points. B's hand-holding analogy is nice but longer and more padded."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B lays out each division in clean bullets then a comparison table. Easy first read. A's book analogy is good but adds bulk."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is short and exactly exam format with a check. B over-explains the signs and feels long for such an easy equation."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Hard G12 topic; B's headings, clear formula breakdown, and a worked number example reassure me. A's wind-through-window analogy felt confusing."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "I'm scared, and A actually calms me: why I forget, a tonight plan, and exam tips. B jumps into a clever trick but doesn't handle my panic as well."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Simple mole calc; B's two clean steps are all I need. A's box analogy and follow-up make an easy question feel long."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A answers 'why' directly in clear sections. B's bakery analogy is fun but wordier and more rhetorical."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "I asked for simple; B is short with a concrete f(x)=x2 example that made it click. A's two analogies plus table are more than I asked for."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is tight and complete with the cool Apollo fact. B is right too but longer with an extra analogy and follow-up."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B is Given-Steps-Answer-check, clean exam style. A's cart analogy and sanity paragraph make a simple problem long."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is organized with a short answer up front. B is one-sentence-per-line and drags; the majlis analogy is nice but it feels stretched."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B's numbered points and summary table are exactly what I need. A's 2'-carbon detail and mnemonics feel too advanced and heavy."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A solves it cleanly and checks it. B's sign explanation helps but makes an easy problem longer than it needs to be."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "Tough topic; B's headings, numbered 'why it orbits', and the centripetal equation are scannable and complete. A's cannon story is good but flows as one long block."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "I'm panicking, and A handles the panic itself: why it happens, a tonight plan, breathing and jot-formulas tips. B's mnemonic and calculator tip are useful but it's more content than comfort."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B puts the answer first with clear count tables at each step. A is right but the extra prose and analogy slow it down."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A answers the real-life question directly in clean sections. B's mall story and examples are vivid but longer and more padded."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B builds the idea in short numbered steps and even links it to how you actually compute (FTC). A is a single long analogy; B is clearer for 'explain simply'."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A is tight with a numbers example and a killer exam takeaway (force vs acceleration questions). B's high-five analogy is friendly but it's longer to reach the same point."
+        }
+      ]
+    },
+    "S2": {
+      "judge": "S2",
+      "role": "student",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 6,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "A adds a genuine independent verification (third eq), a physical sanity check, and the 'سقطت=v0=0' insight. B is correct but bare textbook."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A explains anisotropic conduction along vs across layers and offers sp2/sp3 hybridization; B's four-arms analogy is vivid but stops shallower."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A gives the deep 'why halve' (fertilization restores 2n) + crossing over + applied follow-up. B is complete on mechanics (2 divisions) but flatter."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Trivial quadratic; B explains the sign reasoning and the classic sign trap with active practice. A is clean and pointers to the general formula, but thinner."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B gives Φ=BAcosθ, a worked numeric example, and real applications. A's 'change not magnitude' insight is strong but repeated three times."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B's 'missing-variable hero' heuristic for choosing the right equation is a real problem-solving gem. A's study-science is sound but more generic; both validate the fear well."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 6,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "A frames the mole concept, sanity-checks 88=2x44, and flags the x2-oxygen trap. B is a correct bare solve."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A connects to fossil fuels, climate and careers (higher application) plus the equation. B's respiration-misconception fix and analogy are strong; very close."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A's secant/tangent table plus the subtle 'derivative=a number vs tangent=an equation' distinction is exactly the beyond-surface depth. B is solid with a worked example but standard."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B fully walks the inertia intuition (why mass cancels) + free-fall exam nuance + follow-up. A is crisp with the real Apollo-15 experiment (high trust). Narrow."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 6,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A adds an average-velocity sanity check, the square-the-time trap, and a scaling extension. B is correct but minimal despite its own check."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A is more quantitative (0.92 vs 1.00, 4C max density) and connects to Archimedes and ecology (higher application). B's trapped-air misconception fix is a strong trust point. Near tie."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "A's 2'-carbon chemistry (why DNA is stable), uracil efficiency, and the viral ssDNA/dsRNA exception are true G12 depth. B is a clean but surface summary."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B explains why adding works and the double-negative subtraction trap, with practice. A is correct and clean but thinner."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A adds the Newton-3rd-law 'forces are equal' correction plus the cannonball/free-fall framing. B's explicit gravity=centripetal equation is excellent too; A edges on the nuance."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A covers more syllabus (sine/cosine rules, identities) with evidence-based method and exam tactics. B's calculator DEG/RAD trap and worked example are excellent and concrete."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A adds real-world context and a scaling follow-up. B is clean and usefully explains why oxygen is balanced last. Close."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 8,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A's breadth to health, careers and reductionist thinking matches the higher-application angle. B's atom-vs-cell fix + mitochondria follow-up show fine reasoning; near tie."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 10,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "B delivers the Fundamental Theorem (why antiderivatives) and engineering accumulations (work, charge). A is elegant and adds the dx/u-sub and signed-area precision; very close."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "Identical correct physics; B extends with the mosquito-vs-bus case that truly tests 3rd-law intuition. A's clean 'force vs acceleration' exam distinction is equally valid. Narrow."
+        }
+      ]
+    },
+    "S3": {
+      "judge": "S3",
+      "role": "student",
+      "grades": [
+        {
+          "q": "AR1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 6,
+            "trust": 6
+          },
+          "winner": "A",
+          "note": "A مشى معي بهدوء وقال لي إن 30 م/ث تعادل سيارة على شارع وارتفاع 15 طابق، فحسيت المسألة حقيقية، ونبهني إن كلمة سقطت تعني السرعة صفر. B صحيح وقصير بس بارد مثل الكتاب."
+        },
+        {
+          "q": "AR2",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 7,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B شبّه الذرات بأشخاص لهم أربع أذرع يمسكون الأيدي، والذراع الرابعة الحرة تمرر الكرة، فهمتها فوراً. A حلو بس دخّل sp2 وsp3 وهذا فوق راسي وتوهت."
+        },
+        {
+          "q": "AR3",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "تشبيه آلة النسخ مقابل خلط كتابي وصفات ثبّت الفكرة، والجملة المختصرة المتساوي توأم والمنصف ينصف سهّلتها. B جدوله مرتب بس بدون قصة تقرّبها لي."
+        },
+        {
+          "q": "AR4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B شرح لي فخ الإشارات بالضبط، ليش نختار -2 و-3 مو 2 و3، وهذا اللي دايم يوقعني. A نظيف وصح بس افترض إني أمسك الإشارات بسرعة."
+        },
+        {
+          "q": "AR5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 6,
+            "language": 7,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 6,
+            "language": 7,
+            "pedagogy": 6,
+            "trust": 6
+          },
+          "winner": "A",
+          "note": "الموضوع فوق صفّي بصراحة، بس تشبيه إطار النافذة في الهواء خلاني أتخيل الفيض. B كامل بس كثير أقسام ومحولات وأمثلة، دوخني وضاع تركيزي."
+        },
+        {
+          "q": "AR6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A لمس خوفي بالضبط: قال لي ليش أنسى وأعطاني خطة الليلة وقال نام كويس وأنت قادر. B ذكي بحكاية الأبطال والبطل الغائب، بس A طمنّي أكثر وحسّني إني مو ضعيف."
+        },
+        {
+          "q": "AR7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 8,
+            "language": 9,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "تشبيه المول بصندوق له وزن ثابت خلاني أفهم شنو المول أصلاً، ونبهني لا أنسى أضرب الأكسجين في 2. B قصير وصح بس ما علّمني الفكرة."
+        },
+        {
+          "q": "AR8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B شبّه الورقة بمخبز شمسي وربطها بطابور الصباح وبجو البحرين الحار، وحتى مزح إني ما أحب الخضار، فحسيتها قريبة مني. A مرتب بس مثل قائمة فوائد."
+        },
+        {
+          "q": "AR9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A أعطاني تشبيهات أكثر أحبها: الرحلة، عدّاد السرعة، وكاميرا ساهر، والجدول فرّق لي بين المتوسط واللحظي. B نظيف بمثال x² بس أقل دفئاً."
+        },
+        {
+          "q": "AR10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "تشبيه الممر المزدحم والمظلة مقابل الشخص النحيف خلاني أفهم مقاومة الهواء بسهولة، ونبهني إن سقوط حر يعني نتجاهل الهواء. A حلو ومعلومة أبولو ممتعة بس B قرّبها لي أكثر."
+        },
+        {
+          "q": "EN1",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 6,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "A used a Lulu shopping cart, checked the answer with average speed, and warned me about squaring the time. That reached me. B is short and correct but felt like just steps."
+        },
+        {
+          "q": "EN2",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B used a majlis crowd stretching into hexagons and the line ice is water with elbow room, short sentences one after another, easy to hold. A is clear with the honeycomb but B stuck in my head."
+        },
+        {
+          "q": "EN3",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 6,
+            "language": 7,
+            "pedagogy": 8,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "B",
+          "note": "This is way above my grade. B gave me six clean points and a small table I could actually follow. A went into 2 prime carbon and a transcription question and overwhelmed me."
+        },
+        {
+          "q": "EN4",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B told me WHY we add the equations and warned about the double-negative trap when subtracting, which is exactly where I lose marks. A is fast and clean but skipped the why."
+        },
+        {
+          "q": "EN5",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 6,
+            "language": 7,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 6,
+            "language": 7,
+            "pedagogy": 7,
+            "trust": 7
+          },
+          "winner": "A",
+          "note": "Big topic above me, but the tennis-ball-on-a-string and the cannon on Jebel Al Dukhan made the orbit click. B is thorough but the centripetal equation scared me."
+        },
+        {
+          "q": "EN6",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 10
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "winner": "A",
+          "note": "A said take a breath, told me why panic makes me forget, gave slow-breathing 4-4-6 and a doable plan, and to sleep. That is the simplest path that let me breathe. B teaches trig well with the slide and horse mnemonic, very close."
+        },
+        {
+          "q": "EN7",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 9
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "A tied it to the blue cooking gas cylinder we use, used a model-toy no-leftover-parts idea, and warned me never to change the small subscripts. B is neat with tables but less relatable."
+        },
+        {
+          "q": "EN8",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 7,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B made my body a mall like City Centre Bahrain with shops as cells, and used a scraped knee and a cold to show it, plus cleared up cells vs atoms. A lists good reasons but B made me feel it."
+        },
+        {
+          "q": "EN9",
+          "A": {
+            "accuracy": 9,
+            "curriculum": 7,
+            "language": 8,
+            "pedagogy": 9,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 9,
+            "curriculum": 7,
+            "language": 9,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "winner": "A",
+          "note": "Above my level, but integration is multiplication for things that change and the stretched S means Sum made the scary symbol friendly. B builds it cleanly too and is very close."
+        },
+        {
+          "q": "EN10",
+          "A": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 8,
+            "pedagogy": 8,
+            "trust": 8
+          },
+          "B": {
+            "accuracy": 10,
+            "curriculum": 9,
+            "language": 9,
+            "pedagogy": 10,
+            "trust": 9
+          },
+          "winner": "B",
+          "note": "B used a high-five that stings both hands even if your friend is bigger, and equal sting unequal spring, so I finally got same force different damage. A is clear and exam-smart but B reached me."
+        }
+      ]
+    }
+  }
+}
