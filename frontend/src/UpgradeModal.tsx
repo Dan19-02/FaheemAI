@@ -197,7 +197,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1e1e1a]/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-night)]/50 p-4 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -218,7 +218,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
         </button>
 
         <div className="max-w-2xl">
-          <h2 className="font-serif text-[clamp(1.6rem,4vw,2.4rem)] italic leading-tight tracking-[-0.01em] text-editorial-charcoal">
+          <h2 className="fh-display text-[clamp(1.6rem,4vw,2.4rem)] leading-tight tracking-[-0.01em] text-[var(--color-ink)]">
             {t("plans.title")}
           </h2>
           {reason ? (
@@ -272,11 +272,11 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
                       featured ? "bg-night text-chalk" : "border border-editorial-line bg-white text-editorial-charcoal"
                     }`}
                   >
-                    <h3 className={`font-serif text-lg italic ${featured ? "text-sage-bright" : "text-editorial-sage"}`}>
+                    <h3 className={`fh-display text-lg ${featured ? "text-[var(--color-gold)]" : "text-[var(--color-sea)]"}`}>
                       {name}
                     </h3>
                     <p className="mt-3 flex items-baseline gap-1.5">
-                      <span className="font-serif text-4xl italic tracking-tight">{priceLabel(plan.price)}</span>
+                      <span className="fh-display text-4xl tracking-tight">{priceLabel(plan.price)}</span>
                       <span className={`text-xs ${featured ? "text-chalk-dim" : "text-editorial-charcoal/60"}`}>
                         {t("plans.perMonth")}
                       </span>
@@ -346,7 +346,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
         )}
 
         {error && (
-          <p role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs leading-relaxed text-red-700">
+          <p role="alert" className="mt-4 rounded-xl border border-[var(--color-red)]/20 bg-[var(--color-red)]/8 px-4 py-2.5 text-xs leading-relaxed text-[var(--color-red)]">
             {error}
           </p>
         )}

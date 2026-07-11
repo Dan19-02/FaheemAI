@@ -1340,7 +1340,7 @@ export default function App() {
                     <div className="flex flex-wrap gap-2 mb-3">
                       {message.attachments.map((att, i) =>
                         att.isImage ? (
-                          <img key={i} src={att.dataUrl} alt={att.name} className="max-h-44 rounded-xl border border-editorial-line-light object-cover" />
+                          <img key={i} src={att.dataUrl} alt={att.name} className="max-h-44 rounded-xl border border-[var(--color-line-soft)] object-cover" />
                         ) : (
                           <a
                             key={i}

@@ -184,7 +184,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="truncate font-serif text-lg italic text-editorial-charcoal">
+          <h2 className="truncate fh-display text-lg text-[var(--color-ink)]">
             {level.view === "points" ? level.chapter : level.view === "chapters" ? level.subject : t("notebook.title")}
           </h2>
           <p className="truncate text-[11px] text-editorial-charcoal/70">
@@ -215,7 +215,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           )}
 
           {error && (
-            <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs leading-relaxed text-red-700">
+            <p role="alert" className="mb-4 rounded-xl border border-[var(--color-red)]/20 bg-[var(--color-red)]/8 px-4 py-2.5 text-xs leading-relaxed text-[var(--color-red)]">
               {error}
             </p>
           )}
@@ -226,7 +226,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
                 <Lock size={22} />
               </div>
-              <h3 className="font-serif text-2xl italic text-editorial-charcoal">
+              <h3 className="fh-display text-2xl text-[var(--color-ink)]">
                 {summary.savedCount > 0
                   ? t("notebook.lockedWaiting", { n: summary.savedCount })
                   : t("notebook.lockedReady")}
@@ -248,7 +248,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               {(summary.subjects?.length || 0) === 0 ? (
                 <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-14 text-center">
                   <BookMarked size={26} className="text-editorial-sage" />
-                  <h3 className="font-serif text-xl italic text-editorial-charcoal">{t("notebook.emptyTitle")}</h3>
+                  <h3 className="fh-display text-xl text-[var(--color-ink)]">{t("notebook.emptyTitle")}</h3>
                   <p className="text-sm leading-relaxed text-editorial-charcoal/70">{t("notebook.emptyBody")}</p>
                 </div>
               ) : (
@@ -260,7 +260,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                       className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white p-5 text-start transition-all hover:border-editorial-sage/40 cursor-pointer"
                     >
                       <div>
-                        <h3 className="font-serif text-lg italic text-editorial-charcoal">{s.subject}</h3>
+                        <h3 className="fh-display text-lg text-[var(--color-ink)]">{s.subject}</h3>
                         <p className="mt-1 text-xs text-editorial-charcoal/70">
                           {t("notebook.chaptersCount", { n: s.chapters.length })} · {t("notebook.pointsCount", { n: s.count })}
                         </p>
@@ -347,7 +347,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                 {entries.map((e) => (
                   <div key={e.id} className="group rounded-2xl border border-editorial-line-light bg-white p-4">
                     {e.question && (
-                      <p className="mb-1.5 text-[11px] italic text-editorial-charcoal/60">
+                      <p className="mb-1.5 text-[11px] text-[var(--color-ink)]/60">
                         {t("notebook.entryFrom", { q: e.question.slice(0, 120) })}
                       </p>
                     )}
@@ -359,7 +359,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                         onClick={() => removeEntry(e.id)}
                         title={t("notebook.removePoint")}
                         aria-label={t("notebook.removePoint")}
-                        className="shrink-0 rounded-full p-1.5 text-editorial-charcoal/30 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                        className="shrink-0 rounded-full p-1.5 text-[var(--color-ink)]/30 transition-colors hover:bg-[var(--color-red)]/8 hover:text-[var(--color-red)] cursor-pointer"
                       >
                         <Trash2 size={13} />
                       </button>

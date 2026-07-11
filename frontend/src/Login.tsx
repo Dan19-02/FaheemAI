@@ -272,7 +272,7 @@ export default function Login({ initialMode = "login", onBack }: LoginProps) {
             )}
 
             {error && (
-              <div role="alert" aria-live="polite" className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs leading-relaxed text-red-700">
+              <div role="alert" aria-live="polite" className="rounded-xl border border-[var(--color-red)]/20 bg-[var(--color-red)]/8 p-3 text-xs leading-relaxed text-[var(--color-red)]">
                 {error}
               </div>
             )}

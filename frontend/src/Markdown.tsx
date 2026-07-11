@@ -217,13 +217,13 @@ function MarkdownImpl({ children, streaming }: MarkdownProps) {
 
             if (lang || value.includes("\n")) {
               return (
-                <pre className="my-2 overflow-x-auto rounded-xl bg-editorial-charcoal/95 p-3 text-xs leading-relaxed text-editorial-ivory">
+                <pre className="my-2 overflow-x-auto rounded-xl bg-[var(--color-night)] p-3 text-xs leading-relaxed text-[var(--color-chalk)]">
                   <code className="font-mono">{children}</code>
                 </pre>
               );
             }
             return (
-              <code className="rounded bg-editorial-stone px-1.5 py-0.5 font-mono text-[0.85em] text-editorial-sage">
+              <code className="rounded bg-[var(--color-sand)] px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--color-sea)]">
                 {children}
               </code>
             );
@@ -234,30 +234,30 @@ function MarkdownImpl({ children, streaming }: MarkdownProps) {
             </div>
           ),
           th: ({ children }) => (
-            <th className="border border-editorial-line bg-editorial-stone/60 px-3 py-2 text-start font-semibold">
+            <th className="border border-[var(--color-line)] bg-[var(--color-sand)]/60 px-3 py-2 text-start font-semibold">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-editorial-line-light px-3 py-2 align-top">{children}</td>
+            <td className="border border-[var(--color-line-soft)] px-3 py-2 align-top">{children}</td>
           ),
           a: ({ children, href }) => (
             <a
               href={href}
               target="_blank"
               rel="noreferrer"
-              className="text-editorial-sage underline underline-offset-2 hover:opacity-80"
+              className="text-[var(--color-sea)] underline underline-offset-2 hover:opacity-80"
             >
               {children}
             </a>
           ),
-          h1: ({ children }) => <h1 className="font-serif text-xl font-bold mt-1">{children}</h1>,
-          h2: ({ children }) => <h2 className="font-serif text-lg font-semibold mt-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="font-serif text-base font-semibold text-editorial-sage mt-2">{children}</h3>,
+          h1: ({ children }) => <h1 className="fh-display text-xl mt-1">{children}</h1>,
+          h2: ({ children }) => <h2 className="fh-display text-lg mt-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="fh-display text-base text-[var(--color-sea)] mt-2">{children}</h3>,
           ul: ({ children }) => <ul className="ms-4 list-disc space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="ms-4 list-decimal space-y-1">{children}</ol>,
           blockquote: ({ children }) => (
-            <blockquote className="border-s-[3px] border-editorial-sage/60 bg-editorial-stone/30 py-1 ps-3 italic">
+            <blockquote className="border-s-[3px] border-[var(--color-sea)]/60 bg-[var(--color-sand)]/30 py-1 ps-3">
               {children}
             </blockquote>
           ),
