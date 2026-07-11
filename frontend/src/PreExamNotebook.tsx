@@ -160,7 +160,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
 
   return (
     <div
-      className="fixed inset-0 z-[55] flex flex-col bg-editorial-ivory outline-none"
+      className="fixed inset-0 z-[55] flex flex-col bg-[var(--color-pearl)] faheem-pattern outline-none"
       role="dialog"
       aria-modal="true"
       aria-label={t("notebook.title")}
@@ -169,17 +169,17 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
       onKeyDown={onOverlayKeyDown}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-editorial-line bg-editorial-ivory px-4 py-3 md:px-8">
+      <div className="flex items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-pearl)] faheem-pattern px-4 py-3 md:px-8">
         {level.view !== "subjects" && !summary?.locked ? (
           <button
             onClick={back}
             aria-label={t("common.back")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/60 transition-colors hover:bg-editorial-stone cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-line)] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-sand)] cursor-pointer"
           >
             <ArrowLeft size={15} className="rtl:rotate-180" />
           </button>
         ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-sea)]/10 text-[var(--color-sea)]">
             <BookMarked size={16} />
           </div>
         )}
@@ -187,7 +187,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           <h2 className="truncate fh-display text-lg text-[var(--color-ink)]">
             {level.view === "points" ? level.chapter : level.view === "chapters" ? level.subject : t("notebook.title")}
           </h2>
-          <p className="truncate text-[11px] text-editorial-charcoal/70">
+          <p className="truncate text-[11px] text-[var(--color-ink)]/70">
             {level.view === "subjects"
               ? t("notebook.subtitleSubjects")
               : level.view === "chapters"
@@ -198,7 +198,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
         <button
           onClick={onClose}
           aria-label={t("notebook.close")}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/50 transition-colors hover:bg-editorial-stone cursor-pointer"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-line)] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--color-sand)] cursor-pointer"
           id="btn-notebook-close"
         >
           <X size={16} />
@@ -209,7 +209,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
       <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8">
         <div className="mx-auto max-w-3xl">
           {loading && (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-editorial-charcoal/60">
+            <div className="flex items-center justify-center gap-2 py-16 text-sm text-[var(--color-ink)]/60">
               <Loader2 size={15} className="animate-spin" /> {t("notebook.opening")}
             </div>
           )}
@@ -223,7 +223,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           {/* Locked: calm, honest, shows the value already waiting. */}
           {!loading && summary?.locked && (
             <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-14 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-sea)]/10 text-[var(--color-sea)]">
                 <Lock size={22} />
               </div>
               <h3 className="fh-display text-2xl text-[var(--color-ink)]">
@@ -231,10 +231,10 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                   ? t("notebook.lockedWaiting", { n: summary.savedCount })
                   : t("notebook.lockedReady")}
               </h3>
-              <p className="text-sm leading-relaxed text-editorial-charcoal/70">{t("notebook.lockedBody")}</p>
+              <p className="text-sm leading-relaxed text-[var(--color-ink)]/70">{t("notebook.lockedBody")}</p>
               <button
                 onClick={onUpgrade}
-                className="rounded-full bg-editorial-charcoal px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                className="rounded-full bg-[var(--color-ink)] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
                 id="btn-notebook-upgrade"
               >
                 {t("notebook.seePlans")}
@@ -247,9 +247,9 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
             <>
               {(summary.subjects?.length || 0) === 0 ? (
                 <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-14 text-center">
-                  <BookMarked size={26} className="text-editorial-sage" />
+                  <BookMarked size={26} className="text-[var(--color-sea)]" />
                   <h3 className="fh-display text-xl text-[var(--color-ink)]">{t("notebook.emptyTitle")}</h3>
-                  <p className="text-sm leading-relaxed text-editorial-charcoal/70">{t("notebook.emptyBody")}</p>
+                  <p className="text-sm leading-relaxed text-[var(--color-ink)]/70">{t("notebook.emptyBody")}</p>
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -257,15 +257,15 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                     <button
                       key={s.subject}
                       onClick={() => setLevel({ view: "chapters", subject: s.subject })}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white p-5 text-start transition-all hover:border-editorial-sage/40 cursor-pointer"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-line)] bg-white p-5 text-start transition-all hover:border-[var(--color-sea)]/50 hover:bg-[var(--color-sea-soft)]/40 motion-safe:hover:-translate-y-0.5 cursor-pointer"
                     >
                       <div>
                         <h3 className="fh-display text-lg text-[var(--color-ink)]">{s.subject}</h3>
-                        <p className="mt-1 text-xs text-editorial-charcoal/70">
+                        <p className="mt-1 text-xs text-[var(--color-ink)]/70">
                           {t("notebook.chaptersCount", { n: s.chapters.length })} · {t("notebook.pointsCount", { n: s.count })}
                         </p>
                       </div>
-                      <ChevronRight size={16} className="shrink-0 text-editorial-charcoal/35 rtl:rotate-180" />
+                      <ChevronRight size={16} className="shrink-0 text-[var(--color-ink)]/35 rtl:rotate-180" />
                     </button>
                   ))}
                 </div>
@@ -280,15 +280,15 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                 <button
                   key={c.chapter}
                   onClick={() => openChapter(level.subject, c.chapter)}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white px-5 py-4 text-start transition-all hover:border-editorial-sage/40 cursor-pointer"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-start transition-all hover:border-[var(--color-sea)]/50 hover:bg-[var(--color-sea-soft)]/40 motion-safe:hover:-translate-y-0.5 cursor-pointer"
                 >
                   <div>
-                    <h4 className="text-sm font-semibold text-editorial-charcoal">{c.chapter}</h4>
-                    <p className="mt-0.5 text-[11px] text-editorial-charcoal/70">
+                    <h4 className="text-sm font-semibold text-[var(--color-ink)]">{c.chapter}</h4>
+                    <p className="mt-0.5 text-[11px] text-[var(--color-ink)]/70">
                       {t("notebook.savedPointsCount", { n: c.count })}
                     </p>
                   </div>
-                  <ChevronRight size={15} className="shrink-0 text-editorial-charcoal/35 rtl:rotate-180" />
+                  <ChevronRight size={15} className="shrink-0 text-[var(--color-ink)]/35 rtl:rotate-180" />
                 </button>
               ))}
             </div>
@@ -298,15 +298,15 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           {!loading && level.view === "points" && (
             <div className="flex flex-col gap-5">
               {/* Faheem notes */}
-              <div className="rounded-2xl border border-editorial-line bg-white p-5">
+              <div className="rounded-2xl border border-[var(--color-line)] bg-white p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-editorial-charcoal">
-                    <Sparkles size={14} className="text-editorial-sage" /> {t("notebook.clarifyNotes")}
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-ink)]">
+                    <Sparkles size={14} className="text-[var(--color-sea)]" /> {t("notebook.clarifyNotes")}
                   </h3>
                   <button
                     onClick={() => makeNotes(level.subject, level.chapter)}
                     disabled={notesBusy || entries.length === 0 || (note !== null && !note.stale)}
-                    className="flex items-center gap-1.5 rounded-full bg-editorial-sage px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-full bg-[var(--color-sea)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                     id="btn-clarify-notes"
                     title={note && !note.stale ? t("notebook.notesUpToDateTitle") : t("notebook.notesMakeTitle")}
                   >
@@ -324,35 +324,35 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                   </button>
                 </div>
                 {notesBusy && (
-                  <p className="mt-3 text-xs leading-relaxed text-editorial-charcoal/70">
+                  <p className="mt-3 text-xs leading-relaxed text-[var(--color-ink)]/70">
                     {t("notebook.notesBusyBody", { n: entries.length })}
                   </p>
                 )}
                 {note && !notesBusy && (
-                  <div className="mt-4 border-t border-editorial-line-light pt-4 text-sm leading-relaxed text-editorial-charcoal">
+                  <div className="mt-4 border-t border-[var(--color-line-soft)] pt-4 text-sm leading-relaxed text-[var(--color-ink)]">
                     <Markdown>{note.text}</Markdown>
-                    <p className="mt-3 text-[10px] text-editorial-charcoal/60">
+                    <p className="mt-3 text-[10px] text-[var(--color-ink)]/60">
                       {t("notebook.notesPrepared", { date: new Date(note.generatedAt).toLocaleString(dateLocale) })}
                       {note.stale ? t("notebook.notesStale") : ""}
                     </p>
                   </div>
                 )}
                 {!note && !notesBusy && (
-                  <p className="mt-3 text-xs leading-relaxed text-editorial-charcoal/70">{t("notebook.notesEmptyBody")}</p>
+                  <p className="mt-3 text-xs leading-relaxed text-[var(--color-ink)]/70">{t("notebook.notesEmptyBody")}</p>
                 )}
               </div>
 
               {/* The saved points */}
               <div className="flex flex-col gap-2.5">
                 {entries.map((e) => (
-                  <div key={e.id} className="group rounded-2xl border border-editorial-line-light bg-white p-4">
+                  <div key={e.id} className="group rounded-2xl border border-[var(--color-line-soft)] bg-white p-4">
                     {e.question && (
                       <p className="mb-1.5 text-[11px] text-[var(--color-ink)]/60">
                         {t("notebook.entryFrom", { q: e.question.slice(0, 120) })}
                       </p>
                     )}
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1 text-sm leading-relaxed text-editorial-charcoal">
+                      <div className="min-w-0 flex-1 text-sm leading-relaxed text-[var(--color-ink)]">
                         <Markdown>{e.text}</Markdown>
                       </div>
                       <button
@@ -367,7 +367,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                   </div>
                 ))}
                 {entries.length === 0 && !loading && (
-                  <p className="py-6 text-center text-sm text-editorial-charcoal/70">{t("notebook.noPointsLeft")}</p>
+                  <p className="py-6 text-center text-sm text-[var(--color-ink)]/70">{t("notebook.noPointsLeft")}</p>
                 )}
               </div>
             </div>
