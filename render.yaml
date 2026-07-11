@@ -56,7 +56,7 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false                  # optional — enables "Continue with Google"
       - key: CORS_ORIGIN
-        value: https://faheem-frontend.onrender.com   # MUST equal the frontend URL
+        value: https://faheem-frontend-vqjw.onrender.com   # MUST equal the frontend URL (Render suffixed the name)
 
   # -------------------------------------------------------------------------
   # Frontend — React + Vite single-page app, published as a static site
@@ -73,7 +73,7 @@ services:
       # Baked into the bundle at BUILD time — must be the backend origin, with
       # scheme, no trailing slash. Change it here (not at runtime) then redeploy.
       - key: VITE_API_URL
-        value: https://faheem-backend.onrender.com    # MUST equal the backend URL
+        value: https://faheem-backend-t2oh.onrender.com    # MUST equal the backend URL (Render suffixed the name)
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false                  # optional — same value as backend GOOGLE_CLIENT_ID
     routes:

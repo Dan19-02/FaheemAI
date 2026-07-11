@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://faheem-frontend.onrender.com/sitemap.xml
+Sitemap: https://faheem-frontend-vqjw.onrender.com/sitemap.xml

@@ -57,10 +57,12 @@ If you enabled Google sign-in, also set **`VITE_GOOGLE_CLIENT_ID`** (same value)
 
 ## 3. Confirm the two service URLs match
 
-The blueprint hardcodes the expected Render URLs so the first deploy just works:
+The blueprint hardcodes the expected Render URLs so the first deploy just works.
+Both plain names were already taken globally, so Render suffixed ours — the ACTUAL
+deployed URLs are:
 
-- `faheem-backend`  → `https://faheem-backend.onrender.com`
-- `faheem-frontend` → `https://faheem-frontend.onrender.com`
+- `faheem-backend`  → `https://faheem-backend-t2oh.onrender.com`
+- `faheem-frontend` → `https://faheem-frontend-vqjw.onrender.com`
 
 **If Render appended a suffix** (because a service name was already taken globally),
 the two cross-references will be wrong. Fix them:
@@ -74,7 +76,7 @@ the two cross-references will be wrong. Fix them:
 You can verify the backend is healthy any time:
 
 ```bash
-curl https://faheem-backend.onrender.com/api/health
+curl https://faheem-backend-t2oh.onrender.com/api/health
 # {"ok":true,"db":"postgres"}     <- "db":"memory" means DATABASE_URL isn't wired
 ```
 
