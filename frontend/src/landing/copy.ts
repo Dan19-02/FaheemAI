@@ -77,6 +77,13 @@ export interface LandingCopy {
     gradesLine: string;
     ways: { title: string; body: string }[];
   };
+  capabilities: {
+    ariaLabel: string;
+    kicker: string;
+    title: string;
+    subtitle: string;
+    cards: { title: string; body: string }[];
+  };
   cta: {
     ariaLabel: string;
     kicker: string;
@@ -175,6 +182,20 @@ const AR: LandingCopy = {
       { title: "أسئلة بالصورة", body: "علِقتَ في مسألة مطبوعة؟ صوّر الصفحة واسأل مباشرةً." },
       { title: "جلسات صوتيّة", body: "تحدّث بصوتك واشرح ما التبس، كدرسٍ خصوصيٍّ لا ينظر إلى الساعة." },
       { title: "عالم تشبيهاتك", body: "عقلٌ يحبّ كرة القدم؟ أو الطبخ؟ اختر العالم الذي تأتي منه أمثلتك." },
+    ],
+  },
+  capabilities: {
+    ariaLabel: "كل ما يفعله المعلّم الصبور",
+    kicker: "معلّمٌ كامل، لا مجرّد إجابة",
+    title: "كلّ ما يفعله المعلّم الصبور، في مكانٍ واحد.",
+    subtitle: "ليست دردشةً عامّة، بل تجربة تعليمٍ كاملة مبنيّة على منهجك — من السؤال إلى الإتقان.",
+    cards: [
+      { title: "إجابةٌ جاهزة للامتحان", body: "إجابةٌ كاملة، منظّمة كما يريدها المُمتحِن، لا فقرةٌ عامّة من الإنترنت." },
+      { title: "يتحقّق قبل أن يعرض", body: "كلّ إجابةٍ رقميّة تُراجَع مرّةً ثانية كممتحِنٍ مستقلّ قبل أن تصل إليك." },
+      { title: "إعادة شرحٍ بنقرة", body: "ما زال غير واضح؟ نقرةٌ واحدة، فيغيّر التشبيه كليًّا حتّى يثبت في ذهنك." },
+      { title: "دفتر التسع خطوات", body: "الفكرة الكبرى، مثالٌ من حياتك، خطأٌ شائع، سؤال تحقّق… درسٌ منظّم لا مجرّد ردّ." },
+      { title: "أسئلة بالصورة وبالصوت", body: "صوّر مسألةً مطبوعة، أو تحدّث بصوتك — كدرسٍ خصوصيٍّ لا ينظر إلى الساعة." },
+      { title: "بلغتَيك معًا", body: "بالعربية أوّلًا، وبالإنجليزية بنقرة. الإجابة نفسها، بلغتك أنت." },
     ],
   },
   cta: {
@@ -282,6 +303,20 @@ const EN: LandingCopy = {
       { title: "Snap a photo", body: "Stuck on a printed problem? Photograph the page and ask right away." },
       { title: "Voice sessions", body: "Speak out loud and explain what confused you, like a private tutor that never watches the clock." },
       { title: "Your analogy world", body: "A mind that loves football? Or cooking? Choose the world your examples come from." },
+    ],
+  },
+  capabilities: {
+    ariaLabel: "Everything a patient teacher does",
+    kicker: "A whole teacher, not just an answer",
+    title: "Everything a patient teacher does, in one place.",
+    subtitle: "Not a generic chatbot — a full teaching experience built on your syllabus, from the question all the way to mastery.",
+    cards: [
+      { title: "Exam-ready answers", body: "A complete answer, structured the way the examiner wants it — not a generic paragraph from the internet." },
+      { title: "Verifies before it shows", body: "Every numeric answer is reviewed a second time, like an independent examiner, before it reaches you." },
+      { title: "Re-explain in one tap", body: "Still unclear? One tap, and it changes the analogy entirely until the idea sticks." },
+      { title: "The nine-step notebook", body: "Big idea, an example from your life, a common mistake, a quick check… a structured lesson, not just a reply." },
+      { title: "Photo and voice questions", body: "Snap a printed problem, or just speak — like a private tutor that never watches the clock." },
+      { title: "Both your languages", body: "Arabic first, English in one tap. The same answer, in your language." },
     ],
   },
   cta: {

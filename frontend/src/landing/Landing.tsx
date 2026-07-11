@@ -30,6 +30,7 @@ import HeroSection from "./HeroSection";
 import ProofSection from "./ProofSection";
 import ReexplainSection from "./ReexplainSection";
 import ReachSection from "./ReachSection";
+import CapabilitiesSection from "./CapabilitiesSection";
 import CtaSection from "./CtaSection";
 import SiteFooter from "./SiteFooter";
 
@@ -67,6 +68,7 @@ export default function Landing() {
         <ProofSection />
         <ReexplainSection />
         <ReachSection />
+        <CapabilitiesSection />
         <CtaSection onAuth={setAuth} />
       </main>
       <SiteFooter onAuth={setAuth} />
