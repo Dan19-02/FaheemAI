@@ -9,9 +9,10 @@
  * sea-teal source chip) already peeks into frame at the hero's foot.
  */
 import { motion } from "motion/react";
-import { ArrowLeft, BookMarked } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookMarked } from "lucide-react";
 import { REAL_SOURCE } from "./realAnswer";
 import { useCalm, EASE } from "./reveals";
+import { useLandingCopy } from "./copy";
 import type { AuthMode } from "./Landing";
 
 interface HeroSectionProps {
@@ -20,6 +21,8 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onAuth }: HeroSectionProps) {
   const calm = useCalm();
+  const { c, dir } = useLandingCopy();
+  const Arrow = dir === "rtl" ? ArrowLeft : ArrowRight;
 
   const enter = (delay: number) =>
     calm
@@ -34,7 +37,7 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
     <section
       id="top"
       className="fh-hero-wash relative overflow-hidden"
-      aria-label="فهيم — معلّمك الصبور بلغتك"
+      aria-label={c.hero.ariaLabel}
     >
       {/* The pearl dot-field, quiet, behind everything. */}
       <div aria-hidden="true" className="fh-pearl-field pointer-events-none absolute inset-0 opacity-[0.5]" />
@@ -59,7 +62,7 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
           style={{ animation: "none" }}
         >
           <BookMarked size={13} aria-hidden="true" />
-          مبنيّ على منهج البحرين — لا إجابات عامّة من الإنترنت
+          {c.hero.chip}
         </motion.p>
 
         <motion.h1
@@ -68,26 +71,24 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
           {...enter(0.15)}
           className="fh-display mt-6 max-w-4xl text-[clamp(2.6rem,8vw,5.2rem)] text-[var(--color-ink)] focus:outline-none"
         >
-          معلّم صبور،{" "}
-          <span className="text-[var(--color-red)]">بلغتك</span>،
-          <br className="hidden sm:block" /> يعرف مقرّرك البحريني{" "}
+          {c.hero.titleLead}{" "}
+          <span className="text-[var(--color-red)]">{c.hero.titleAccent}</span>
+          <br className="hidden sm:block" /> {c.hero.titleMid}{" "}
           <span className="relative whitespace-nowrap text-[var(--color-sea)]">
-            بالضبط
+            {c.hero.titleUnderlined}
             <span
               aria-hidden="true"
               className="absolute inset-x-0 -bottom-1 h-[6px] rounded-full bg-[var(--color-sea)]/20"
             />
           </span>
-          .
+          {c.hero.titleTail}
         </motion.h1>
 
         <motion.p
           {...enter(0.3)}
           className="fh-pretty mt-6 max-w-2xl text-[17px] leading-relaxed text-[var(--color-ink-soft)] md:text-xl"
         >
-          فهيم يأخذ الجملة نفسها التي مرّت عليك في الصف بسرعة، ويشرحها لك بالعربية،
-          بطريقة مختلفة في كلّ مرّة، حتّى تثبت في ذهنك. مربوطٌ بوحدتك ودرسك، لا
-          بإجابةٍ عامّة قد لا تناسب امتحانك.
+          {c.hero.subtitle}
         </motion.p>
 
         <motion.div
@@ -98,23 +99,23 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
             onClick={() => onAuth("signup")}
             className="faheem-btn w-full text-base sm:w-auto"
           >
-            ابدأ مجانًا الآن
+            {c.hero.ctaPrimary}
           </button>
           <a
             href="#proof"
             className="faheem-btn-ghost group inline-flex w-full items-center justify-center gap-2 text-center text-base sm:w-auto"
           >
-            شاهده يشرح بالفعل
-            <ArrowLeft
+            {c.hero.ctaSecondary}
+            <Arrow
               size={17}
               aria-hidden="true"
-              className="transition-transform group-hover:-translate-x-1"
+              className={dir === "rtl" ? "transition-transform group-hover:-translate-x-1" : "transition-transform group-hover:translate-x-1"}
             />
           </a>
         </motion.div>
 
         <motion.p {...enter(0.6)} className="mt-7 text-sm text-[var(--color-ink-soft)]">
-          <span>مجّاني خلال تجربة البحرين · بدون بطاقة</span>
+          <span>{c.hero.freeNote}</span>
           <span aria-hidden="true" className="mx-2">·</span>
           <span>العربية</span>
           <span aria-hidden="true" className="mx-1.5">·</span>
@@ -133,7 +134,7 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
             <BookMarked size={12} />
             {REAL_SOURCE.unit}
           </span>
-          <span className="hidden sm:inline">— هذا ما سيظهر تحت كلّ إجابة. تابع لترى.</span>
+          <span className="hidden sm:inline">{c.hero.sliverNote}</span>
         </div>
       </div>
     </section>

@@ -23,6 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import Login from "../Login";
+import { useLocale } from "../i18n/LocaleContext";
 import "./landing.css";
 import SiteHeader from "./SiteHeader";
 import HeroSection from "./HeroSection";
@@ -37,6 +38,7 @@ export type AuthMode = "login" | "signup";
 export default function Landing() {
   const [auth, setAuth] = useState<AuthMode | null>(null);
   const wasAuth = useRef(false);
+  const { dir, lang } = useLocale();
 
   // Swapping to the auth screen scrolls to its top; coming back restores
   // keyboard/screen-reader context by focusing the page title.
@@ -54,10 +56,11 @@ export default function Landing() {
     return <Login initialMode={auth} onBack={() => setAuth(null)} />;
   }
 
-  // dir="rtl" + lang="ar" are pinned here so the landing is Arabic-first
-  // regardless of what the app's LocaleProvider does with <html>.
+  // The landing follows the app-wide locale: Arabic-first (RTL) by default, and
+  // the header toggle flips the whole page to English (LTR). The two REAL
+  // captured answer cards stay Arabic (pinned locally) — see copy.ts.
   return (
-    <div dir="rtl" lang="ar" className="fh-landing bg-[var(--color-pearl)] text-[var(--color-ink)]">
+    <div dir={dir} lang={lang} className="fh-landing bg-[var(--color-pearl)] text-[var(--color-ink)]">
       <SiteHeader onAuth={setAuth} />
       <main>
         <HeroSection onAuth={setAuth} />

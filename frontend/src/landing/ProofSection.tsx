@@ -20,47 +20,46 @@ import {
   REAL_QUESTION,
   REAL_ANSWER,
   REAL_SOURCE,
-  REAL_CAPTURE_NOTE,
 } from "./realAnswer";
 import { useCalm, fadeUp, sheetRise, bubbleIn } from "./reveals";
+import { useLandingCopy } from "./copy";
 
 const parsed = parseTeachingSections(REAL_ANSWER);
 
 export default function ProofSection() {
   const calm = useCalm();
+  const { c } = useLandingCopy();
 
   return (
     <section
       id="proof"
       className="fh-cv fh-cv-proof fh-night-wash relative overflow-hidden bg-[var(--color-night)] px-5 py-20 text-[var(--color-chalk)] md:px-8 md:py-28"
-      aria-label="إجابة حقيقية من فهيم، مبنيّة على منهجك"
+      aria-label={c.proof.ariaLabel}
     >
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* The turn: from claim to proof. */}
         <motion.p {...fadeUp(calm)} className="text-sm font-bold tracking-wide text-[var(--color-gold)]">
-          الدقّة هي المنتج
+          {c.proof.kicker}
         </motion.p>
         <motion.h2
           {...fadeUp(calm, calm ? 0 : 0.05)}
           className="fh-display mt-3 max-w-3xl text-[clamp(2rem,5.5vw,3.4rem)] text-[var(--color-chalk)]"
         >
-          سؤالٌ واحد. إجابةٌ كاملة، بالعربية، من درسك أنت.
+          {c.proof.title}
         </motion.h2>
         <motion.p
           {...fadeUp(calm, calm ? 0 : 0.1)}
           className="fh-pretty mt-5 max-w-2xl text-[15px] leading-relaxed text-[var(--color-chalk-dim)] md:text-base"
         >
-          هذه ليست صورة للمنتج، بل المنتج نفسه. طالبٌ يكتب سؤاله كما سمعه في الصف،
-          فيكتب فهيم الإجابة كاملةً، يتحقّق منها، ثمّ يعرضها. لاحظ الشارة الخضراء:
-          هي وحدتك ودرسك بالضبط.
+          {c.proof.para}
         </motion.p>
 
         {/* The conversation: student question, then the grounded answer sheet. */}
         <div className="mt-12 flex flex-col gap-5">
           {/* Student bubble — sits at the start (right) in RTL. */}
           <motion.div {...bubbleIn(calm, 18)} className="flex flex-col items-start">
-            <div className="mb-1.5 px-1 text-[11px] text-[var(--color-chalk-dim)]">أنت، الساعة 11 مساءً</div>
-            <div className="faheem-bubble-user max-w-[92%] rounded-tr-md px-4 py-3 text-[15px] leading-relaxed md:max-w-[75%] md:text-base">
+            <div className="mb-1.5 px-1 text-[11px] text-[var(--color-chalk-dim)]">{c.proof.youLabel}</div>
+            <div dir="rtl" lang="ar" className="faheem-bubble-user max-w-[92%] rounded-tr-md px-4 py-3 text-[15px] leading-relaxed md:max-w-[75%] md:text-base">
               {REAL_QUESTION}
             </div>
           </motion.div>
@@ -68,9 +67,9 @@ export default function ProofSection() {
           {/* The answer sheet: the product's own renderer, pearl paper glowing. */}
           <motion.div {...sheetRise(calm)} className="flex flex-col items-end">
             <div className="mb-1.5 px-1 text-[11px] text-[var(--color-chalk-dim)]">
-              فهيم · مُولّدة مباشرةً، غير معدّلة
+              {c.proof.faheemLabel}
             </div>
-            <div className="faheem-card w-full max-w-full overflow-hidden bg-[var(--color-pearl)] p-4 text-[var(--color-ink)] sm:p-6 md:p-8">
+            <div dir="rtl" lang="ar" className="faheem-card w-full max-w-full overflow-hidden bg-[var(--color-pearl)] p-4 text-[var(--color-ink)] sm:p-6 md:p-8">
               {/* The curriculum-source trust chip — the hero interaction. */}
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="fh-source-chip">
@@ -99,16 +98,16 @@ export default function ProofSection() {
                   className="pointer-events-none mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--color-line-soft)] pt-2.5 select-none"
                 >
                   <span className="fh-breathe flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--color-line-soft)] bg-[var(--color-sand)] px-3 py-1 text-xs font-semibold text-[var(--color-red)]">
-                    <Sparkles size={12} /> ما زال غير واضح؟
+                    <Sparkles size={12} /> {c.proof.chipStillUnclear}
                   </span>
                   <span className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--color-line-soft)] bg-[var(--color-sand)] px-3 py-1 text-xs font-semibold text-[var(--color-sea)]">
-                    <CheckCircle2 size={12} /> تدقيق عميق
+                    <CheckCircle2 size={12} /> {c.proof.chipDeepCheck}
                   </span>
                   <span className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--color-line-soft)] bg-[var(--color-sand)] px-3 py-1 text-xs font-semibold text-[var(--color-sea)]">
-                    <BookMarked size={12} /> احفظ الأسطر
+                    <BookMarked size={12} /> {c.proof.chipSaveLines}
                   </span>
                   <span className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--color-line-soft)] bg-[var(--color-sand)] px-3 py-1 text-xs font-semibold text-[var(--color-sea)] sm:mr-auto">
-                    <Volume2 size={12} /> استمع
+                    <Volume2 size={12} /> {c.proof.chipListen}
                   </span>
                 </div>
               </div>
@@ -120,8 +119,7 @@ export default function ProofSection() {
           {...fadeUp(calm)}
           className="fh-pretty mt-5 text-[13px] leading-relaxed text-[var(--color-chalk-dim)]"
         >
-          {REAL_CAPTURE_NOTE} المخطّط والجدول وسؤال التحقّق وسطر المراجعة الذاتيّة،
-          كلّها جاءت من المعلّم — لا شيء منها مُصمّم يدويًّا.
+          {c.proof.captureNote}
         </motion.p>
       </div>
     </section>

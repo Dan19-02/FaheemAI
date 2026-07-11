@@ -16,72 +16,55 @@ import { Sparkles } from "lucide-react";
 import { Markdown } from "../Markdown";
 import { REAL_REEXPLANATION, REAL_STILL_FUZZY_PROMPT } from "./realAnswer";
 import { useCalm, fadeUp, sheetRise, bubbleIn, drawX } from "./reveals";
-
-const STEPS = [
-  {
-    title: "يبدأ من الإحساس",
-    body: "من شعور الفكرة، لا من اسمها الرسميّ. نُنحّي الصيغة جانبًا أوّلًا.",
-  },
-  {
-    title: "مثالٌ جديد من عالمك",
-    body: "كرة قدم، طبخ، عربة تسوّق… تشبيهٌ مختلف في كلّ مرّة، لا يتكرّر أبدًا.",
-  },
-  {
-    title: "أصغر خطوة، مع رسمة",
-    body: "قطعةٌ صغيرة في كلّ مرّة، غالبًا مع مخطّطٍ يرسمه لك في اللحظة.",
-  },
-  {
-    title: "يجد مكان الالتباس",
-    body: "سؤالٌ لطيف يحدّد الجملة التي توقّف عندها الفهم بالضبط.",
-  },
-];
+import { useLandingCopy } from "./copy";
 
 export default function ReexplainSection() {
   const calm = useCalm();
+  const { c } = useLandingCopy();
+  const STEPS = c.reexplain.steps;
 
   return (
     <section
       id="how"
       className="fh-cv fh-cv-reexplain relative bg-[var(--color-pearl)] px-5 py-20 md:px-8 md:py-28"
-      aria-label="يبقى حتّى تفهم"
+      aria-label={c.reexplain.ariaLabel}
     >
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
           {/* The pitch, resting while the proof glows beside it. */}
           <div className="lg:sticky lg:top-24">
             <h2 className="fh-display text-[clamp(2rem,5vw,3.2rem)] text-[var(--color-ink)]">
-              يبقى معك حتّى تفهم.
+              {c.reexplain.title}
             </h2>
             <p className="fh-pretty mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--color-ink-soft)] md:text-base">
-              الفهم نادرًا ما يأتي من أوّل مرّة، وفهيم مبنيٌّ على هذه الحقيقة. تحت
-              كلّ إجابة زرٌّ واحد صغير:
+              {c.reexplain.para1}
             </p>
             <span
               aria-hidden="true"
               className="fh-breathe pointer-events-none mt-5 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-sand)] px-4 py-2 text-sm font-semibold text-[var(--color-red)] select-none"
             >
-              <Sparkles size={14} /> ما زال غير واضح؟
+              <Sparkles size={14} /> {c.reexplain.chip}
             </span>
             <p className="fh-pretty mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--color-ink-soft)] md:text-base">
-              نقرةٌ واحدة، دون أن تحتاج إلى صياغة التباسك بالكلمات. ضغطناها على
-              إجابة نيوتن بالأعلى، فتمهّل المعلّم، وترك الصيغة، وغيّر التشبيه
-              كليًّا. من غير أيّ تعديل:
+              {c.reexplain.para2}
             </p>
           </div>
 
           {/* The proof: the real re-explanation. */}
           <div className="flex flex-col gap-4">
             <motion.div {...bubbleIn(calm, 18)} className="flex flex-col items-start">
-              <div className="mb-1.5 px-1 text-[11px] text-[var(--color-ink-soft)]">أنت، بنقرةٍ واحدة</div>
-              <div className="faheem-bubble-user max-w-[92%] rounded-tr-md px-4 py-3 text-[15px] leading-relaxed md:max-w-[82%]">
+              <div className="mb-1.5 px-1 text-[11px] text-[var(--color-ink-soft)]">{c.reexplain.youLabel}</div>
+              <div dir="rtl" lang="ar" className="faheem-bubble-user max-w-[92%] rounded-tr-md px-4 py-3 text-[15px] leading-relaxed md:max-w-[82%]">
                 {REAL_STILL_FUZZY_PROMPT}
               </div>
             </motion.div>
             <motion.div {...sheetRise(calm)} className="flex flex-col items-end">
-              <div className="mb-1.5 px-1 text-[11px] text-[var(--color-ink-soft)]">فهيم · غير معدّلة</div>
+              <div className="mb-1.5 px-1 text-[11px] text-[var(--color-ink-soft)]">{c.reexplain.faheemLabel}</div>
               <div
                 tabIndex={0}
                 role="region"
+                dir="rtl"
+                lang="ar"
                 aria-label="إعادة الشرح الحقيقية من فهيم، قابلة للتمرير"
                 className="faheem-card max-h-[440px] w-full min-w-0 overflow-y-auto bg-[var(--color-pearl)] p-4 text-sm leading-relaxed text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-red)] md:p-6"
               >
@@ -89,8 +72,7 @@ export default function ReexplainSection() {
               </div>
             </motion.div>
             <p className="fh-pretty text-[15px] leading-relaxed text-[var(--color-ink-soft)]">
-              الردّ الحقيقيّ ينتهي بسؤال: «هل نجرّب سؤال كرة القدم الآن؟» وسينتظر
-              جوابك. إنّه ينتظر دائمًا.
+              {c.reexplain.endsWithQuestion}
             </p>
           </div>
         </div>
@@ -101,8 +83,7 @@ export default function ReexplainSection() {
             {...fadeUp(calm)}
             className="fh-display max-w-2xl text-xl leading-snug text-[var(--color-ink)] md:text-2xl"
           >
-            ما شاهدته له شكل: المعلّم ينزل معك أربع درجات، بقدر ما تحتاج، ولا
-            يكرّر نفسه، ولا يتنهّد، ولا يمضي قُدمًا وأنت ما زلت تائهًا.
+            {c.reexplain.shape}
           </motion.p>
 
           <ol className="mt-10 flex flex-col">

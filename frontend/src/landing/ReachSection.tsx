@@ -14,47 +14,29 @@ import { motion } from "motion/react";
 import { Camera, Mic, Compass } from "lucide-react";
 import { REAL_VOICES } from "./realAnswer";
 import { useCalm, fadeUp, sheetRise } from "./reveals";
+import { useLandingCopy } from "./copy";
 
-const BOARDS = ["منهج البحرين · وزارة التربية", "CBSE", "Cambridge", "دراسة عامّة"];
-
-const WAYS = [
-  {
-    icon: Camera,
-    title: "أسئلة بالصورة",
-    body: "علِقتَ في مسألة مطبوعة؟ صوّر الصفحة واسأل مباشرةً.",
-  },
-  {
-    icon: Mic,
-    title: "جلسات صوتيّة",
-    body: "تحدّث بصوتك واشرح ما التبس، كدرسٍ خصوصيٍّ لا ينظر إلى الساعة.",
-  },
-  {
-    icon: Compass,
-    title: "عالم تشبيهاتك",
-    body: "عقلٌ يحبّ كرة القدم؟ أو الطبخ؟ اختر العالم الذي تأتي منه أمثلتك.",
-  },
-];
-
+const WAY_ICONS = [Camera, Mic, Compass];
 const FAN = ["lg:-rotate-[1.2deg]", "lg:rotate-[1.2deg]"];
 
 export default function ReachSection() {
   const calm = useCalm();
+  const { c } = useLandingCopy();
+  const BOARDS = c.reach.boards;
 
   return (
     <section
       id="reach"
       className="fh-cv fh-cv-reach relative bg-[var(--color-sand)] px-5 py-20 md:px-8 md:py-28"
-      aria-label="مصنوع لكلّ صفٍّ في البحرين"
+      aria-label={c.reach.ariaLabel}
     >
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 className="fh-display text-[clamp(2rem,5vw,3.2rem)] text-[var(--color-ink)]">
-            يعرف في أيّ صفٍّ تجلس.
+            {c.reach.title}
           </h2>
           <p className="fh-pretty mt-5 text-[15px] leading-relaxed text-[var(--color-ink-soft)] md:text-base">
-            أخبره بمنهجك، وصفّك من التاسع إلى الثاني عشر، ولغتك، والتشبيهات التي
-            تناسب حياتك. الفكرة الفيزيائيّة نفسها، سُئلت للمعلّم الحيّ مرّتين، مرّةً
-            بكلّ لغة:
+            {c.reach.para}
           </p>
         </div>
 
@@ -88,17 +70,16 @@ export default function ReachSection() {
           ))}
         </div>
         <p className="mt-4 text-[13px] leading-relaxed text-[var(--color-ink-soft)]">
-          سؤالٌ واحد، سُئل للمعلّم الحيّ مرّتين، مرّةً بكلّ لغة. كلا السطرين
-          إجابتان كاملتان، غير معدّلتين.
+          {c.reach.twoAnswersNote}
         </p>
 
         <div className="mt-14 flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-16">
           {/* Boards */}
           <div>
-            <p className="fh-display text-sm text-[var(--color-ink)]">مضبوطٌ على منهجك وامتحانك</p>
+            <p className="fh-display text-sm text-[var(--color-ink)]">{c.reach.boardsLabel}</p>
             <ul className="mt-3 flex max-w-md flex-wrap gap-2">
               {BOARDS.map((b) => {
-                const latin = b === "CBSE" || b === "Cambridge";
+                const latin = /^[\x00-\x7F]/.test(b);
                 return (
                   <li
                     key={b}
@@ -110,24 +91,26 @@ export default function ReachSection() {
               })}
             </ul>
             <p className="mt-4 text-sm text-[var(--color-ink-soft)]">
-              الصفوف 9 إلى 12 · العربية <span aria-hidden="true">·</span>{" "}
-              <span className="fh-latin">English</span>
+              {c.reach.gradesLine}
             </p>
           </div>
 
           {/* Ways in */}
           <div className="flex flex-1 flex-col gap-5 md:max-w-xl">
-            {WAYS.map((w) => (
-              <motion.div key={w.title} {...fadeUp(calm)} className="flex items-start gap-4">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-sea-soft)] text-[var(--color-sea)]">
-                  <w.icon size={17} aria-hidden="true" />
-                </span>
-                <p className="fh-pretty text-[15px] leading-relaxed text-[var(--color-ink-soft)]">
-                  <strong className="fh-display font-bold text-[var(--color-ink)]">{w.title}.</strong>{" "}
-                  {w.body}
-                </p>
-              </motion.div>
-            ))}
+            {c.reach.ways.map((w, i) => {
+              const Icon = WAY_ICONS[i] ?? Camera;
+              return (
+                <motion.div key={w.title} {...fadeUp(calm)} className="flex items-start gap-4">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-sea-soft)] text-[var(--color-sea)]">
+                    <Icon size={17} aria-hidden="true" />
+                  </span>
+                  <p className="fh-pretty text-[15px] leading-relaxed text-[var(--color-ink-soft)]">
+                    <strong className="fh-display font-bold text-[var(--color-ink)]">{w.title}.</strong>{" "}
+                    {w.body}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

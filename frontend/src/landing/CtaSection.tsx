@@ -11,27 +11,22 @@ import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import type { AuthMode } from "./Landing";
 import { useCalm, fadeUp, springIn } from "./reveals";
+import { useLandingCopy } from "./copy";
 
 interface CtaSectionProps {
   onAuth: (mode: AuthMode) => void;
 }
 
-const INCLUDED = [
-  "منهج البحرين · CBSE · Cambridge",
-  "العربية والإنجليزية",
-  "إجابات جاهزة للامتحان + دفتر التسع خطوات",
-  "تدقيق عميق كممتحنٍ ثانٍ",
-  "أسئلة بالصورة وجلسات صوتيّة",
-];
-
 export default function CtaSection({ onAuth }: CtaSectionProps) {
   const calm = useCalm();
+  const { c } = useLandingCopy();
+  const INCLUDED = c.cta.included;
 
   return (
     <section
       id="start"
       className="fh-cv fh-cv-cta fh-night-wash relative overflow-hidden bg-[var(--color-night)] px-5 py-24 text-[var(--color-chalk)] md:px-8 md:py-32"
-      aria-label="ابدأ التعلّم"
+      aria-label={c.cta.ariaLabel}
     >
       {/* The pearl returns, a soft horizon of light at the top-start. */}
       <div
@@ -41,20 +36,19 @@ export default function CtaSection({ onAuth }: CtaSectionProps) {
 
       <div className="relative z-10 mx-auto max-w-3xl text-center">
         <motion.p {...fadeUp(calm)} className="text-sm font-bold tracking-wide text-[var(--color-gold)]">
-          مجّاني خلال تجربة البحرين
+          {c.cta.kicker}
         </motion.p>
         <motion.h2
           {...fadeUp(calm, calm ? 0 : 0.05)}
           className="fh-display mt-4 text-[clamp(2.2rem,6vw,4rem)] leading-[1.1] text-[var(--color-chalk)]"
         >
-          غدًا، حين تمرّ كلمةٌ بسرعة في الصف، دعها تمرّ.
+          {c.cta.title}
         </motion.h2>
         <motion.p
           {...fadeUp(calm, calm ? 0 : 0.1)}
           className="fh-pretty mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-chalk-dim)]"
         >
-          صار لديك معلّمٌ صبور بلغتك، يعرف مقرّرك، ويبقى معك حتّى تفهم. مجّانيٌّ ما
-          دامت التجربة، لأنّنا نريد أن نكسب ثقتك أوّلًا.
+          {c.cta.para}
         </motion.p>
 
         <motion.div {...springIn(calm, calm ? 0 : 0.15)} className="mt-10">
@@ -62,17 +56,17 @@ export default function CtaSection({ onAuth }: CtaSectionProps) {
             onClick={() => onAuth("signup")}
             className="faheem-btn px-9 py-4 text-base"
           >
-            ابدأ التعلّم مجانًا
+            {c.cta.button}
           </button>
           <p className="mt-4 text-[13px] text-[var(--color-chalk-dim)]">
-            بدون بطاقة. سجّل الدخول واسأل سؤالك الأوّل.
+            {c.cta.buttonNote}
           </p>
         </motion.div>
 
         {/* What every student gets — the receipt, calm and honest. */}
         <motion.ul
           {...fadeUp(calm)}
-          className="mx-auto mt-14 flex max-w-xl flex-col gap-2.5 text-right"
+          className="mx-auto mt-14 flex max-w-xl flex-col gap-2.5 text-start"
         >
           {INCLUDED.map((item) => (
             <li key={item} className="flex items-start gap-3">
@@ -86,9 +80,7 @@ export default function CtaSection({ onAuth }: CtaSectionProps) {
           {...fadeUp(calm)}
           className="fh-pretty mx-auto mt-12 max-w-2xl border-t border-[var(--color-night-line)] pt-8 text-[14px] leading-relaxed text-[var(--color-chalk-dim)]"
         >
-          إلى وليّ الأمر الذي يقرأ هذا: لا شيء تدفعه ولا شيء تلغيه. فهيم مجّانيٌّ
-          طوال التجربة. وإذا أطلقنا خطّةً يومًا ما، فسنعلن عنها بوضوح، لن تُفعَّل
-          بصمت، ولن تكون بعدّادٍ تنازليّ.
+          {c.cta.parentNote}
         </motion.p>
       </div>
     </section>
