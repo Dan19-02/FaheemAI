@@ -1,9 +1,9 @@
 /**
- * CTA — the calm ask that resolves the page's master loop.
+ * CTA, the calm ask that resolves the page's master loop.
  *
  * No pricing (v2 is free during the Bahrain pilot): one honest promise instead
  * of a plan, and one calm call to action. Deep-sea night surface with the
- * pearl returning as a soft horizon of light — the page ends warm and settled,
+ * pearl returning as a soft horizon of light, the page ends warm and settled,
  * not with a countdown or a hard sell. The paragraph for the parent is the
  * flattest, most honest line on the page, on purpose.
  */
@@ -63,7 +63,7 @@ export default function CtaSection({ onAuth }: CtaSectionProps) {
           </p>
         </motion.div>
 
-        {/* What every student gets — the receipt, calm and honest. */}
+        {/* What every student gets, the receipt, calm and honest. */}
         <motion.ul
           {...fadeUp(calm)}
           className="mx-auto mt-14 flex max-w-xl flex-col gap-2.5 text-start"

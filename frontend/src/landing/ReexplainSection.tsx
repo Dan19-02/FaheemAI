@@ -1,9 +1,9 @@
 /**
- * REEXPLAIN — the teaching style, and a breath after the dense night proof.
+ * REEXPLAIN, the teaching style, and a breath after the dense night proof.
  *
  * Understanding rarely lands on the first try. Under every answer sits one
  * button: "ما زال غير واضح؟". One tap, no need to put your confusion into
- * words, and the teacher explains again a completely different way — a fresh
+ * words, and the teacher explains again a completely different way, a fresh
  * analogy, no formula, until it lands. We show the REAL re-explanation the
  * live product gave when we tapped it on the answer above, then name the shape
  * of what just happened as four calm steps.

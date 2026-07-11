@@ -8,7 +8,7 @@
  *
  * IMPORTANT: switching language ONLY changes which message dictionary `t` reads
  * from and the document direction. It NEVER transforms, reorders, or rewrites any
- * stored message / notebook / chat content — that text is rendered verbatim.
+ * stored message / notebook / chat content, that text is rendered verbatim.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import ar from "./ar.json";
@@ -68,8 +68,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   // RENDER-ONLY TOGGLE GUARANTEE: this is the single entry point for changing
   // language. It ONLY updates `lang` (which re-points `t` and flips `dir` via the
-  // effect above) and persists the choice. It does NOT — and any UI toggle wired
-  // to it MUST NOT — transform, reorder, translate, or rewrite any stored
+  // effect above) and persists the choice. It does NOT, and any UI toggle wired
+  // to it MUST NOT, transform, reorder, translate, or rewrite any stored
   // message / notebook / chat text. Content is always rendered verbatim.
   const setLang = useCallback((next: Lang) => {
     setLangState(next);

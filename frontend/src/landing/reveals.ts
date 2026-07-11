@@ -9,9 +9,9 @@
 import { useReducedMotion } from "motion/react";
 import { useStaticStart } from "./useStaticStart";
 
-/** Confident arrival — mirrors --ease-out in index.css. */
+/** Confident arrival, mirrors --ease-out in index.css. */
 export const EASE = [0.22, 1, 0.36, 1] as const;
-/** Light life on micro-moments — mirrors --ease-spring. */
+/** Light life on micro-moments, mirrors --ease-spring. */
 export const SPRING = [0.34, 1.4, 0.64, 1] as const;
 
 /** True when the page should skip all entrance choreography. */

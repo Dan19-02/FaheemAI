@@ -1,9 +1,9 @@
 /**
- * TRUST — why you can trust every answer.
+ * TRUST, why you can trust every answer.
  *
  * Faheem is in trial with no real user base yet, so this is honest social proof:
  * not fabricated numbers or testimonials, but the four accuracy mechanisms the
- * product actually runs — and a fourth pillar that says so out loud. Warm pearl
+ * product actually runs, and a fourth pillar that says so out loud. Warm pearl
  * surface, the gold "accuracy is the product" kicker echoing the Proof section.
  */
 import { motion } from "motion/react";

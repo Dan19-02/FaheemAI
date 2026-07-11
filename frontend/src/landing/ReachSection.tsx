@@ -1,9 +1,9 @@
 /**
- * REACH — who Faheem is for, and proof it truly speaks both languages.
+ * REACH, who Faheem is for, and proof it truly speaks both languages.
  *
  * It knows which classroom you sit in: your board, your grade (9-12), your
  * language, and the world your analogies come from. The same physics idea,
- * asked to the live product twice — once in Arabic, once in English — sits as
+ * asked to the live product twice, once in Arabic, once in English, sits as
  * two real answer cards. Then the boards and the ways in (photo, voice,
  * analogy world) as calm rows.
  *

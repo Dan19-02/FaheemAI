@@ -9,7 +9,7 @@
  *
  * NOT translated here (on purpose): the two REAL captured answer cards in the
  * Proof and Re-explain sections. Those are genuine, unedited Arabic product
- * output — the page's core "no mockups" proof — so they stay Arabic (pinned
+ * output, the page's core "no mockups" proof, so they stay Arabic (pinned
  * dir="rtl") in both languages, and the Reach section already shows the same
  * idea answered in Arabic AND English side by side. Only the narration around
  * them is translated.
@@ -32,9 +32,9 @@ export interface LandingCopy {
     ariaLabel: string;
     chip: string;
     titleLead: string; // "A patient teacher,"
-    titleAccent: string; // red — "in your language"
+    titleAccent: string; // red, "in your language"
     titleMid: string; // ", that knows your Bahrain syllabus"
-    titleUnderlined: string; // teal — "exactly"
+    titleUnderlined: string; // teal, "exactly"
     titleTail: string; // "."
     subtitle: string;
     ctaPrimary: string;
@@ -129,7 +129,7 @@ export interface LandingCopy {
 
 const AR: LandingCopy = {
   header: {
-    homeAria: "فهيم — الصفحة الرئيسية",
+    homeAria: "فهيم, الصفحة الرئيسية",
     navAria: "التنقّل الرئيسي",
     proof: "شاهده يشرح",
     reach: "لِمن هو",
@@ -139,8 +139,8 @@ const AR: LandingCopy = {
     switchToArabic: "التبديل إلى العربية",
   },
   hero: {
-    ariaLabel: "فهيم — معلّمك الصبور بلغتك",
-    chip: "مبنيّ على منهج البحرين — لا إجابات عامّة من الإنترنت",
+    ariaLabel: "فهيم, معلّمك الصبور بلغتك",
+    chip: "مبنيّ على منهج البحرين, لا إجابات عامّة من الإنترنت",
     titleLead: "معلّم صبور،",
     titleAccent: "بلغتك،",
     titleMid: "يعرف مقرّرك البحريني",
@@ -151,7 +151,7 @@ const AR: LandingCopy = {
     ctaPrimary: "ابدأ مجانًا الآن",
     ctaSecondary: "شاهده يشرح بالفعل",
     freeNote: "مجّاني خلال تجربة البحرين · بدون بطاقة",
-    sliverNote: "— هذا ما سيظهر تحت كلّ إجابة. تابع لترى.",
+    sliverNote: ", هذا ما سيظهر تحت كلّ إجابة. تابع لترى.",
   },
   proof: {
     ariaLabel: "إجابة حقيقية من فهيم، مبنيّة على منهجك",
@@ -165,7 +165,7 @@ const AR: LandingCopy = {
     chipSaveLines: "احفظ الأسطر",
     chipListen: "استمع",
     captureNote:
-      "إجابة حقيقية، وُلّدت مباشرةً من فهيم. غير معدّلة. المخطّط والجدول وسؤال التحقّق وسطر المراجعة الذاتيّة، كلّها جاءت من المعلّم — لا شيء منها مُصمّم يدويًّا.",
+      "إجابة حقيقية، وُلّدت مباشرةً من فهيم. غير معدّلة. المخطّط والجدول وسؤال التحقّق وسطر المراجعة الذاتيّة، كلّها جاءت من المعلّم, لا شيء منها مُصمّم يدويًّا.",
   },
   reexplain: {
     ariaLabel: "يبقى حتّى تفهم",
@@ -208,13 +208,13 @@ const AR: LandingCopy = {
     ariaLabel: "كل ما يفعله المعلّم الصبور",
     kicker: "معلّمٌ كامل، لا مجرّد إجابة",
     title: "كلّ ما يفعله المعلّم الصبور، في مكانٍ واحد.",
-    subtitle: "ليست دردشةً عامّة، بل تجربة تعليمٍ كاملة مبنيّة على منهجك — من السؤال إلى الإتقان.",
+    subtitle: "ليست دردشةً عامّة، بل تجربة تعليمٍ كاملة مبنيّة على منهجك, من السؤال إلى الإتقان.",
     cards: [
       { title: "إجابةٌ جاهزة للامتحان", body: "إجابةٌ كاملة، منظّمة كما يريدها المُمتحِن، لا فقرةٌ عامّة من الإنترنت." },
       { title: "يتحقّق قبل أن يعرض", body: "كلّ إجابةٍ رقميّة تُراجَع مرّةً ثانية كممتحِنٍ مستقلّ قبل أن تصل إليك." },
       { title: "إعادة شرحٍ بنقرة", body: "ما زال غير واضح؟ نقرةٌ واحدة، فيغيّر التشبيه كليًّا حتّى يثبت في ذهنك." },
       { title: "دفتر التسع خطوات", body: "الفكرة الكبرى، مثالٌ من حياتك، خطأٌ شائع، سؤال تحقّق… درسٌ منظّم لا مجرّد ردّ." },
-      { title: "أسئلة بالصورة وبالصوت", body: "صوّر مسألةً مطبوعة، أو تحدّث بصوتك — كدرسٍ خصوصيٍّ لا ينظر إلى الساعة." },
+      { title: "أسئلة بالصورة وبالصوت", body: "صوّر مسألةً مطبوعة، أو تحدّث بصوتك, كدرسٍ خصوصيٍّ لا ينظر إلى الساعة." },
       { title: "بلغتَيك معًا", body: "بالعربية أوّلًا، وبالإنجليزية بنقرة. الإجابة نفسها، بلغتك أنت." },
     ],
   },
@@ -236,7 +236,7 @@ const AR: LandingCopy = {
         title: "لوليّ الأمر",
         points: [
           "مجّانيٌّ طوال التجربة، بدون بطاقة ولا التزام.",
-          "لا تفعيلٌ صامت ولا عدّادٌ تنازليّ — أيّ خطّةٍ تُعلَن بوضوح.",
+          "لا تفعيلٌ صامت ولا عدّادٌ تنازليّ, أيّ خطّةٍ تُعلَن بوضوح.",
           "مبنيٌّ على المنهج الرسميّ، لا تشتيت ولا محتوى غريب.",
         ],
       },
@@ -246,12 +246,12 @@ const AR: LandingCopy = {
     ariaLabel: "لماذا تثق بكلّ إجابة",
     kicker: "الدقّة هي المنتج",
     title: "لماذا تثق بكلّ إجابة.",
-    subtitle: "لأنّ الثقة لا تُطلب، بل تُبنى — سطرًا بعد سطر.",
+    subtitle: "لأنّ الثقة لا تُطلب، بل تُبنى, سطرًا بعد سطر.",
     pillars: [
       { title: "تحقّقٌ قبل العرض", body: "كلّ إجابةٍ رقميّة تُحسب مرّةً ثانية بطريقةٍ مستقلّة قبل أن تصل إليك." },
       { title: "مربوطٌ بدرسك", body: "الإجابة تأتي من وحدتك ومنهجك، لا من معلوماتٍ عامّة قد لا تناسب امتحانك." },
       { title: "تدقيقٌ كممتحِنٍ ثانٍ", body: "زرٌّ واحد يعيد فحص الإجابة كأنّ ممتحِنًا آخر راجعها بدقّة." },
-      { title: "بلا أرقامٍ مزيّفة", body: "نحن في مرحلة تجربة. لا ادّعاءاتٍ ولا شهاداتٍ مُختلَقة — الدقّة تتكلّم عن نفسها." },
+      { title: "بلا أرقامٍ مزيّفة", body: "نحن في مرحلة تجربة. لا ادّعاءاتٍ ولا شهاداتٍ مُختلَقة, الدقّة تتكلّم عن نفسها." },
     ],
   },
   faq: {
@@ -260,7 +260,7 @@ const AR: LandingCopy = {
     title: "أسئلة يطرحها الطلاب.",
     items: [
       { q: "هل هو مجّانيّ فعلًا؟", a: "نعم، مجّانيٌّ بالكامل خلال تجربة البحرين. بدون بطاقة، ودون أيّ التزام." },
-      { q: "أيّ المناهج والصفوف؟", a: "منهج البحرين (وزارة التربية)، وCBSE، وCambridge — للصفوف التاسع إلى الثاني عشر." },
+      { q: "أيّ المناهج والصفوف؟", a: "منهج البحرين (وزارة التربية)، وCBSE، وCambridge, للصفوف التاسع إلى الثاني عشر." },
       { q: "كيف أثق أنّ الإجابة صحيحة؟", a: "كلّ إجابةٍ تُتحقّق قبل عرضها، وتُربط بدرسك، ويمكن تدقيقها مرّةً ثانية كممتحِن." },
       { q: "بالعربية أم بالإنجليزية؟", a: "بالاثنتين. اسأل بأيّ لغة، وبدّل أيّ إجابةٍ إلى الأخرى بنقرة." },
       { q: "أيّ المواد؟", a: "الفيزياء والكيمياء والأحياء والرياضيّات وغيرها من مواد منهجك." },
@@ -299,7 +299,7 @@ const AR: LandingCopy = {
 
 const EN: LandingCopy = {
   header: {
-    homeAria: "Faheem — home",
+    homeAria: "Faheem, home",
     navAria: "Main navigation",
     proof: "See it teach",
     reach: "Who it's for",
@@ -309,25 +309,25 @@ const EN: LandingCopy = {
     switchToArabic: "Switch to Arabic",
   },
   hero: {
-    ariaLabel: "Faheem — your patient teacher, in your language",
-    chip: "Built on the Bahrain curriculum — not generic answers from the internet",
+    ariaLabel: "Faheem, your patient teacher, in your language",
+    chip: "Built on the Bahrain curriculum, not generic answers from the internet",
     titleLead: "A patient teacher,",
     titleAccent: "in your language,",
     titleMid: "that knows your Bahrain syllabus",
     titleUnderlined: "exactly",
     titleTail: ".",
     subtitle:
-      "Faheem takes the very sentence that rushed past you in class and explains it in Arabic, a different way each time, until it sticks. Tied to your unit and your lesson — not a generic answer that may not match your exam.",
+      "Faheem takes the very sentence that rushed past you in class and explains it in Arabic, a different way each time, until it sticks. Tied to your unit and your lesson, not a generic answer that may not match your exam.",
     ctaPrimary: "Start free now",
     ctaSecondary: "Watch it actually teach",
     freeNote: "Free during the Bahrain trial · no card",
-    sliverNote: "— this appears under every answer. Keep going to see.",
+    sliverNote: ", this appears under every answer. Keep going to see.",
   },
   proof: {
     ariaLabel: "A real answer from Faheem, built on your syllabus",
     kicker: "Accuracy is the product",
     title: "One question. A complete answer, in Arabic, from your own lesson.",
-    para: "This isn't a screenshot of the product — it's the product itself. A student types their question as they heard it in class, and Faheem writes the full answer, verifies it, then shows it. Notice the green chip: it's your exact unit and lesson.",
+    para: "This isn't a screenshot of the product, it's the product itself. A student types their question as they heard it in class, and Faheem writes the full answer, verifies it, then shows it. Notice the green chip: it's your exact unit and lesson.",
     youLabel: "You, 11 PM",
     faheemLabel: "Faheem · generated live, unedited",
     chipStillUnclear: "Still unclear?",
@@ -335,7 +335,7 @@ const EN: LandingCopy = {
     chipSaveLines: "Save the lines",
     chipListen: "Listen",
     captureNote:
-      "A real answer, generated live by Faheem. Unedited. The diagram, the table, the quick-check question and the self-review line all came from the teacher — none of it hand-designed.",
+      "A real answer, generated live by Faheem. Unedited. The diagram, the table, the quick-check question and the self-review line all came from the teacher, none of it hand-designed.",
   },
   reexplain: {
     ariaLabel: "It stays until you understand",
@@ -344,11 +344,11 @@ const EN: LandingCopy = {
       "Understanding rarely comes on the first try, and Faheem is built on that truth. Under every answer sits one small button:",
     chip: "Still unclear?",
     para2:
-      "One tap — no need to put your confusion into words. We pressed it on the Newton answer above, and the teacher slowed down, dropped the formula, and changed the analogy entirely. Unedited:",
+      "One tap, no need to put your confusion into words. We pressed it on the Newton answer above, and the teacher slowed down, dropped the formula, and changed the analogy entirely. Unedited:",
     youLabel: "You, one tap",
     faheemLabel: "Faheem · unedited",
     endsWithQuestion:
-      "The real reply ends with a question: “Shall we try the football question now?” — and it waits for your answer. It always waits.",
+      "The real reply ends with a question: “Shall we try the football question now?”, and it waits for your answer. It always waits.",
     shape:
       "What you just watched has a shape: the teacher steps down with you, as far as you need, never repeating itself, never sighing, never moving on while you're still lost.",
     steps: [
@@ -362,7 +362,7 @@ const EN: LandingCopy = {
     ariaLabel: "Made for every classroom in Bahrain",
     title: "It knows which class you're in.",
     para:
-      "Tell it your board, your grade from nine to twelve, your language, and the analogies that fit your life. The same physics idea, asked to the live teacher twice — once in each language:",
+      "Tell it your board, your grade from nine to twelve, your language, and the analogies that fit your life. The same physics idea, asked to the live teacher twice, once in each language:",
     twoAnswersNote:
       "One question, asked to the live teacher twice, once in each language. Both lines are complete answers, unedited.",
     boardsLabel: "Tuned to your syllabus and exam",
@@ -378,36 +378,36 @@ const EN: LandingCopy = {
     ariaLabel: "Everything a patient teacher does",
     kicker: "A whole teacher, not just an answer",
     title: "Everything a patient teacher does, in one place.",
-    subtitle: "Not a generic chatbot — a full teaching experience built on your syllabus, from the question all the way to mastery.",
+    subtitle: "Not a generic chatbot, a full teaching experience built on your syllabus, from the question all the way to mastery.",
     cards: [
-      { title: "Exam-ready answers", body: "A complete answer, structured the way the examiner wants it — not a generic paragraph from the internet." },
+      { title: "Exam-ready answers", body: "A complete answer, structured the way the examiner wants it, not a generic paragraph from the internet." },
       { title: "Verifies before it shows", body: "Every numeric answer is reviewed a second time, like an independent examiner, before it reaches you." },
       { title: "Re-explain in one tap", body: "Still unclear? One tap, and it changes the analogy entirely until the idea sticks." },
       { title: "The nine-step notebook", body: "Big idea, an example from your life, a common mistake, a quick check… a structured lesson, not just a reply." },
-      { title: "Photo and voice questions", body: "Snap a printed problem, or just speak — like a private tutor that never watches the clock." },
+      { title: "Photo and voice questions", body: "Snap a printed problem, or just speak, like a private tutor that never watches the clock." },
       { title: "Both your languages", body: "Arabic first, English in one tap. The same answer, in your language." },
     ],
   },
   audience: {
     ariaLabel: "Who Faheem is for",
     kicker: "Who it's for",
-    title: "For you — and for whoever stands behind you.",
+    title: "For you, and for whoever stands behind you.",
     subtitle: "Faheem is built for the student first, and reassuring for the parent second.",
     groups: [
       {
         title: "For the student",
         points: [
           "Explains what you missed in class, in your language, until it truly clicks.",
-          "A verified answer from your own lesson — not the generic internet.",
+          "A verified answer from your own lesson, not the generic internet.",
           "Ask as much as you need, at any hour, with no embarrassment.",
         ],
       },
       {
         title: "For the parent",
         points: [
-          "Free throughout the trial — no card, no commitment.",
-          "No silent activation, no countdown — any plan is announced clearly.",
-          "Built on the official syllabus — no distraction, no stray content.",
+          "Free throughout the trial, no card, no commitment.",
+          "No silent activation, no countdown, any plan is announced clearly.",
+          "Built on the official syllabus, no distraction, no stray content.",
         ],
       },
     ],
@@ -416,12 +416,12 @@ const EN: LandingCopy = {
     ariaLabel: "Why you can trust every answer",
     kicker: "Accuracy is the product",
     title: "Why you can trust every answer.",
-    subtitle: "Because trust isn't asked for — it's built, one line at a time.",
+    subtitle: "Because trust isn't asked for, it's built, one line at a time.",
     pillars: [
       { title: "Verified before it's shown", body: "Every numeric answer is recomputed independently before it ever reaches you." },
-      { title: "Tied to your lesson", body: "The answer comes from your unit and syllabus — not general knowledge that may not match your exam." },
+      { title: "Tied to your lesson", body: "The answer comes from your unit and syllabus, not general knowledge that may not match your exam." },
       { title: "Deep-checked, like a second examiner", body: "One button re-checks the answer as if another examiner reviewed it carefully." },
-      { title: "No fabricated numbers", body: "We're in trial. No invented claims or fake testimonials — the accuracy speaks for itself." },
+      { title: "No fabricated numbers", body: "We're in trial. No invented claims or fake testimonials, the accuracy speaks for itself." },
     ],
   },
   faq: {
@@ -429,12 +429,12 @@ const EN: LandingCopy = {
     kicker: "Questions & answers",
     title: "Questions students ask.",
     items: [
-      { q: "Is it really free?", a: "Yes — completely free during the Bahrain trial. No card, and no commitment." },
-      { q: "Which boards and grades?", a: "Bahrain MoE, CBSE, and Cambridge — for grades nine to twelve." },
+      { q: "Is it really free?", a: "Yes, completely free during the Bahrain trial. No card, and no commitment." },
+      { q: "Which boards and grades?", a: "Bahrain MoE, CBSE, and Cambridge, for grades nine to twelve." },
       { q: "How do I trust the answer is right?", a: "Every answer is verified before it's shown, tied to your lesson, and can be deep-checked like a second examiner." },
       { q: "Arabic or English?", a: "Both. Ask in either language, and switch any answer to the other in one tap." },
       { q: "Which subjects?", a: "Physics, chemistry, biology, mathematics, and the rest of your syllabus." },
-      { q: "Does it replace my teacher?", a: "No. It's a patient tutor for the moments you get stuck, aligned to your class — not a replacement for it." },
+      { q: "Does it replace my teacher?", a: "No. It's a patient tutor for the moments you get stuck, aligned to your class, not a replacement for it." },
     ],
   },
   cta: {
@@ -453,7 +453,7 @@ const EN: LandingCopy = {
       "Photo questions and voice sessions",
     ],
     parentNote:
-      "To the parent reading this: nothing to pay, nothing to cancel. Faheem is free throughout the trial. And if we ever launch a plan, we'll announce it clearly — it won't switch on silently, and it won't come with a countdown.",
+      "To the parent reading this: nothing to pay, nothing to cancel. Faheem is free throughout the trial. And if we ever launch a plan, we'll announce it clearly, it won't switch on silently, and it won't come with a countdown.",
   },
   footer: {
     tagline: "A patient teacher for every student in Bahrain.",

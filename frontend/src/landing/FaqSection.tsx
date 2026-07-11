@@ -1,7 +1,7 @@
 /**
- * FAQ — the honest questions a student (or their parent) actually asks, as a
+ * FAQ, the honest questions a student (or their parent) actually asks, as a
  * calm native <details> accordion (keyboard-accessible, no JS, direction-aware).
- * Answers restate real facts from the rest of the page — free trial, boards,
+ * Answers restate real facts from the rest of the page, free trial, boards,
  * accuracy, bilingual, subjects, and the "not a replacement for your teacher"
  * honesty. Soft sand surface before the final CTA.
  */

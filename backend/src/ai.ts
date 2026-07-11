@@ -167,11 +167,17 @@ const ROLE_LABELS =
  *  chemistry notation like "d-d transition" and stray em-dashes in prose), so
  *  this backstop guarantees the house rule holds. Mermaid arrows (-->) and
  *  LaTeX use hyphen-minus, not these glyphs, so math and diagrams are untouched. */
-function sanitizeDashes(text: string): string {
+export function sanitizeDashes(text: string): string {
+  // The dash glyphs are written as \u escapes so this source file itself
+  // contains zero literal em/en dashes, and the transform still removes every
+  // one from output. House rule: 0 em dashes, always, no matter what the model
+  // emits. Long dashes (em U+2014, horizontal bar U+2015) become a comma;
+  // en/figure dashes (U+2013/U+2012) and a stray Unicode minus (U+2212) become
+  // a plain hyphen. Mermaid arrows (-->) and LaTeX use hyphen-minus, untouched.
   return (text || "")
-    .replace(/\s*—\s*/g, ", ") // em-dash (U+2014) to comma
-    .replace(/(\d)\s*–\s*(\d)/g, "$1-$2") // numeric range en-dash to hyphen
-    .replace(/–/g, "-"); // any other en-dash (U+2013) to hyphen
+    .replace(/(\d)\s*[\u2012\u2013]\s*(\d)/g, "$1-$2") // numeric range to hyphen (run first)
+    .replace(/\s*[\u2014\u2015]\s*/g, ", ") // em dash / horizontal bar to comma
+    .replace(/[\u2012\u2013\u2212]/g, "-"); // any remaining en/figure dash or minus to hyphen
 }
 
 /** Clean up trivial LaTeX fractions the way a strong teacher writes them.
@@ -1145,7 +1151,7 @@ aiRouter.post("/chat/stream", requireAuth, async (req: Request, res: Response) =
       for await (const delta of streamGemini(modelName, contents, config, streamSources)) {
         draft += delta;
         if (res.destroyed) break;
-        send({ type: "delta", text: delta });
+        send({ type: "delta", text: sanitizeDashes(delta) });
       }
     } catch (e: any) {
       // If chunks already reached the student, the client keeps them visible
@@ -1267,7 +1273,7 @@ async function translateOne(text: string, target: "ar" | "en"): Promise<string> 
       }),
     { label: "gemini.translate", dependency: "gemini", timeoutMs: TRANSLATE_TIMEOUT_MS(), retries: 0 }
   );
-  const out = (response.text || "").trim();
+  const out = sanitizeDashes((response.text || "").trim());
   if (!out) throw new Error("Empty translation returned.");
   return out;
 }

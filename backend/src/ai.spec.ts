@@ -11,7 +11,22 @@ import assert from "node:assert/strict";
 // A dynamic import keeps this assignment ahead of the module evaluation
 // (static imports would hoist above it).
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
-const { classifyQuery, stripInternalLabels } = await import("./ai.js");
+const { classifyQuery, stripInternalLabels, sanitizeDashes } = await import("./ai.js");
+
+// House rule: 0 em dashes in any output, always, no matter what the model emits.
+test("sanitizeDashes removes every long dash glyph", () => {
+  const em = String.fromCharCode(0x2014); // em dash
+  const en = String.fromCharCode(0x2013); // en dash
+  const bar = String.fromCharCode(0x2015); // horizontal bar
+  const fig = String.fromCharCode(0x2012); // figure dash
+  const minus = String.fromCharCode(0x2212); // minus sign
+  const input = `Force ${em} the push, a range 9${en}12, bar${bar}here, fig${fig}there, ${minus}5`;
+  const out = sanitizeDashes(input);
+  assert.ok(!/[‒–—―−]/.test(out), "no long dash glyph survives");
+  assert.equal(sanitizeDashes(`a ${em} b`), "a, b"); // em dash -> comma
+  assert.equal(sanitizeDashes(`9${en}12`), "9-12"); // numeric range -> hyphen
+  assert.equal(sanitizeDashes(""), ""); // empty is safe
+});
 
 test("concept questions route standard (no search)", () => {
   assert.equal(classifyQuery("What is photosynthesis?"), "standard");

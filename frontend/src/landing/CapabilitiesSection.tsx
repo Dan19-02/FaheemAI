@@ -1,9 +1,9 @@
 /**
- * CAPABILITIES — the full teaching experience, as a calm card grid.
+ * CAPABILITIES, the full teaching experience, as a calm card grid.
  *
  * The narrative sections prove Faheem is a real teacher (accuracy, re-explain,
- * reach). This section steps back and lays out everything it does — six real
- * capabilities, each a genuine product feature (no invented modules) — so the
+ * reach). This section steps back and lays out everything it does, six real
+ * capabilities, each a genuine product feature (no invented modules), so the
  * page has the density a serious product page carries, without ever claiming
  * something Faheem cannot do. Warm pearl surface, sea-teal iconography.
  */

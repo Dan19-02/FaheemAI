@@ -90,7 +90,7 @@
   --color-pearl: #FBF6EC;        /* warm base surface */
   --color-sand: #F1E7D6;         /* soft raised surface */
   --color-ink: #12252F;          /* deep-sea ink: primary text/dark */
-  --color-ink-soft: #32444B;     /* secondary text — deep slate, ~9:1 on pearl so body copy never washes out (was #4A5C64) */
+  --color-ink-soft: #32444B;     /* secondary text, deep slate, ~9:1 on pearl so body copy never washes out (was #4A5C64) */
   --color-red: #CE1126;          /* Bahrain red: energy, primary CTA */
   --color-red-deep: #A50E1F;     /* red pressed/hover */
   --color-sea: #0E7C6E;          /* jewel sea-teal: TRUST / grounded / verified */
@@ -105,7 +105,7 @@
   --color-night-deep: #07141B;
   --color-night-line: rgba(226, 240, 236, 0.14);
   --color-chalk: #EAF1EE;
-  --color-chalk-dim: rgba(234, 241, 238, 0.78);  /* secondary text on night — lifted from 0.60 so dark-section body copy reads clearly */
+  --color-chalk-dim: rgba(234, 241, 238, 0.78);  /* secondary text on night, lifted from 0.60 so dark-section body copy reads clearly */
 
   /* Back-compat: the forked app uses --color-editorial-* + --color-*-bright in
      ~50 places. Remap them onto Pearl & Ink so every existing class re-skins at
@@ -167,7 +167,7 @@
 }
 
 /* The TRUST moment: the grounded-source chip. Sea-teal, a book mark, and it
-   settles in (not just appears) — accuracy is the product, so this is a small
+   settles in (not just appears), accuracy is the product, so this is a small
    hero interaction, calm and confident. */
 .faheem-source {
   display: inline-flex; align-items: center; gap: 0.4rem;

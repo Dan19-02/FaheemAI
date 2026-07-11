@@ -1404,7 +1404,7 @@ export default function App() {
                   )}
 
                   {/* Curriculum source (Faheem): which curriculum unit grounded
-                      this answer. This is the product's TRUST moment — the
+                      this answer. This is the product's TRUST moment, the
                       sea-teal source chip, self-settling in. */}
                   {message.role === "model" && message.grounding && (
                     <div className="mt-3">

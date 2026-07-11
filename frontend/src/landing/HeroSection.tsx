@@ -1,5 +1,5 @@
 /**
- * HERO — the open loop.
+ * HERO, the open loop.
  *
  * Faheem's promise, stated as a claim that pulls you down to see it is true:
  * a patient teacher, in YOUR language, that gets YOUR exact Bahrain
@@ -42,7 +42,7 @@ export default function HeroSection({ onAuth }: HeroSectionProps) {
       {/* The pearl dot-field, quiet, behind everything. */}
       <div aria-hidden="true" className="fh-pearl-field pointer-events-none absolute inset-0 opacity-[0.5]" />
 
-      {/* A single luminous pearl — a Gulf ornament floating at the top-start. */}
+      {/* A single luminous pearl, a Gulf ornament floating at the top-start. */}
       <motion.div
         aria-hidden="true"
         className="fh-pearl pointer-events-none absolute -top-16 -left-16 h-56 w-56 opacity-70 blur-[1px] md:h-72 md:w-72"

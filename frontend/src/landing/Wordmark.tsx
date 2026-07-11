@@ -1,6 +1,6 @@
 /**
  * The Faheem wordmark: the ف mark in a Bahrain-red pearl token, with the
- * Arabic wordmark فهيم beside it. Bespoke and unmistakably Arabic — no Latin
+ * Arabic wordmark فهيم beside it. Bespoke and unmistakably Arabic, no Latin
  * serif italics. Sized by prop so the header and footer share one component.
  */
 interface WordmarkProps {

@@ -20,6 +20,7 @@ import type { Request, Response } from "express";
 import crypto from "crypto";
 import { requireAuth } from "./auth.js";
 import { ai, apiKey } from "./gemini.js";
+import { sanitizeDashes } from "./ai.js";
 import { ThinkingLevel } from "@google/genai";
 import { rateLimit } from "./ratelimit.js";
 import { callExternal } from "./resilience.js";
@@ -411,7 +412,9 @@ notebookRouter.post("/notebook/notes", requireAuth, async (req: Request, res: Re
           }),
         { label: "gemini.notes", dependency: "gemini", timeoutMs: Math.max(5_000, Number(process.env.NOTES_TIMEOUT_MS) || 60_000), retries: 0 }
       );
-      const text = resp.text || null;
+      const raw = resp.text || null;
+      // House rule: 0 em dashes in any output, notebook notes included.
+      const text = raw ? sanitizeDashes(raw) : null;
       console.log(`[GEMINI_NOTES] end - ${((Date.now() - t0) / 1000).toFixed(1)}s (${text ? text.length + " chars" : "EMPTY"})`);
       if (!text) throw new Error("notes-unavailable");
 

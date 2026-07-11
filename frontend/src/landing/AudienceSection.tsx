@@ -1,9 +1,8 @@
 /**
- * AUDIENCE — who Faheem is for: the student first, the parent second.
+ * AUDIENCE, who Faheem is for: the student first, the parent second.
  *
  * A calm two-column split. The student column is the product; the parent column
- * is the reassurance (free, honest, curriculum-bound). No invented personas —
- * both columns restate promises the rest of the page already keeps.
+ * is the reassurance (free, honest, curriculum-bound). No invented personas, * both columns restate promises the rest of the page already keeps.
  */
 import { motion } from "motion/react";
 import { GraduationCap, HeartHandshake, Check } from "lucide-react";

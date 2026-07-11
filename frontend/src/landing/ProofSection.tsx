@@ -1,11 +1,10 @@
 /**
- * PROOF — the payoff of the accuracy promise, and the hero beat of the page.
+ * PROOF, the payoff of the accuracy promise, and the hero beat of the page.
  *
  * The hero claimed accuracy against the exact Bahrain curriculum, in Arabic.
  * Here we prove it: a real student question (in Arabic, imperfect phrasing),
  * then the REAL answer rendered by the product's OWN components (Markdown +
- * NotebookViewer). The sea-teal curriculum-source chip does not just appear —
- * it settles in — because accuracy is the product. This runs on a deep-sea
+ * NotebookViewer). The sea-teal curriculum-source chip does not just appear, * it settles in, because accuracy is the product. This runs on a deep-sea
  * night surface so the pearl answer sheet reads as light held up in the dark.
  *
  * Nothing here is a mockup: the flowchart, the table, the quick-check question
@@ -56,7 +55,7 @@ export default function ProofSection() {
 
         {/* The conversation: student question, then the grounded answer sheet. */}
         <div className="mt-12 flex flex-col gap-5">
-          {/* Student bubble — sits at the start (right) in RTL. */}
+          {/* Student bubble, sits at the start (right) in RTL. */}
           <motion.div {...bubbleIn(calm, 18)} className="flex flex-col items-start">
             <div className="mb-1.5 px-1 text-[11px] text-[var(--color-chalk-dim)]">{c.proof.youLabel}</div>
             <div dir="rtl" lang="ar" className="faheem-bubble-user max-w-[92%] rounded-tr-md px-4 py-3 text-[15px] leading-relaxed md:max-w-[75%] md:text-base">
@@ -70,7 +69,7 @@ export default function ProofSection() {
               {c.proof.faheemLabel}
             </div>
             <div dir="rtl" lang="ar" className="faheem-card w-full max-w-full overflow-hidden bg-[var(--color-pearl)] p-4 text-[var(--color-ink)] sm:p-6 md:p-8">
-              {/* The curriculum-source trust chip — the hero interaction. */}
+              {/* The curriculum-source trust chip, the hero interaction. */}
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="fh-source-chip">
                   <BookMarked size={13} aria-hidden="true" />

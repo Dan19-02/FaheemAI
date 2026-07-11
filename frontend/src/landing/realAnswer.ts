@@ -7,7 +7,7 @@
  * To refresh: ask the question below in the app and paste the raw model message.
  */
 
-/** The student's question, exactly as typed at night — imperfect phrasing. */
+/** The student's question, exactly as typed at night, imperfect phrasing. */
 export const REAL_QUESTION =
   "اشرح لي قانون نيوتن الثاني بطريقة أفهمها، وأعطني مثالًا من حياتي.";
 
