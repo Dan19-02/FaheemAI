@@ -16,7 +16,7 @@
  * all free, so being re-taught is never penalised. See meterNewQuestion.
  */
 import crypto from "crypto";
-import { type Queryable, getUserById, getUsage, chargeUsage } from "./db.js";
+import { type Queryable, getUserById, getUsage, chargeUsage, refundUsage } from "./db.js";
 
 export type PlanId = "trial" | "starter" | "regular" | "unlimited";
 
@@ -287,6 +287,20 @@ export async function meterNewQuestionByUserId(
     return { ok: false, reason: "no_access", entitlement: { ...empty, active: false, state: "trial_expired" } };
   }
   return meterNewQuestion(q, row, message);
+}
+
+/**
+ * Give the credit of a just-charged question back after the generation failed
+ * outright. Also forgets the paired-retry marker, so the student's next ask of
+ * the same question is a genuinely fresh (and again charged) question rather
+ * than a free pass on top of a refund.
+ */
+export async function refundNewQuestionByUserId(q: Queryable, userId: number, message: string): Promise<void> {
+  const row = await getUserById(q, userId);
+  if (!row) return;
+  const ent = await getEntitlement(q, row);
+  await refundUsage(q, row.id, ent.periodKey);
+  recentlyCharged.delete(dedupKey(userId, message));
 }
 
 /** A warm, student-facing sentence explaining why a question was blocked. */

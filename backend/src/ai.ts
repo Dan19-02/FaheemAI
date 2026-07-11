@@ -10,7 +10,7 @@ import crypto from "crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import { Modality } from "@google/genai";
 import { requireAuth, userIdFromToken } from "./auth.js";
-import { meterNewQuestionByUserId, paywallMessage } from "./subscription.js";
+import { meterNewQuestionByUserId, refundNewQuestionByUserId, paywallMessage } from "./subscription.js";
 import {
   pool,
   cacheGetByKey,
@@ -656,6 +656,9 @@ export const aiRouter = Router();
 
 aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
   const chatT0 = Date.now();
+  // A NEW question's credit is charged up front; if generation dies before an
+  // answer is delivered, the outer catch gives it back (refundNewQuestionByUserId).
+  let refundOnFailure = false;
   try {
     const { message, history, mode, board, grade, language, preferredAnalogy } = req.body;
     const uid = (req as any).userId as number;
@@ -727,6 +730,10 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
           subscription: meter.entitlement,
         });
       }
+      // The credit is now spent; refund it if we fail before delivering an
+      // answer. Also covers the stream->/chat paired retry, which passes the
+      // meter free and whose stream attempt's credit this refund returns.
+      refundOnFailure = true;
     }
 
     // Serve a cache hit honestly under Deep-check: a hit that never went
@@ -941,6 +948,12 @@ aiRouter.post("/chat", requireAuth, async (req: Request, res: Response) => {
     return finish(responseText, sources);
   } catch (error: any) {
     console.warn(`[CHAT] total - ${secs(chatT0)} (FAILED: ${error?.message || error})`);
+    if (refundOnFailure && !res.headersSent) {
+      const uid = (req as any).userId as number;
+      const msg: string = req.body?.message ?? "";
+      await refundNewQuestionByUserId(pool, uid, msg).catch(() => {});
+      console.log("[CHAT] refunded 1 credit (generation failed before an answer)");
+    }
     sendServerError(res, error, "chat", "The answer could not be generated right now. Please try again in a moment.");
   }
 });

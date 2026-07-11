@@ -727,6 +727,19 @@ export async function chargeUsage(
 }
 
 /**
+ * Give one question credit back after a failed generation, never below zero.
+ * A student must not pay for an answer that never arrived. (CASE instead of
+ * GREATEST so the statement also runs on the in-memory pg-mem dev fallback.)
+ */
+export async function refundUsage(q: Queryable, userId: number, periodKey: string): Promise<void> {
+  await q.query(
+    `UPDATE usage_counters SET count = CASE WHEN count > 0 THEN count - 1 ELSE 0 END
+     WHERE user_id = $1 AND period_key = $2`,
+    [userId, periodKey]
+  );
+}
+
+/**
  * Run several statements as one transaction on a dedicated connection.
  * Used where partial completion would strand money (mark-paid + activate-plan
  * must land together). NOTE: the in-memory pg-mem dev fallback accepts but
