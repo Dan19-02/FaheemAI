@@ -31,6 +31,9 @@ import ProofSection from "./ProofSection";
 import ReexplainSection from "./ReexplainSection";
 import ReachSection from "./ReachSection";
 import CapabilitiesSection from "./CapabilitiesSection";
+import AudienceSection from "./AudienceSection";
+import TrustSection from "./TrustSection";
+import FaqSection from "./FaqSection";
 import CtaSection from "./CtaSection";
 import SiteFooter from "./SiteFooter";
 
@@ -69,6 +72,9 @@ export default function Landing() {
         <ReexplainSection />
         <ReachSection />
         <CapabilitiesSection />
+        <AudienceSection />
+        <TrustSection />
+        <FaqSection />
         <CtaSection onAuth={setAuth} />
       </main>
       <SiteFooter onAuth={setAuth} />

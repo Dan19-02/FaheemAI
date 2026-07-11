@@ -84,6 +84,26 @@ export interface LandingCopy {
     subtitle: string;
     cards: { title: string; body: string }[];
   };
+  audience: {
+    ariaLabel: string;
+    kicker: string;
+    title: string;
+    subtitle: string;
+    groups: { title: string; points: string[] }[];
+  };
+  trust: {
+    ariaLabel: string;
+    kicker: string;
+    title: string;
+    subtitle: string;
+    pillars: { title: string; body: string }[];
+  };
+  faq: {
+    ariaLabel: string;
+    kicker: string;
+    title: string;
+    items: { q: string; a: string }[];
+  };
   cta: {
     ariaLabel: string;
     kicker: string;
@@ -196,6 +216,55 @@ const AR: LandingCopy = {
       { title: "دفتر التسع خطوات", body: "الفكرة الكبرى، مثالٌ من حياتك، خطأٌ شائع، سؤال تحقّق… درسٌ منظّم لا مجرّد ردّ." },
       { title: "أسئلة بالصورة وبالصوت", body: "صوّر مسألةً مطبوعة، أو تحدّث بصوتك — كدرسٍ خصوصيٍّ لا ينظر إلى الساعة." },
       { title: "بلغتَيك معًا", body: "بالعربية أوّلًا، وبالإنجليزية بنقرة. الإجابة نفسها، بلغتك أنت." },
+    ],
+  },
+  audience: {
+    ariaLabel: "لِمن هو فهيم",
+    kicker: "لِمن هو",
+    title: "لك أنت، ولمن يقف خلفك.",
+    subtitle: "فهيم صُنع للطالب أوّلًا، ومطمئنٌ لوليّ الأمر ثانيًا.",
+    groups: [
+      {
+        title: "للطالب",
+        points: [
+          "يشرح ما فاتك في الصف، بلغتك، حتّى تفهم فعلًا.",
+          "إجابةٌ موثّقة من درسك أنت، لا من إنترنت عامّ.",
+          "اسأل بقدر ما تحتاج، في أيّ وقت، دون حرج.",
+        ],
+      },
+      {
+        title: "لوليّ الأمر",
+        points: [
+          "مجّانيٌّ طوال التجربة، بدون بطاقة ولا التزام.",
+          "لا تفعيلٌ صامت ولا عدّادٌ تنازليّ — أيّ خطّةٍ تُعلَن بوضوح.",
+          "مبنيٌّ على المنهج الرسميّ، لا تشتيت ولا محتوى غريب.",
+        ],
+      },
+    ],
+  },
+  trust: {
+    ariaLabel: "لماذا تثق بكلّ إجابة",
+    kicker: "الدقّة هي المنتج",
+    title: "لماذا تثق بكلّ إجابة.",
+    subtitle: "لأنّ الثقة لا تُطلب، بل تُبنى — سطرًا بعد سطر.",
+    pillars: [
+      { title: "تحقّقٌ قبل العرض", body: "كلّ إجابةٍ رقميّة تُحسب مرّةً ثانية بطريقةٍ مستقلّة قبل أن تصل إليك." },
+      { title: "مربوطٌ بدرسك", body: "الإجابة تأتي من وحدتك ومنهجك، لا من معلوماتٍ عامّة قد لا تناسب امتحانك." },
+      { title: "تدقيقٌ كممتحِنٍ ثانٍ", body: "زرٌّ واحد يعيد فحص الإجابة كأنّ ممتحِنًا آخر راجعها بدقّة." },
+      { title: "بلا أرقامٍ مزيّفة", body: "نحن في مرحلة تجربة. لا ادّعاءاتٍ ولا شهاداتٍ مُختلَقة — الدقّة تتكلّم عن نفسها." },
+    ],
+  },
+  faq: {
+    ariaLabel: "أسئلة شائعة",
+    kicker: "أسئلة وأجوبة",
+    title: "أسئلة يطرحها الطلاب.",
+    items: [
+      { q: "هل هو مجّانيّ فعلًا؟", a: "نعم، مجّانيٌّ بالكامل خلال تجربة البحرين. بدون بطاقة، ودون أيّ التزام." },
+      { q: "أيّ المناهج والصفوف؟", a: "منهج البحرين (وزارة التربية)، وCBSE، وCambridge — للصفوف التاسع إلى الثاني عشر." },
+      { q: "كيف أثق أنّ الإجابة صحيحة؟", a: "كلّ إجابةٍ تُتحقّق قبل عرضها، وتُربط بدرسك، ويمكن تدقيقها مرّةً ثانية كممتحِن." },
+      { q: "بالعربية أم بالإنجليزية؟", a: "بالاثنتين. اسأل بأيّ لغة، وبدّل أيّ إجابةٍ إلى الأخرى بنقرة." },
+      { q: "أيّ المواد؟", a: "الفيزياء والكيمياء والأحياء والرياضيّات وغيرها من مواد منهجك." },
+      { q: "هل يحلّ محلّ معلّمي؟", a: "لا. إنّه معلّمٌ صبورٌ للحظات التي تعلق فيها، منسجمٌ مع صفّك، لا بديلٌ عنه." },
     ],
   },
   cta: {
@@ -317,6 +386,55 @@ const EN: LandingCopy = {
       { title: "The nine-step notebook", body: "Big idea, an example from your life, a common mistake, a quick check… a structured lesson, not just a reply." },
       { title: "Photo and voice questions", body: "Snap a printed problem, or just speak — like a private tutor that never watches the clock." },
       { title: "Both your languages", body: "Arabic first, English in one tap. The same answer, in your language." },
+    ],
+  },
+  audience: {
+    ariaLabel: "Who Faheem is for",
+    kicker: "Who it's for",
+    title: "For you — and for whoever stands behind you.",
+    subtitle: "Faheem is built for the student first, and reassuring for the parent second.",
+    groups: [
+      {
+        title: "For the student",
+        points: [
+          "Explains what you missed in class, in your language, until it truly clicks.",
+          "A verified answer from your own lesson — not the generic internet.",
+          "Ask as much as you need, at any hour, with no embarrassment.",
+        ],
+      },
+      {
+        title: "For the parent",
+        points: [
+          "Free throughout the trial — no card, no commitment.",
+          "No silent activation, no countdown — any plan is announced clearly.",
+          "Built on the official syllabus — no distraction, no stray content.",
+        ],
+      },
+    ],
+  },
+  trust: {
+    ariaLabel: "Why you can trust every answer",
+    kicker: "Accuracy is the product",
+    title: "Why you can trust every answer.",
+    subtitle: "Because trust isn't asked for — it's built, one line at a time.",
+    pillars: [
+      { title: "Verified before it's shown", body: "Every numeric answer is recomputed independently before it ever reaches you." },
+      { title: "Tied to your lesson", body: "The answer comes from your unit and syllabus — not general knowledge that may not match your exam." },
+      { title: "Deep-checked, like a second examiner", body: "One button re-checks the answer as if another examiner reviewed it carefully." },
+      { title: "No fabricated numbers", body: "We're in trial. No invented claims or fake testimonials — the accuracy speaks for itself." },
+    ],
+  },
+  faq: {
+    ariaLabel: "Frequently asked questions",
+    kicker: "Questions & answers",
+    title: "Questions students ask.",
+    items: [
+      { q: "Is it really free?", a: "Yes — completely free during the Bahrain trial. No card, and no commitment." },
+      { q: "Which boards and grades?", a: "Bahrain MoE, CBSE, and Cambridge — for grades nine to twelve." },
+      { q: "How do I trust the answer is right?", a: "Every answer is verified before it's shown, tied to your lesson, and can be deep-checked like a second examiner." },
+      { q: "Arabic or English?", a: "Both. Ask in either language, and switch any answer to the other in one tap." },
+      { q: "Which subjects?", a: "Physics, chemistry, biology, mathematics, and the rest of your syllabus." },
+      { q: "Does it replace my teacher?", a: "No. It's a patient tutor for the moments you get stuck, aligned to your class — not a replacement for it." },
     ],
   },
   cta: {
