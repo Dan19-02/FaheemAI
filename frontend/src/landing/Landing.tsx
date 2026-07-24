@@ -1,36 +1,28 @@
 /**
- * Faheem — the marketing landing. Bespoke, Arabic-first (RTL), "Pearl & Ink".
+ * The public landing site, Faheem edition (2026-07-24 GCC rebrand): a warm
+ * Gulf midnight with a faint khatam-star lattice, lamp-gold action, oasis
+ * teal for verified progress, and sand-paper reading sections. Fraunces
+ * serif display, Plus Jakarta Sans UI, Amiri for the فهيم wordmark. Motion
+ * is slow and luminous: soft rises, glow-sharpen headlines, no springs.
  *
- * This is Faheem's OWN story, not a translated foreign app and not the forked
- * app's night-classroom narrative. Its spine is one open loop, opened in the
- * hero and paid off across the page:
- *
- *   HERO      — the promise: a patient teacher, in YOUR language, that gets
- *               YOUR exact Bahrain curriculum right. A claim that pulls you
- *               down to see how it is true.
- *   PROOF     — the payoff of the accuracy promise: a real, grounded answer
- *               in Arabic, carrying the sea-teal "from your unit" curriculum
- *               source chip. Accuracy is the product, so this is the hero beat.
- *   REEXPLAIN — the teaching style: one tap, and it explains again a different
- *               way, until it lands.
- *   REACH     — who it is for: boards (Bahrain MoE · CBSE · Cambridge), grades
- *               9-12, both languages, the ways in.
- *   CTA       — a calm ask: start free during the Bahrain pilot. No pricing.
- *
- * The whole surface is dir="rtl": Arabic reads first, English appears only as
- * LTR-isolated technical terms. All product content on this page is genuine
- * output (see realAnswer.ts) — no mockups, no fabricated proof.
+ * The argument runs: name-as-promise hero → a real verified answer → the
+ * re-teaching ladder → capabilities → the 14 Gulf curricula → honest
+ * mastery → the ChatGPT question → the parent's promises → calm pricing →
+ * the فهيم finale. All product content on this page is genuine output
+ * through the product's own renderers. No mockups, no fabricated proof.
  */
 import { useEffect, useRef, useState } from "react";
 import Login from "../Login";
-import "./landing.css";
-import SiteHeader from "./SiteHeader";
-import HeroSection from "./HeroSection";
-import ProofSection from "./ProofSection";
-import ReexplainSection from "./ReexplainSection";
-import ReachSection from "./ReachSection";
-import CtaSection from "./CtaSection";
-import SiteFooter from "./SiteFooter";
+import HourAct from "./HourAct";
+import AnswerAct from "./AnswerAct";
+import LadderSection from "./LadderSection";
+import DoorsSection from "./DoorsSection";
+import RegisterSection from "./RegisterSection";
+import WhySection from "./WhySection";
+import IndexCards from "./IndexCards";
+import MissionSection from "./MissionSection";
+import PricingSheet from "./PricingSheet";
+import LampOff, { LandingFooter } from "./LampOff";
 
 export type AuthMode = "login" | "signup";
 
@@ -54,19 +46,48 @@ export default function Landing() {
     return <Login initialMode={auth} onBack={() => setAuth(null)} />;
   }
 
-  // dir="rtl" + lang="ar" are pinned here so the landing is Arabic-first
-  // regardless of what the app's LocaleProvider does with <html>.
+  // DEV-ONLY: `?only=<name>` renders a single act at the top of the page so
+  // design passes can screenshot each act as an initial paint. Statically
+  // false in production builds, so the branch is tree-shaken (same pattern
+  // as the `?preview=1` workspace mocks).
+  if (import.meta.env.DEV) {
+    const only = new URLSearchParams(window.location.search).get("only");
+    if (only) {
+      const acts: Record<string, React.ReactNode> = {
+        hour: <HourAct onAuth={setAuth} />,
+        answer: <AnswerAct />,
+        ladder: <LadderSection />,
+        doors: <DoorsSection />,
+        cards: <IndexCards />,
+        register: <RegisterSection />,
+        why: <WhySection />,
+        mission: <MissionSection />,
+        pricing: <PricingSheet onAuth={setAuth} />,
+        finale: <LampOff onAuth={setAuth} />,
+      };
+      return (
+        <div className="bg-page font-sans text-ink antialiased">
+          <main>{acts[only] ?? <p className="p-8">Unknown act: {only}</p>}</main>
+        </div>
+      );
+    }
+  }
+
   return (
-    <div dir="rtl" lang="ar" className="fh-landing bg-[var(--color-pearl)] text-[var(--color-ink)]">
-      <SiteHeader onAuth={setAuth} />
+    <div className="bg-page font-sans text-ink antialiased">
       <main>
-        <HeroSection onAuth={setAuth} />
-        <ProofSection />
-        <ReexplainSection />
-        <ReachSection />
-        <CtaSection onAuth={setAuth} />
+        <HourAct onAuth={setAuth} />
+        <AnswerAct />
+        <LadderSection />
+        <DoorsSection />
+        <IndexCards />
+        <RegisterSection />
+        <WhySection />
+        <MissionSection />
+        <PricingSheet onAuth={setAuth} />
+        <LampOff onAuth={setAuth} />
       </main>
-      <SiteFooter onAuth={setAuth} />
+      <LandingFooter onAuth={setAuth} />
     </div>
   );
 }

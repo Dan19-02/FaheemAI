@@ -21,25 +21,20 @@ export interface ChatMessage {
   mode?: StudyMode;
   sources?: GroundingSource[];
   attachments?: Attachment[];
-  audioBase64?: string; // Cache generated TTS audio
-  isPlayingAudio?: boolean;
   /** Deep-check state for this answer (present only when it was requested):
    *  "checking" = examiner reviewing the streamed draft (transient, client
    *  only); "passed" = the examiner pass ran; "unavailable" = it could not
    *  run, so the answer is shown unverified and the UI says so. */
   verification?: "checking" | "passed" | "unavailable";
-  /** Curriculum grounding (Faheem): the MoE/curriculum unit this answer was
-   *  built from, surfaced as a source chip so trust is visible. */
-  grounding?: { unitTitle: string; section: string; level: string; groundednessScore: number };
-  /** True when the question fell outside the grade's textbook coverage (the
-   *  answer, if any, is general knowledge, not from the curriculum). */
-  outOfSyllabus?: boolean;
   /** True while this bubble is receiving a live streamed draft (client only:
    *  rendered as plain markdown, action buttons hidden until complete). */
   streaming?: boolean;
   /** A gentle, self-blaming failure notice (client only): rendered on a faint
    *  stone ground, distinct from a real white answer, with no warning color. */
   isError?: boolean;
+  /** For a deep-dive notebook: the id of the answer whose "Go deeper" button
+   *  produced it. Persisted, so the button stays one-shot across reloads. */
+  deepFor?: string;
 }
 
 /** A separate chat window / study session. */
@@ -105,7 +100,7 @@ export interface NotebookSummary {
   subjects?: NotebookSubject[];
 }
 
-export interface ClarifyNote {
+export interface FaheemNote {
   text: string;
   generatedAt: string;
   stale: boolean;
@@ -114,12 +109,10 @@ export interface ClarifyNote {
 
 export interface StudentProfile {
   name: string;
-  board: string; // Bahrain MoE, CBSE, Cambridge
-  grade: string; // Grade 9 - Grade 12
-  language: string; // Arabic, English
+  board: string; // General, the GCC boards (Cambridge, Edexcel, IB, American, CBSE, ICSE/ISC, French, SABIS, six MoE curricula), or None
+  grade: string; // 1st - 12th, College, Competitive
+  language: string; // English, Arabic, Hindi, Urdu
   preferredAnalogy: string; // Daily Life, Sports, Cooking, Bicycles & Trains, Mobile Phones & Tech, Games
-  weakChapters?: string[];
-  strongChapters?: string[];
   confidenceLevel: number; // 1 - 5 stars
   examGoals: string;
 }

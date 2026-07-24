@@ -40,15 +40,15 @@ const NOW = "2026-07-06T09:00:00.000Z";
 
 const MOCK_ACCOUNT: Account = {
   id: 1,
-  email: "aarav@example.com",
+  email: "alex@example.com",
   profile: {
-    name: "Aarav",
-    board: "JEE",
-    grade: "Class 11",
-    language: "Hinglish",
+    name: "Alex",
+    board: "High School",
+    grade: "Grade 11",
+    language: "English",
     preferredAnalogy: "Daily Life",
     confidenceLevel: 3,
-    examGoals: "Crack JEE and finally understand physics, not just mug it.",
+    examGoals: "Finally understand physics, not just memorise it.",
   },
   chapters: [
     { id: "ch-1", name: "Laws of Motion", mastery: "weak", confidenceScore: 25, lastStudied: "2026-07-05" },
@@ -84,7 +84,7 @@ function mockSubscription(): Subscription {
 }
 
 const CONVERSATIONS: Conversation[] = [
-  { id: "c1", title: "Explain Newton's Second Law at a JEE level", messageCount: 4, updatedAt: NOW },
+  { id: "c1", title: "Explain Newton's Second Law at an exam level", messageCount: 4, updatedAt: NOW },
   { id: "c2", title: "Difference between mitosis and meiosis", messageCount: 2, updatedAt: "2026-07-05T18:00:00.000Z" },
   { id: "c3", title: "Why does ice float on water?", messageCount: 2, updatedAt: "2026-07-04T21:30:00.000Z" },
   { id: "c4", title: "Roots of a quadratic equation", messageCount: 2, updatedAt: "2026-07-03T20:00:00.000Z" },
@@ -107,10 +107,10 @@ const MESSAGES: Record<string, ChatMessage[]> = {
     },
   ],
   c2: [
-    { id: "n1", role: "user", text: "What is the difference between mitosis and meiosis? I am preparing for NEET.", timestamp: "6:00 PM" },
+    { id: "n1", role: "user", text: "What is the difference between mitosis and meiosis? I have a biology exam coming up.", timestamp: "6:00 PM" },
     {
       id: "n2", role: "model", timestamp: "6:00 PM",
-      text: "Great question, and a NEET favourite. Here is the cleanest way to hold the two apart.\n\n**Mitosis** makes two identical body cells (growth, repair). One division, chromosome number stays the same: a diploid cell (2n) gives two diploid cells (2n).\n\n**Meiosis** makes four genetically different sex cells (gametes). Two divisions, chromosome number halves: a diploid cell (2n) gives four haploid cells (n).\n\n| Feature | Mitosis | Meiosis |\n|---|---|---|\n| Divisions | One | Two |\n| Daughter cells | 2 | 4 |\n| Chromosome number | Same (2n) | Halved (n) |\n| Genetic result | Identical | Varied (crossing over) |\n| Where | Body cells | Germ cells |\n\n**One-line memory hook:** mi**T**osis is for **T**issue (growth), me**I**osis is for **I**nheritance (gametes).",
+      text: "An exam favourite. Here is the cleanest way to hold the two apart.\n\n**Mitosis** makes two identical body cells (growth, repair). One division, chromosome number stays the same: a diploid cell (2n) gives two diploid cells (2n).\n\n**Meiosis** makes four genetically different sex cells (gametes). Two divisions, chromosome number halves: a diploid cell (2n) gives four haploid cells (n).\n\n| Feature | Mitosis | Meiosis |\n|---|---|---|\n| Divisions | One | Two |\n| Daughter cells | 2 | 4 |\n| Chromosome number | Same (2n) | Halved (n) |\n| Genetic result | Identical | Varied (crossing over) |\n| Where | Body cells | Germ cells |\n\n**One-line memory hook:** mi**T**osis is for **T**issue (growth), me**I**osis is for **I**nheritance (gametes).",
     },
   ],
   c3: [
@@ -153,7 +153,7 @@ const NOTEBOOK_SUMMARY: Record<string, NotebookSummary> = {
 /** Patch the api object in place with resolved mock data. */
 export function installPreviewMocks(api: typeof ApiShape) {
   try {
-    window.localStorage.setItem("clarify_token", "preview-token");
+    window.localStorage.setItem("faheem_token", "preview-token");
   } catch {
     /* ignore */
   }
@@ -191,8 +191,49 @@ export function installPreviewMocks(api: typeof ApiShape) {
       note: null,
     });
   api.saveNotebookEntry = () => ok({ ok: true, id: `e-${Date.now()}` });
+  // Stateful on purpose: the second read shows the practiced concept as
+  // landed, so the workspace's transition diff (and its mastery celebration)
+  // can be seen in preview without waiting a real spaced day.
+  // > 2 (not > 1): StrictMode double-invokes the mount effect in dev, so the
+  // first two reads land within milliseconds of each other.
+  let compReads = 0;
+  api.getComprehension = () => {
+    compReads++;
+    const promoted = compReads > 2;
+    const dayAgo = new Date(Date.now() - 864e5).toISOString();
+    return ok({
+      enabled: true,
+      concepts: [
+        {
+          key: "newtons-second-law",
+          label: "Newton's second law",
+          chapter: "Laws of Motion",
+          state: (promoted ? "landed" : "practiced") as "landed" | "practiced",
+          struggles: 0,
+          passes: promoted ? 2 : 1,
+          lastSeen: NOW,
+          firstSeen: dayAgo,
+          lastPass: NOW,
+        },
+        { key: "friction-basics", label: "Friction", chapter: "Laws of Motion", state: "working_on_it" as const, struggles: 1, passes: 0, lastSeen: NOW, firstSeen: dayAgo, lastPass: null },
+      ],
+      summary: { landed: promoted ? 1 : 0, practiced: promoted ? 0 : 1, working: 1 },
+      ready: promoted ? [] : [{ key: "newtons-second-law", label: "Newton's second law", chapter: "Laws of Motion", kind: "confirm" as const }],
+      today: {
+        learned: promoted ? [{ key: "newtons-second-law", label: "Newton's second law" }] : [],
+        fuzzy: [{ key: "friction-basics", label: "Friction" }],
+        touched: 2,
+      },
+    });
+  };
+  api.confirmCheck = () =>
+    ok({
+      question: "A loaded truck and an empty scooter both need to speed up by the same amount in the same time. Which one needs the bigger push, and why?",
+      label: "Newton's second law",
+    });
+  api.getMeStats = () => ok({ daysActive: 4, activeToday: false, doubtsCleared: 12 });
   api.deleteNotebookEntry = () => ok({} as any);
-  api.generateClarifyNotes = () =>
+  api.generateFaheemNotes = () =>
     ok({
       text: "**Laws of Motion, revision sheet**\n\n1. Force is the rate of change of momentum. For constant mass this reduces to F = ma.\n2. Same force, smaller mass, larger acceleration.\n3. Always resolve to the *net* force before applying the law.",
       generatedAt: NOW,

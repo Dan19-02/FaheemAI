@@ -1,5 +1,5 @@
 {
-  "name": "fahim-backend",
+  "name": "faheem-backend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,28 +10,26 @@
     "lint": "tsc --noEmit",
     "test:db": "tsx src/db.test.ts",
     "test:subscription": "tsx src/subscription.test.ts",
-    "seed:curriculum": "tsx scripts/curriculum/seed.ts"
+    "test:otp": "tsx src/otp.test.ts",
+    "test:referral": "tsx src/referral.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
-    "axios": "^1.6.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^10.9.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.22.0",
-    "ws": "^8.21.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
-    "@types/ws": "^8.18.1",
     "esbuild": "^0.28.1",
     "pg-mem": "^3.0.14",
     "tsx": "^4.22.4",

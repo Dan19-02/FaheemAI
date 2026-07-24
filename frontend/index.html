@@ -1,56 +1,72 @@
 <!doctype html>
-<!-- Faheem is Arabic-first: seed lang/dir here so the very first paint is RTL,
-     before JS hydrates and LocaleProvider takes over syncing these attributes. -->
-<html lang="ar" dir="rtl">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta
       name="description"
-      content="فهيم معلّم ذكاء اصطناعي صبور بالعربية، يعرف مقرّرك البحريني بالضبط. يشرح ما فاتك في الصف مرّةً بعد مرّة، بطريقة مختلفة في كلّ مرّة، حتّى تفهم. لطلاب منهج البحرين وCBSE وCambridge من الصف التاسع إلى الثاني عشر، بالعربية والإنجليزية. Faheem: an Arabic-first, curriculum-grounded AI tutor for Bahrain MoE, CBSE and Cambridge, grades 9 to 12."
+      content="Faheem (فهيم) is a patient AI tutor for students in the Gulf, grades 6 to 12. It explains what school rushed past, a different way each time, verifies every answer, and checks that understanding truly stuck. Cambridge, IB, American, and every GCC ministry curriculum."
     />
-    <meta name="theme-color" content="#CE1126" />
+    <meta name="theme-color" content="#101a2b" />
+    <!-- Apply the stored theme before first paint so dark mode never flashes light. -->
+    <script>
+      try {
+        if (localStorage.getItem("faheem-theme") === "dark") {
+          document.documentElement.dataset.theme = "dark";
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", "#0e1523");
+        }
+      } catch (e) {}
+    </script>
+    <link rel="canonical" href="https://faheem.ai/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Open Graph / social preview -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Faheem" />
-    <meta property="og:locale" content="ar_BH" />
-    <meta property="og:locale:alternate" content="en" />
-    <meta property="og:title" content="فهيم · Faheem — معلّم صبور بلغتك، يعرف مقرّرك البحريني" />
+    <meta property="og:url" content="https://faheem.ai/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Faheem — The AI Tutor Built for Gulf Classrooms" />
     <meta
       property="og:description"
-      content="معلّم ذكاء اصطناعي صبور بالعربية، مبنيّ على منهج البحرين، يشرح ما فاتك في الصف حتّى تفهم. منهج البحرين وCBSE وCambridge، الصفوف 9 إلى 12. بالعربية والإنجليزية."
+      content="Understood, not memorised. A patient AI tutor for grades 6 to 12 across the GCC: re-taught a new way each time, verified by a second examiner pass, shaped to your curriculum."
     />
+    <meta property="og:image" content="https://faheem.ai/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Faheem (فهيم): the patient AI tutor built for Gulf classrooms, grades 6 to 12." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="فهيم · Faheem — معلّم صبور بلغتك" />
+    <meta name="twitter:title" content="Faheem — The AI Tutor Built for Gulf Classrooms" />
     <meta
       name="twitter:description"
-      content="معلّم صبور بالعربية يعرف مقرّرك البحريني بالضبط، ويبقى معك حتّى تفهم. منهج البحرين وCBSE وCambridge. مجّاني خلال تجربة البحرين."
+      content="Understood, not memorised. A patient AI tutor for grades 6 to 12 across the GCC, verified answer by answer."
     />
+    <meta name="twitter:image" content="https://faheem.ai/og-image.png" />
+    <meta name="twitter:image:alt" content="Faheem (فهيم): the patient AI tutor built for Gulf classrooms." />
 
-    <title>فهيم · Faheem — معلّم صبور بلغتك، يعرف مقرّرك البحريني</title>
+    <title>Faheem — The Patient AI Tutor for Gulf Classrooms, Grades 6-12</title>
 
     <!-- Google Identity Services: powers the "Continue with Google" button.
          Loads async and only initializes when VITE_GOOGLE_CLIENT_ID is set. -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Structured data: only true facts (no ratings or user counts). Helps
-         search engines understand what Faheem is and who it serves. Free during
-         the Bahrain pilot, so a single free Offer, no prices. -->
+    <!-- Structured data: only true facts (no ratings or user counts). -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "EducationalOrganization",
-            "@id": "#org",
-            "name": "Faheem",
-            "logo": "/favicon.svg",
-            "description": "A calm, patient AI teacher and doubt solver for students in Bahrain. It explains what you missed in class, again and again, a different way each time, until it clicks.",
-            "areaServed": "BH",
-            "knowsLanguage": ["ar", "en"],
+            "@id": "https://faheem.ai/#org",
+            "name": "Faheem AI",
+            "url": "https://faheem.ai/",
+            "logo": "https://faheem.ai/favicon.svg",
+            "description": "Faheem (فهيم), Arabic for 'the one who understands', is a patient AI tutor for school and entrance-exam students across the GCC. It re-teaches a different way each time and verifies that understanding truly stuck.",
+            "email": "support@faheem.ai",
+            "areaServed": ["AE", "SA", "QA", "KW", "BH", "OM"],
+            "knowsLanguage": ["en"],
             "audience": {
               "@type": "EducationalAudience",
               "educationalRole": "student"
@@ -58,25 +74,43 @@
           },
           {
             "@type": "WebSite",
-            "@id": "#website",
+            "@id": "https://faheem.ai/#website",
+            "url": "https://faheem.ai/",
             "name": "Faheem",
-            "publisher": { "@id": "#org" },
-            "inLanguage": ["ar", "en"]
+            "publisher": { "@id": "https://faheem.ai/#org" },
+            "inLanguage": ["en"]
           },
           {
             "@type": "SoftwareApplication",
             "name": "Faheem",
             "applicationCategory": "EducationApplication",
-            "operatingSystem": "Web, Android, iOS",
-            "publisher": { "@id": "#org" },
-            "description": "AI doubt solver and patient teacher for Bahrain MoE, CBSE and Cambridge students in grades 9 to 12, across Physics, Chemistry, Maths and Biology, in Arabic and English.",
-            "offers": {
-              "@type": "Offer",
-              "name": "Bahrain pilot",
-              "price": "0",
-              "priceCurrency": "BHD",
-              "description": "Free during the Bahrain pilot: the whole teacher, no card needed."
-            }
+            "operatingSystem": "Web",
+            "url": "https://faheem.ai/",
+            "publisher": { "@id": "https://faheem.ai/#org" },
+            "description": "AI tutor for students in grades 6 to 12 across the GCC: Cambridge, Edexcel, IB, American, CBSE, ICSE/ISC, French, SABIS, and all six ministry curricula.",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "4.99",
+                "priceCurrency": "USD",
+                "description": "100 questions a month."
+              },
+              {
+                "@type": "Offer",
+                "name": "Regular",
+                "price": "9.99",
+                "priceCurrency": "USD",
+                "description": "300 questions a month, with the pre-exam notebook."
+              },
+              {
+                "@type": "Offer",
+                "name": "Unlimited",
+                "price": "19.99",
+                "priceCurrency": "USD",
+                "description": "Unlimited questions, with the pre-exam notebook."
+              }
+            ]
           }
         ]
       }
@@ -87,4 +121,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

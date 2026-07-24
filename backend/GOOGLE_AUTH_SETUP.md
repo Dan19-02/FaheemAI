@@ -1,6 +1,6 @@
 # Continue with Google: setup
 
-Clarify.AI uses **Google Identity Services (GIS)** for "Continue with Google".
+Faheem AI uses **Google Identity Services (GIS)** for "Continue with Google".
 
 How it works:
 
@@ -9,7 +9,7 @@ How it works:
 3. The frontend posts that token to `POST /api/auth/google`.
 4. The backend **verifies the token locally** against your Client ID using Google's
    public keys (`google-auth-library`), then finds or creates the account and
-   returns Clarify.AI's own session JWT, exactly like email/password login.
+   returns Faheem AI's own session JWT, exactly like email/password login.
 
 The client **secret is not needed** for this flow (only the Client ID is). The
 secret only matters for a server-side authorization-code flow, which we do not use.
@@ -24,7 +24,7 @@ Email/password sign in keeps working. If `GOOGLE_CLIENT_ID` /
 1. Go to <https://console.cloud.google.com/> and pick (or create) a project.
 2. **APIs & Services > OAuth consent screen**
    - User type: **External**.
-   - Fill in app name (Clarify.AI), a support email, and a developer contact email.
+   - Fill in app name (Faheem AI), a support email, and a developer contact email.
    - Scopes: the defaults (`openid`, `email`, `profile`) are all that is needed.
    - While the app is in **Testing**, add the Google accounts you will test with
      under **Test users**. Publish the app when you are ready for real students.
@@ -33,8 +33,8 @@ Email/password sign in keeps working. If `GOOGLE_CLIENT_ID` /
    - **Authorized JavaScript origins**: add every origin the app is served from,
      with exact scheme + host + port and **no trailing slash**. For example:
      - `http://localhost:5173` (local dev: the frontend dev server)
-     - `https://clarifyai.in` (production)
-     - `https://www.clarifyai.in` (if you serve www too)
+     - `https://faheem.ai` (production)
+     - `https://www.faheem.ai` (if you serve www too)
    - **Authorized redirect URIs**: not required for this button flow. You may
      leave it empty (or add your app URL; it is unused here).
 4. Click **Create** and copy the **Client ID** (it ends with

@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
 import {
   Sparkles,
   BookOpen,
   Search,
-  Mic,
-  MicOff,
-  Volume2,
-  VolumeX,
   Send,
   Trash2,
   ExternalLink,
@@ -23,9 +19,13 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
-  BookMarked
+  BookMarked,
+  Flame,
+  Star
 } from "lucide-react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
+import { ThemeToggle } from "./ThemeToggle";
+import VerifyBanner from "./VerifyBanner";
 import {
   ChatMessage,
   ChapterProgress,
@@ -34,55 +34,68 @@ import {
   Subscription
 } from "./types";
 import {
-  float32ToInt16PCM,
-  arrayBufferToBase64,
-  base64ToFloat32PCM,
   parseTeachingSections,
   filesToAttachments,
   dataUrlToBase64
 } from "./utils";
 import { useAuth } from "./AuthContext";
-import { api, getToken, ApiError } from "./api";
-import { useLocale, type TranslateFn } from "./i18n/LocaleContext";
+import { api, ApiError } from "./api";
 import { DEFAULT_CHAPTERS, makeDefaultProfile, SUPPORT_EMAIL } from "./defaults";
 import { Markdown } from "./Markdown";
 import { NotebookViewer } from "./NotebookViewer";
 import UpgradeModal from "./UpgradeModal";
+import { UnderstandingPanel, type CompConcept, type CompSummary, type CompToday } from "./UnderstandingPanel";
 import PreExamNotebook from "./PreExamNotebook";
+import { CelebrationOverlay } from "./CelebrationOverlay";
+import { ReadyToLandCard, type ReadyConcept } from "./ReadyToLand";
+import { TrialArc } from "./TrialArc";
+import {
+  type Celebration,
+  canFire,
+  markFired,
+  claimOnce,
+  DOUBT_MILESTONES,
+  SAVE_MILESTONES,
+  SHEET_THRESHOLDS,
+  practicedCopy,
+  landedCopy,
+  firstStarCopy,
+  doubtsMilestoneCopy,
+  savesMilestoneCopy,
+  sheetCopy,
+  savedToast,
+  lampGreeting,
+  lampTitle
+} from "./celebrations";
 
 // The public landing site is only for signed-out visitors, so it loads as its
 // own chunk and never weighs down a student's session.
 const Landing = lazy(() => import("./landing/Landing"));
 import { STUDY_FACTS, FALLBACK_STUDY_FACT, pickFirstFactIndex } from "./facts";
 
-// The empty-state prompt gallery. Keys resolve through the active locale at
-// render time, so the labels/hints load in Arabic by default; the `prompt` is
-// the actual question sent to the tutor.
 const SUGGESTED_QUERIES = [
-  { key: "photosynthesis" },
-  { key: "newton" },
-  { key: "cell" },
-  { key: "quadratic" }
-] as const;
+  { label: "Explain Photosynthesis", prompt: "Can you explain photosynthesis simply?", hint: "Start with a plain, everyday walk-through." },
+  { label: "Newton's 2nd Law", prompt: "Explain Newton's Second Law of Motion at an exam level. Give me a good analogy!", hint: "Exam-level, with an analogy you will remember." },
+  { label: "Cell Division", prompt: "What is the difference between mitosis and meiosis? I have a test coming up.", hint: "The comparison, side by side." },
+  { label: "Quadratic Equations", prompt: "How do I find the roots of a quadratic equation?", hint: "The method, worked out step by step." }
+];
 
 const MAX_ATTACHMENTS = 6;
 
 // One-tap "I'm still lost" signal. The student often can't articulate WHAT they
 // don't get, this lets them say "go again, differently" with a single tap, and
 // the backend's comprehension loop climbs the re-explain ladder (gut feel →
-// fresh analogy → smallest step + picture → worked example → pinpoint). The
-// literal text follows the UI language (key: reexplain.prompt).
-const STILL_CONFUSED_KEY = "reexplain.prompt";
+// fresh analogy → smallest step + picture → worked example → pinpoint).
+const STILL_CONFUSED_PROMPT =
+  "I still don't fully get it, can you explain that part differently, in a simpler way?";
 
-// Pearl & Ink action pills. Utilities settle on sand; the trust/verify actions
-// borrow the sea-teal accent. A light spring lives on the tap.
 const ACTION_PILL =
-  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all bg-[var(--color-sand)] hover:bg-[var(--color-sea-soft)] text-[var(--color-ink-soft)] hover:text-[var(--color-sea)] border border-[var(--color-line-soft)] disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
+  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs transition-all bg-editorial-stone hover:bg-editorial-sage/10 text-editorial-sage border border-editorial-line-light disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
 
 // The stay-until-it-lands loop is the product's heart, so its one-tap retry is
-// the warmest, most inviting action in the row: it carries the Bahrain red.
+// the warmest, most inviting action in the row, distinct from the utilities.
 const STILL_FUZZY_PILL =
-  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all bg-[var(--color-red)]/10 text-[var(--color-red)] border border-[var(--color-red)]/25 hover:bg-[var(--color-red)]/16 disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
+  "flex items-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all bg-editorial-sage/12 text-editorial-sage border border-editorial-sage/30 hover:bg-editorial-sage/20 disabled:opacity-40 cursor-pointer motion-safe:active:scale-[0.97]";
 
 type MobileView = "study" | "chat";
 
@@ -98,19 +111,19 @@ function canAskNew(sub?: Subscription): boolean {
 }
 
 // Client mirror of the server's paywallMessage, for the instant soft-block.
-// Localised: takes the active translator so the soft-block reads in Arabic.
-function blockedReason(t: TranslateFn, sub?: Subscription): string {
-  if (!sub) return t("paywall.choosePlan");
-  if (sub.state === "trial") return t("paywall.trial");
+function blockedReason(sub?: Subscription): string {
+  if (!sub) return "Please choose a plan to keep learning.";
+  if (sub.state === "trial")
+    return "That is all 10 free questions for today. They refresh tomorrow morning, or you can unlock a plan to keep going right now.";
   if (sub.state === "active")
-    return t("paywall.active", { limit: sub.limit ?? 0, plan: sub.planName });
-  if (sub.state === "plan_expired") return t("paywall.expired", { plan: sub.planName });
-  return t("paywall.trialOver");
+    return `You have used all ${sub.limit} questions on your ${sub.planName} plan this month. Upgrade any time to keep learning.`;
+  if (sub.state === "plan_expired")
+    return `Your ${sub.planName} pass has ended. Renew it to pick up right where you left off.`;
+  return "Your free week is complete. Choose a plan to keep your patient teacher going, at any hour, as many times as you need.";
 }
 
 export default function App() {
   const { account, loading: authLoading, logout, applySubscription, refreshSubscription } = useAuth();
-  const { t, lang, setLang } = useLocale();
   const subscription = account?.subscription;
 
   // Paywall / plan chooser.
@@ -119,6 +132,19 @@ export default function App() {
 
   // Pre-exam notebook overlay + line-selection save state + toast.
   const [notebookOpen, setNotebookOpen] = useState(false);
+
+  // Escape closes whichever overlay is on top: a kid who taps into a modal
+  // must always have the universal way back out.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setNotebookOpen((open) => (open ? false : open));
+      setShowUpgrade((open) => (open ? false : open));
+      setIsEditingProfile((open) => (open ? false : open));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [selSave, setSelSave] = useState<{ msgId: string; text: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,8 +169,276 @@ export default function App() {
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<{ dataUrl: string; mimeType: string; name: string; isImage: boolean }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  // Synchronous companion to isGenerating (see handleSendMessage).
+  const sendingRef = useRef(false);
+  // "Go deeper" is one-shot per answer. Maps a source answer's id to the
+  // notebook it already generated, so a repeat tap jumps to that notebook
+  // instead of re-asking: deep answers are cache-served, so re-asking just
+  // stacks a byte-identical notebook. Derived from the messages themselves
+  // (each notebook persists a deepFor pointer to its source answer), so the
+  // link survives reloads and conversation switches.
+  const deepDiveOf = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of chatHistory) if (m.deepFor) map[m.deepFor] = m.id;
+    return map;
+  }, [chatHistory]);
   const [mobileView, setMobileView] = useState<MobileView>("chat");
   const [showChapters, setShowChapters] = useState(false);
+  // Bumped after each answer so the "What's landing" read refreshes.
+  const [understandingKey, setUnderstandingKey] = useState(0);
+
+  // ---- The honest dopamine layer -------------------------------------------
+  // All celebration/dedupe storage is scoped per account so two siblings on
+  // one phone never see each other's moments claimed.
+  const scope = `fhm:${account?.id ?? "anon"}`;
+
+  // The Landing Signal read now lives here (not in the panel): the workspace
+  // needs it to diff state transitions for mastery moments, feed the sidebar
+  // panel, and drive the Ready-to-Land queue, wherever the panel is hidden.
+  const [comp, setComp] = useState<{ enabled: boolean; concepts: CompConcept[]; summary: CompSummary; ready: ReadyConcept[]; today: CompToday }>({
+    enabled: true,
+    concepts: [],
+    summary: { landed: 0, practiced: 0, working: 0 },
+    ready: [],
+    today: { learned: [], fuzzy: [], touched: 0 }
+  });
+  // Previous per-concept states; null until the first read (the baseline never
+  // celebrates: a transition that happened while away is not a fresh win).
+  const compPrevRef = useRef<Map<string, string> | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const celebrationQueue = useRef<Celebration[]>([]);
+  // Mirrors `celebration` synchronously so pushCelebration can decide show-vs-
+  // queue WITHOUT mutating state inside a setState updater (StrictMode double-
+  // invokes updaters, which would double-enqueue).
+  const celebrationActiveRef = useRef(false);
+  const [glowKeys, setGlowKeys] = useState<string[]>([]);
+
+  // Lifetime stats: lamp days (only ever grows) + doubts cleared. null until
+  // loaded; when the load failed we show nothing rather than a made-up count.
+  const [stats, setStats] = useState<{ daysActive: number; activeToday: boolean; doubtsCleared: number } | null>(null);
+
+  // Pre-exam notebook accumulation: running total + per-chapter counts for
+  // the sheet milestones (null until known / while the shelf is locked).
+  const [savedCount, setSavedCount] = useState<number | null>(null);
+  const chapterCountsRef = useRef<Map<string, number> | null>(null);
+
+  // Ready to Land: shown only on a fresh open, dismissible for the UTC day.
+  const [sentThisSession, setSentThisSession] = useState(false);
+  const [rtlState, setRtlState] = useState<"idle" | "loading" | "posed">("idle");
+  const [rtlDismissed, setRtlDismissed] = useState(true); // true until storage is read
+  const [checkNudgeDismissed, setCheckNudgeDismissed] = useState(false);
+
+  const utcDayClient = () => new Date().toISOString().slice(0, 10);
+
+  const pushCelebration = (c: Celebration) => {
+    markFired(c.tone);
+    // No side effects inside the setState updater: decide here, synchronously.
+    if (celebrationActiveRef.current) {
+      celebrationQueue.current.push(c);
+      return;
+    }
+    celebrationActiveRef.current = true;
+    setCelebration(c);
+  };
+
+  const advanceCelebration = () => {
+    const next = celebrationQueue.current.shift() ?? null;
+    celebrationActiveRef.current = next !== null;
+    setCelebration(next);
+  };
+
+  // Live refs so the comprehension diff (a stable callback) reads current
+  // profile/subscription/stats without re-subscribing effects.
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const subscriptionRef = useRef(subscription);
+  subscriptionRef.current = subscription;
+  const statsRef = useRef(stats);
+  statsRef.current = stats;
+  // Which account is signed in RIGHT NOW. Async reads (comprehension, stats,
+  // notebook) capture this at call time and bail if it changed before they
+  // resolve, so account A's data can never celebrate or count into account B.
+  const accountIdRef = useRef(account?.id);
+  accountIdRef.current = account?.id;
+
+  /** Fetch the comprehension read and celebrate any fresh, examiner-verified
+   *  promotion (working -> practiced/landed, practiced -> landed). */
+  const loadComprehension = React.useCallback(async () => {
+    const myAcct = accountIdRef.current;
+    try {
+      const raw = await api.getComprehension();
+      // Account switched mid-flight: drop this response entirely.
+      if (accountIdRef.current !== myAcct) return;
+      // Defensive against a frontend-first deploy hitting an older backend that
+      // has no `ready` field yet: never let the card map over undefined.
+      const data = {
+        enabled: raw?.enabled ?? false,
+        concepts: raw?.concepts ?? [],
+        summary: raw?.summary ?? { landed: 0, practiced: 0, working: 0 },
+        ready: raw?.ready ?? [],
+        today: raw?.today ?? { learned: [], fuzzy: [], touched: 0 }
+      };
+      setComp(data);
+      const prev = compPrevRef.current;
+      const order: Record<string, number> = { working_on_it: 0, practiced: 1, landed: 2 };
+      if (prev) {
+        // Their trial's very first verified win is the First Star.
+        const hadWinBefore = [...prev.values()].some((s) => s === "practiced" || s === "landed");
+        for (const c of data.concepts) {
+          const before = prev.get(c.key) ?? "working_on_it";
+          if (order[c.state] <= order[before]) continue;
+          if (c.state !== "practiced" && c.state !== "landed") continue;
+          // Check the session cap BEFORE claiming: claimOnce is permanent, so
+          // claiming a celebration we then suppress would burn it forever and
+          // it could never fire in a later session.
+          if (!canFire(c.state)) continue;
+          if (!claimOnce(`${scope}:win:${c.key}:${c.state}`)) continue;
+          const isTrial = subscriptionRef.current?.plan === "trial";
+          const copy =
+            c.state === "landed"
+              ? landedCopy(c.label)
+              : !hadWinBefore && isTrial && claimOnce(`${scope}:first-star`)
+              ? firstStarCopy(c.label)
+              : practicedCopy(c.label);
+          pushCelebration({ tone: c.state === "landed" ? "landed" : "practiced", ...copy, conceptKey: c.key });
+          // Glow this chip briefly, then clear the marker so it does not read as
+          // a "fresh win" on later renders.
+          setGlowKeys((k) => (k.includes(c.key) ? k : [...k, c.key]));
+          const key = c.key;
+          setTimeout(() => setGlowKeys((k) => k.filter((x) => x !== key)), 2000);
+        }
+      }
+      compPrevRef.current = new Map(data.concepts.map((c) => [c.key, c.state]));
+    } catch {
+      // A progress read must never disrupt studying: fail silent.
+    }
+  }, [scope]);
+
+  // Refresh the read after every answer (the server records the verdict just
+  // AFTER responding, so refetch once more shortly after).
+  useEffect(() => {
+    if (!account || dataLoading) return;
+    loadComprehension();
+    const t = setTimeout(loadComprehension, 3500);
+    return () => clearTimeout(t);
+  }, [account?.id, dataLoading, understandingKey, loadComprehension]);
+
+  // Lifetime stats + notebook totals, once per sign-in; and read today's
+  // Ready-to-Land dismissal from storage.
+  useEffect(() => {
+    if (!account) return;
+    const myAcct = account.id;
+    // A fresh sign-in starts from a clean slate: no baseline, counters, pending
+    // celebrations, glow, or session flags may carry across accounts (two
+    // siblings sharing one phone must never see each other's wins or streak).
+    compPrevRef.current = null;
+    chapterCountsRef.current = null;
+    celebrationQueue.current = [];
+    celebrationActiveRef.current = false;
+    setComp({ enabled: true, concepts: [], summary: { landed: 0, practiced: 0, working: 0 }, ready: [], today: { learned: [], fuzzy: [], touched: 0 } });
+    setCelebration(null);
+    setGlowKeys([]);
+    setStats(null);
+    setSavedCount(null);
+    setSentThisSession(false);
+    setRtlState("idle");
+    setCheckNudgeDismissed(false);
+    api.getMeStats().then((s) => { if (accountIdRef.current === myAcct) setStats(s); }).catch(() => {});
+    api
+      .getNotebook()
+      .then((s) => {
+        if (accountIdRef.current !== myAcct) return;
+        setSavedCount(s.savedCount);
+        chapterCountsRef.current = s.subjects
+          ? new Map(s.subjects.flatMap((sub) => sub.chapters.map((ch) => [`${sub.subject}|${ch.chapter}`, ch.count] as [string, number])))
+          : null;
+      })
+      .catch(() => {});
+    try {
+      setRtlDismissed(localStorage.getItem(`${scope}:rtl-dismiss`) === utcDayClient());
+    } catch {
+      setRtlDismissed(false);
+    }
+  }, [account?.id]);
+
+  /** After a successful answer: light the lamp on the day's first ask, count
+   *  the doubt, and fire any milestone that number just crossed. */
+  const onAnswered = (text: string, opts?: { silent?: boolean }) => {
+    // A silent send (a "Go deeper" dive) persists NO user message, so the
+    // server's day/doubt counts never see it. Counting it optimistically here
+    // would light the lamp and bump daysActive, then visibly shrink on the next
+    // reload, breaking the "it never subtracts" promise. So silent sends are
+    // inert for the streak and the doubt counter alike.
+    if (opts?.silent) return;
+    const s = statsRef.current;
+    if (!s) return; // stats unknown: show nothing rather than invent numbers
+    let next = s;
+    if (!s.activeToday) {
+      next = { ...next, activeToday: true, daysActive: s.daysActive + 1 };
+      showToast(lampGreeting(next.daysActive));
+    }
+    // The "Still fuzzy?" sentinel is a retry signal, not a fresh doubt (the
+    // server excludes it too), so it lights the lamp but never counts a doubt.
+    const isRealAsk = Boolean(text.trim()) && text !== STILL_CONFUSED_PROMPT;
+    if (isRealAsk) {
+      next = { ...next, doubtsCleared: next.doubtsCleared + 1 };
+      const n = next.doubtsCleared;
+      if (DOUBT_MILESTONES.includes(n) && canFire("milestone") && claimOnce(`${scope}:milestone-doubts:${n}`)) {
+        pushCelebration({ tone: "milestone", ...doubtsMilestoneCopy(n) });
+      }
+    }
+    if (next !== s) setStats(next);
+  };
+
+  // ---- Ready to Land handlers ----------------------------------------------
+  const handleReadyDismiss = () => {
+    try {
+      localStorage.setItem(`${scope}:rtl-dismiss`, utcDayClient());
+    } catch {
+      /* ignore */
+    }
+    setRtlDismissed(true);
+  };
+
+  const handleReadyConfirm = async (c: ReadyConcept) => {
+    if (rtlState === "loading") return;
+    setRtlState("loading");
+    try {
+      // Ensure a conversation exists to carry the check (mirrors handleSendMessage).
+      let convId = activeId;
+      if (!convId) {
+        const { conversation } = await api.createConversation();
+        setConversations((prev) => [conversation, ...prev.filter((cv) => cv.id !== conversation.id)]);
+        setActiveId(conversation.id);
+        setChatHistory([]);
+        convId = conversation.id;
+      }
+      const { question } = await api.confirmCheck({
+        conversationId: convId,
+        conceptKey: c.key,
+        grade: profile.grade,
+        board: profile.board,
+        language: profile.language
+      });
+      const msg: ChatMessage = {
+        id: `model-confirm-${Date.now()}`,
+        role: "model",
+        text: question,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      // convId is the active conversation by construction (either it already
+      // was, or we just created and activated it), so the bubble goes straight
+      // into the on-screen thread.
+      setChatHistory((prev) => [...prev, msg]);
+      api.addMessage(convId, msg).catch(() => {});
+      bumpConversation(convId);
+      setRtlState("posed");
+      document.getElementById("input-chat")?.focus();
+    } catch (e: any) {
+      setRtlState("idle");
+      showToast(e?.message || "Could not prepare a check just now. Please try again in a moment. 🌱");
+    }
+  };
 
   // Add chapter
   const [newChapterName, setNewChapterName] = useState("");
@@ -153,21 +447,6 @@ export default function App() {
   // Profile edit
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState<StudentProfile>({ ...profile });
-  const [selectedVoice, setSelectedVoice] = useState<"Kore" | "Zephyr" | "Puck" | "Charon" | "Fenrir">("Kore");
-
-  // TTS playback
-  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-
-  // Live voice
-  const [isLiveActive, setIsLiveActive] = useState(false);
-  const [liveStatus, setLiveStatus] = useState<string>("Disconnected");
-  const liveWsRef = useRef<WebSocket | null>(null);
-  const micCtxRef = useRef<AudioContext | null>(null);
-  const micProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const playCtxRef = useRef<AudioContext | null>(null);
-  const nextPlayTimeRef = useRef<number>(0);
-  const liveInterruptedRef = useRef<boolean>(false);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -213,19 +492,19 @@ export default function App() {
     if (savingSelection) return; // a double tap must never save twice
     const target = selSave && (!explicitMsgId || selSave.msgId === explicitMsgId) ? selSave : null;
     if (!target) {
-      showToast(t("save.selectFirst"));
+      showToast("Select the lines you like in the answer first, then tap Save lines.");
       return;
     }
     const idx = chatHistory.findIndex((m) => m.id === target.msgId);
     const msg = chatHistory[idx];
     if (!msg || msg.role !== "model") {
-      showToast(t("save.insideAnswer"));
+      showToast("Select lines inside an answer to save them.");
       return;
     }
     // Never save a draft the examiner is still reviewing: the corrected final
     // answer replaces it, and a wrong fact must not enter the revision shelf.
     if (msg.streaming || msg.verification === "checking") {
-      showToast(t("save.stillChecking"));
+      showToast("One moment: Deep-check is still reviewing this answer. Save once it settles.");
       return;
     }
     // Snapshot taken; clear synchronously so repeat taps have nothing to save.
@@ -239,11 +518,90 @@ export default function App() {
         messageId: msg.id,
         conversationId: activeId || undefined
       });
-      showToast(t("save.done"));
+      // Accumulation you can feel: the +1 flies into the notebook, the count
+      // ticks, and every save states the payoff (all in one place on exam day).
+      // Only claim a running total when the true count is known: showing "1
+      // point saved" to a student who already has 30 (summary not yet loaded)
+      // would be wrong, so fall back to a count-free line and skip milestones
+      // until the authoritative refetch below settles the real total.
+      flyToNotebook(document.getElementById("btn-save-selection") || document.getElementById(`btn-savelines-${msg.id}`));
+      if (savedCount !== null) {
+        const n = savedCount + 1;
+        setSavedCount(n);
+        showToast(savedToast(n));
+        if (SAVE_MILESTONES.includes(n) && canFire("milestone") && claimOnce(`${scope}:milestone-saves:${n}`)) {
+          pushCelebration({ tone: "milestone", ...savesMilestoneCopy(n) });
+        }
+      } else {
+        showToast("Saved to your Pre-exam notebook. It files itself under the right chapter.");
+      }
+      // The AI files the point under its chapter asynchronously: refresh the
+      // shelf shortly after and fire any sheet threshold a chapter crossed.
+      const savedForAcct = accountIdRef.current;
+      setTimeout(async () => {
+        try {
+          const s = await api.getNotebook();
+          if (accountIdRef.current !== savedForAcct) return; // signed out/in meanwhile
+          setSavedCount(s.savedCount);
+          const next = s.subjects
+            ? new Map(s.subjects.flatMap((sub) => sub.chapters.map((ch) => [`${sub.subject}|${ch.chapter}`, ch.count] as [string, number])))
+            : null;
+          const prevCounts = chapterCountsRef.current;
+          if (next && prevCounts) {
+            for (const [key, cnt] of next) {
+              const before = prevCounts.get(key) ?? 0;
+              for (const t of SHEET_THRESHOLDS) {
+                if (before < t && cnt >= t && canFire("sheet") && claimOnce(`${scope}:sheet:${key}:${t}`)) {
+                  const [subj, chap] = key.split("|");
+                  pushCelebration({ tone: "sheet", ...sheetCopy(subj, chap, t) });
+                }
+              }
+            }
+          }
+          if (next) chapterCountsRef.current = next;
+        } catch {
+          /* the shelf read is a bonus, never an error surface */
+        }
+      }, 6000);
     } catch (e: any) {
-      showToast(e?.message || t("save.failed"));
+      showToast(e?.message || "Could not save that. Please select the lines again and retry.");
     } finally {
       setSavingSelection(false);
+    }
+  };
+
+  /** The saved line flies as a "+1" pill from the save button into the
+   *  notebook icon, which bounces once. Pure DOM + CSS; skipped entirely
+   *  under reduced motion or when either end is not on screen. */
+  const flyToNotebook = (fromEl: HTMLElement | null) => {
+    try {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      // Desktop header icon when visible, else the mobile nav's Notebook tab.
+      const target =
+        (document.getElementById("btn-notebook")?.offsetParent ? document.getElementById("btn-notebook") : null) ||
+        document.getElementById("tab-notebook");
+      const from = fromEl?.getBoundingClientRect();
+      const to = target?.getBoundingClientRect();
+      if (!from || !to || !target) return;
+      const el = document.createElement("div");
+      el.className = "cfy-fly";
+      el.textContent = "+1";
+      el.style.left = `${from.left + from.width / 2}px`;
+      el.style.top = `${from.top}px`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          el.style.transform = `translate(${to.left + to.width / 2 - (from.left + from.width / 2)}px, ${to.top + to.height / 2 - from.top}px) scale(0.4)`;
+          el.style.opacity = "0";
+        })
+      );
+      setTimeout(() => {
+        el.remove();
+        target.classList.add("cfy-bounce");
+        setTimeout(() => target.classList.remove("cfy-bounce"), 700);
+      }, 820);
+    } catch {
+      /* decoration only: never let it break a save */
     }
   };
 
@@ -317,11 +675,9 @@ export default function App() {
 
   useEffect(() => {
     // Clean up legacy device-local diagram cache from the removed Illustrator.
-    localStorage.removeItem("clarify_images");
+    localStorage.removeItem("faheem_images");
     return () => {
-      if (audioPlayerRef.current) audioPlayerRef.current.pause();
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      stopLiveSession();
     };
   }, []);
 
@@ -341,7 +697,22 @@ export default function App() {
     }
   };
 
+  const creatingChatRef = useRef(false);
   const handleNewChat = async () => {
+    // A button-mashing kid should get ONE new chat, not five: guard the
+    // in-flight create, and reuse an existing empty chat instead of stacking
+    // "New chat" rows in the study log.
+    if (creatingChatRef.current) return;
+    const existingEmpty = conversations.find((c) => (c.messageCount ?? 0) === 0);
+    if (existingEmpty) {
+      setActiveId(null);
+      openConversation(existingEmpty.id);
+      setInputText("");
+      setAttachments([]);
+      setMobileView("chat");
+      return;
+    }
+    creatingChatRef.current = true;
     try {
       const { conversation } = await api.createConversation();
       setConversations((prev) => [conversation, ...prev]);
@@ -352,11 +723,19 @@ export default function App() {
       setMobileView("chat");
     } catch (e) {
       console.error("Could not start a new chat:", e);
+      showToast("Could not start a new chat. Please try once more. 🌱");
+    } finally {
+      creatingChatRef.current = false;
     }
   };
 
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    // A 13px icon sits right next to the row a kid taps to open a chat: one
+    // slip must not silently erase their study history.
+    const doomed = conversations.find((c) => c.id === id);
+    const label = doomed?.title && doomed.title !== "New chat" ? `“${doomed.title}”` : "this chat";
+    if (!window.confirm(`Delete ${label}? Its messages go away for good (saved notebook lines stay).`)) return;
     const remaining = conversations.filter((c) => c.id !== id);
     setConversations(remaining);
     api.deleteConversation(id).catch(() => {});
@@ -403,23 +782,61 @@ export default function App() {
   // opts.deep: ask for the full study view (exam-ready answer + notebook).
   // opts.silent: don't add a user bubble (the Deep understanding button
   // re-asks a question that is already on screen).
-  const handleSendMessage = async (textToSend?: string, opts?: { deep?: boolean; silent?: boolean }) => {
+  const handleSendMessage = async (
+    textToSend?: string,
+    opts?: { deep?: boolean; silent?: boolean; convId?: string; freshChat?: boolean; deepSourceId?: string }
+  ) => {
     const text = (textToSend ?? inputText).trim();
     const atts = opts?.silent ? [] : attachments;
-    if ((!text && atts.length === 0) || !activeId || isGenerating) return;
-    const convId = activeId;
-    const isFirstMessage = chatHistory.length === 0;
+    // sendingRef guards synchronously: React state (isGenerating) settles a
+    // tick later, so a fast double-tap could fire two sends and charge two
+    // credits before the button ever disabled.
+    if ((!text && atts.length === 0) || isGenerating || sendingRef.current) return;
+    sendingRef.current = true;
+    // The student engaged with a question: the Ready-to-Land card belongs to
+    // the fresh open only, so it steps aside for the rest of this session.
+    setSentThisSession(true);
+    // Set inside finalize (success only): drives the lamp + doubt counters.
+    let answeredOk = false;
+    let paywalled = false;
+    // No open conversation (the list failed to load, or was emptied): create
+    // one on the spot instead of silently swallowing the student's question.
+    let convId = opts?.convId ?? activeId;
+    if (!convId) {
+      try {
+        const { conversation } = await api.createConversation();
+        setConversations((prev) => [conversation, ...prev.filter((c) => c.id !== conversation.id)]);
+        setActiveId(conversation.id);
+        setChatHistory([]);
+        convId = conversation.id;
+      } catch {
+        sendingRef.current = false;
+        showToast("Could not reach your study log. Check your internet and try again. 🌱");
+        return;
+      }
+    }
+    // freshChat: the caller just opened a brand-new conversation this same
+    // tick, so the chatHistory closure may still show the previous thread.
+    const isFirstMessage = opts?.freshChat === true || chatHistory.length === 0;
     const deep = opts?.deep === true;
 
-    // A new question (first in a thread, not a deep dive) is what costs a credit.
-    // Follow-ups, "still fuzzy" re-explains, and deep dives are always free.
+    // Conservative pre-send gate: block instantly only for the case the client
+    // can be SURE costs a credit, a brand-new thread with no quota left. A NEW
+    // doubt raised mid-thread also costs a credit, but only the server's
+    // classifier can tell it from a free same-doubt follow-up, so those go
+    // through and the server returns the paywall if the student is out (see
+    // handlePaywall). Deep dives and re-explains never cost a credit.
     const isNewQuestion = isFirstMessage && !deep && (Boolean(text) || atts.length > 0);
     if (isNewQuestion && !canAskNew(subscription)) {
+      // Release the synchronous send guard before bailing: this early return is
+      // BEFORE the try/finally that normally clears it, so without this the ref
+      // would stay latched and silently block every future send until reload.
+      sendingRef.current = false;
       // Heal a stale snapshot too (e.g. the plan was activated on another
       // device or by the payment webhook): the refreshed usage re-renders the
       // modal's status line, and the next attempt passes if access returned.
       refreshSubscription().catch(() => {});
-      setUpgradeReason(blockedReason(t, subscription));
+      setUpgradeReason(blockedReason(subscription));
       setShowUpgrade(true);
       return;
     }
@@ -457,6 +874,10 @@ export default function App() {
     // authoritative final answer from the "done" event (with Deep-check on,
     // that final text is the examiner-corrected version of the draft).
     const streamId = `model-stream-${Date.now()}`;
+    // Whether a streaming draft ever appeared: it decides the answer's id
+    // (the draft's, kept in place on the final swap) vs the message's own,
+    // on screen AND in the study log, which must match (see finalize).
+    let draftShown = false;
     const patchStream = (patch: Partial<ChatMessage> | ((m: ChatMessage) => ChatMessage)) =>
       setChatHistory((prev) =>
         prev.map((m) => (m.id === streamId ? (typeof patch === "function" ? patch(m) : { ...m, ...patch }) : m))
@@ -468,9 +889,10 @@ export default function App() {
     // the next ask in this thread look like a free follow-up), the auto-title
     // reverted, and the typed question handed back to the input box.
     const handlePaywall = (sub: Subscription | undefined, message: string) => {
+      paywalled = true;
       if (sub) applySubscription(sub);
       else refreshSubscription();
-      setUpgradeReason(message || blockedReason(t, sub));
+      setUpgradeReason(message || blockedReason(sub));
       setShowUpgrade(true);
       if (activeIdRef.current === convId) {
         setChatHistory((prev) => prev.filter((m) => m.id !== streamId && m.id !== userMsgId));
@@ -510,13 +932,27 @@ export default function App() {
         preferredAnalogy: profile.preferredAnalogy,
         recentTopics,
         deep,
-        images
+        images,
+        // Lets the backend key the Landing Signal's posed-check state per chat.
+        conversationId: convId
       };
 
       // The answer always persists to its own conversation, but only paints
       // into local state while that conversation is still the one on screen
       // (it reloads from the server if the student comes back later).
-      const finalize = (msg: ChatMessage) => {
+      const finalize = (raw: ChatMessage) => {
+        answeredOk = true;
+        // The answer keeps the streaming draft's id on screen (the in-place
+        // swap below), so it must persist under that SAME id: every later
+        // id-keyed operation (the Deep-check re-save upsert, a deepFor link
+        // from a "Go deeper" tap) targets the on-screen id, and a mismatched
+        // persisted id would leave it dangling after a reload. A notebook also
+        // carries the pointer to the answer it deepens, right on the message.
+        const msg: ChatMessage = {
+          ...raw,
+          id: draftShown ? streamId : raw.id,
+          ...(opts?.deepSourceId ? { deepFor: opts.deepSourceId } : {})
+        };
         if (activeIdRef.current === convId) {
           // If a streaming draft is already on screen, swap its content in
           // place (keeping its id) so the completed answer settles once and
@@ -524,7 +960,7 @@ export default function App() {
           // genuine first appearance (image path, stream skipped) animates in.
           setChatHistory((prev) =>
             prev.some((m) => m.id === streamId)
-              ? prev.map((m) => (m.id === streamId ? { ...msg, id: m.id } : m))
+              ? prev.map((m) => (m.id === streamId ? msg : m))
               : [...prev.filter((m) => m.id !== streamId), msg]
           );
         }
@@ -534,33 +970,54 @@ export default function App() {
       // Try streaming first. Text-only, and not for explicit Search mode: the
       // server would just answer "fallback" while charging a rate-limit token.
       // (Auto-routed search from Standard is still caught server-side.)
+      // Deltas are buffered and painted at most every 80ms: per-token
+      // setChatHistory re-renders the whole workspace and re-parses the
+      // growing draft, which chokes low-end phones (the primary audience).
       let streamResult: Awaited<ReturnType<typeof api.chatStream>> | null = null;
+      let pendingDelta = "";
+      let deltaTimer: ReturnType<typeof setTimeout> | null = null;
+      const flushDelta = () => {
+        if (deltaTimer) clearTimeout(deltaTimer);
+        deltaTimer = null;
+        const chunk = pendingDelta;
+        pendingDelta = "";
+        if (!chunk || activeIdRef.current !== convId) return;
+        draftShown = true;
+        setChatHistory((prev) => {
+          if (prev.some((m) => m.id === streamId)) {
+            return prev.map((m) => (m.id === streamId ? { ...m, text: m.text + chunk } : m));
+          }
+          const bubble: ChatMessage = {
+            id: streamId,
+            role: "model",
+            text: chunk,
+            timestamp: new Date().toLocaleTimeString(),
+            streaming: true
+          };
+          return [...prev, bubble];
+        });
+      };
       if (images.length === 0) {
         try {
           streamResult = await api.chatStream(
             baseBody,
             (chunk) => {
               if (activeIdRef.current !== convId) return;
-              setChatHistory((prev) => {
-                if (prev.some((m) => m.id === streamId)) {
-                  return prev.map((m) => (m.id === streamId ? { ...m, text: m.text + chunk } : m));
-                }
-                const bubble: ChatMessage = {
-                  id: streamId,
-                  role: "model",
-                  text: chunk,
-                  timestamp: new Date().toLocaleTimeString(),
-                  streaming: true
-                };
-                return [...prev, bubble];
-              });
+              pendingDelta += chunk;
+              if (!deltaTimer) deltaTimer = setTimeout(flushDelta, 80);
             },
-            () => patchStream({ verification: "checking", streaming: false })
+            () => {
+              flushDelta();
+              patchStream({ verification: "checking", streaming: false });
+            }
           );
         } catch (streamErr: any) {
           console.warn("Streaming failed, retrying on /chat:", streamErr?.message || streamErr);
           streamResult = { kind: "fallback", reason: "stream-failed" };
         }
+        // Whatever streamed is on screen before anything else happens; no
+        // trailing timer may fire after the draft-to-final swap below.
+        flushDelta();
       }
 
       // The stream reported the student is out of trial / quota: stop here and
@@ -577,9 +1034,7 @@ export default function App() {
           text: streamResult.text,
           timestamp: new Date().toLocaleTimeString(),
           sources: streamResult.sources || [],
-          verification: streamResult.verification,
-          grounding: streamResult.grounding,
-          outOfSyllabus: streamResult.outOfSyllabus
+          verification: streamResult.verification
         });
       } else {
         // Plain /chat: the proven whole-answer path (also the stream's safety
@@ -592,14 +1047,15 @@ export default function App() {
           text: data.text,
           timestamp: new Date().toLocaleTimeString(),
           sources: data.sources || [],
-          verification: data.verification,
-          grounding: data.grounding,
-          outOfSyllabus: data.outOfSyllabus
+          verification: data.verification
         });
       }
 
-      // A new question was charged server-side: refresh the usage display.
-      if (isNewQuestion) refreshSubscription().catch(() => {});
+      // The server is the authority on whether this ask cost a credit: a NEW
+      // doubt raised mid-thread is charged there too, and only its classifier
+      // knows. So always pull the true usage, never trust the client's guess,
+      // and the "questions left" pill drops for every distinct topic asked.
+      refreshSubscription().catch(() => {});
     } catch (error: any) {
       // Out of trial / quota on the /chat path: show the plan chooser, not an error.
       if (error instanceof ApiError && error.code === "payment_required") {
@@ -612,63 +1068,56 @@ export default function App() {
         const errorMsg: ChatMessage = {
           id: `err-${Date.now()}`,
           role: "model",
-          text: t("chat.errorMessage"),
+          text: "I could not finish that one just now. This is on my side, not yours. Give it a moment and ask me again, and I will pick it right back up.",
           timestamp: new Date().toLocaleTimeString(),
           isError: true
         };
         setChatHistory((prev) => [...prev.filter((m) => m.id !== streamId), errorMsg]);
       }
     } finally {
+      sendingRef.current = false;
       setIsGenerating(false);
+      // Refresh the understanding read unless the send was paywalled (a
+      // blocked ask produces no verdict). An errored send still refetches:
+      // the server may have recorded a verdict before the client-side
+      // failure, and a mastery moment must not wait for the next open.
+      if (!paywalled) setUnderstandingKey((k) => k + 1);
+      // A real answer arrived: light the lamp on the day's first ask and
+      // count the doubt toward its lifetime milestones.
+      if (answeredOk) onAnswered(text, opts);
     }
-  };
-
-  // ---- TTS ----
-  const handleSpeak = async (messageId: string, text: string) => {
-    if (playingMessageId === messageId) {
-      if (audioPlayerRef.current) audioPlayerRef.current.pause();
-      setPlayingMessageId(null);
-      return;
-    }
-    if (audioPlayerRef.current) audioPlayerRef.current.pause();
-
-    const cached = chatHistory.find((m) => m.id === messageId);
-    if (cached?.audioBase64) {
-      playBase64Audio(cached.audioBase64, messageId);
-      return;
-    }
-
-    setPlayingMessageId(messageId);
-    try {
-      const cleanText = text
-        .replace(/[*_#`~\[\]()\-]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .substring(0, 500);
-      const data = await api.tts({ text: cleanText, voice: selectedVoice });
-      if (data.audio) {
-        setChatHistory((prev) => prev.map((m) => (m.id === messageId ? { ...m, audioBase64: data.audio } : m)));
-        playBase64Audio(data.audio, messageId);
-      }
-    } catch (err) {
-      console.error("TTS synthesis failed", err);
-      setPlayingMessageId(null);
-    }
-  };
-
-  const playBase64Audio = (base64: string, messageId: string) => {
-    const audio = new Audio(`data:audio/wav;base64,${base64}`);
-    audioPlayerRef.current = audio;
-    setPlayingMessageId(messageId);
-    audio.onended = () => setPlayingMessageId(null);
-    audio.onerror = () => setPlayingMessageId(null);
-    audio.play().catch((err) => {
-      console.error("Audio playback interrupted", err);
-      setPlayingMessageId(null);
-    });
   };
 
   // ---- Chapters ----
+  // A chapter-mastery study session ALWAYS opens in its own fresh chat: the
+  // deep notebook is a self-contained lesson and must never land mid-thread
+  // inside whatever doubt happens to be open. Reuses an empty "New chat" row
+  // if one exists, otherwise creates one, then sends the study request into
+  // exactly that conversation.
+  const startChapterStudy = async (chapterName: string) => {
+    if (isGenerating || sendingRef.current) return;
+    let convId: string;
+    const existingEmpty = conversations.find((c) => (c.messageCount ?? 0) === 0);
+    if (existingEmpty) {
+      convId = existingEmpty.id;
+      setActiveId(existingEmpty.id);
+      setChatHistory([]);
+    } else {
+      try {
+        const { conversation } = await api.createConversation();
+        setConversations((prev) => [conversation, ...prev.filter((c) => c.id !== conversation.id)]);
+        setActiveId(conversation.id);
+        setChatHistory([]);
+        convId = conversation.id;
+      } catch {
+        showToast("Could not open a fresh chat for this chapter. Check your internet and try again. 🌱");
+        return;
+      }
+    }
+    setMobileView("chat");
+    await handleSendMessage(`Teach me "${chapterName}" in depth.`, { deep: true, convId, freshChat: true });
+  };
+
   const handleAddChapter = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChapterName.trim()) return;
@@ -682,7 +1131,7 @@ export default function App() {
     setChapters((prev) => [newCh, ...prev]);
     setNewChapterName("");
     setIsAddingChapter(false);
-    handleSendMessage(`اشرح لي «${newCh.name}» بعمق.`, { deep: true });
+    startChapterStudy(newCh.name);
   };
 
   const handleUpdateMastery = (id: string, newMastery: "weak" | "developing" | "strong") => {
@@ -701,128 +1150,6 @@ export default function App() {
     setIsEditingProfile(false);
   };
 
-  // ---- Live voice ----
-  const startLiveSession = async () => {
-    try {
-      setLiveStatus(t("live.initMic"));
-      const playCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      playCtxRef.current = playCtx;
-      nextPlayTimeRef.current = playCtx.currentTime;
-      liveInterruptedRef.current = false;
-
-      // Microphone needs a secure context (HTTPS, or localhost). Fail clearly
-      // instead of throwing a cryptic error when the page is served over http://.
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setLiveStatus(t("live.micInsecure"));
-        setIsLiveActive(false);
-        return;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      const token = getToken();
-      // Route the socket to the BACKEND origin (the same place HTTP calls go via
-      // VITE_API_URL), so live voice works when the frontend and backend are
-      // deployed on different URLs. Falls back to same-origin for local dev.
-      const apiBase = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
-      const wsBase = apiBase
-        ? apiBase.replace(/^http/i, "ws") // http→ws, https→wss
-        : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`;
-      const wsUrl = `${wsBase}/api/live${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-
-      const ws = new WebSocket(wsUrl);
-      liveWsRef.current = ws;
-      setIsLiveActive(true);
-
-      ws.onopen = () => {
-        setLiveStatus(t("live.connected"));
-        ws.send(JSON.stringify({ type: "start" }));
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "ready") {
-            setLiveStatus(t("live.listening"));
-          } else if (msg.type === "audio") {
-            if (liveInterruptedRef.current) return;
-            playLiveAudioChunk(base64ToFloat32PCM(msg.audio));
-          } else if (msg.type === "interrupted") {
-            liveInterruptedRef.current = true;
-            nextPlayTimeRef.current = playCtxRef.current?.currentTime || 0;
-          } else if (msg.type === "error") {
-            setLiveStatus(t("live.error", { error: msg.error }));
-            stopLiveSession();
-          }
-        } catch (e) {
-          console.error("WebSocket client parsing error:", e);
-        }
-      };
-
-      ws.onclose = () => {
-        setLiveStatus(t("live.closed"));
-        stopLiveSession();
-      };
-      ws.onerror = (err) => {
-        setLiveStatus(t("live.socketError"));
-        console.error("Live WebSocket Error", err);
-      };
-
-      const micCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      micCtxRef.current = micCtx;
-      const source = micCtx.createMediaStreamSource(stream);
-      const processor = micCtx.createScriptProcessor(2048, 1, 1);
-      micProcessorRef.current = processor;
-      source.connect(processor);
-      processor.connect(micCtx.destination);
-      processor.onaudioprocess = (e) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          const base64PCM = arrayBufferToBase64(float32ToInt16PCM(e.inputBuffer.getChannelData(0)));
-          ws.send(JSON.stringify({ audio: base64PCM }));
-        }
-      };
-    } catch (err: any) {
-      console.error(err);
-      setLiveStatus(t("live.micDenied"));
-      setIsLiveActive(false);
-    }
-  };
-
-  const stopLiveSession = () => {
-    setIsLiveActive(false);
-    setLiveStatus(t("live.disconnected"));
-    if (liveWsRef.current) {
-      liveWsRef.current.close();
-      liveWsRef.current = null;
-    }
-    if (micProcessorRef.current) {
-      micProcessorRef.current.disconnect();
-      micProcessorRef.current = null;
-    }
-    if (micCtxRef.current) {
-      micCtxRef.current.close();
-      micCtxRef.current = null;
-    }
-    if (playCtxRef.current) {
-      playCtxRef.current.close();
-      playCtxRef.current = null;
-    }
-  };
-
-  const playLiveAudioChunk = (float32Array: Float32Array) => {
-    const playCtx = playCtxRef.current;
-    if (!playCtx) return;
-    const audioBuffer = playCtx.createBuffer(1, float32Array.length, 24000);
-    audioBuffer.getChannelData(0).set(float32Array);
-    const source = playCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(playCtx.destination);
-    const currentTime = playCtx.currentTime;
-    let startTime = nextPlayTimeRef.current;
-    if (startTime < currentTime) startTime = currentTime + 0.05;
-    source.start(startTime);
-    nextPlayTimeRef.current = startTime + audioBuffer.duration;
-  };
-
   const selectSuggestedPrompt = (prompt: string) => {
     setInputText(prompt);
     setMobileView("chat");
@@ -833,7 +1160,7 @@ export default function App() {
   const questionBefore = (idx: number): string => {
     for (let i = idx - 1; i >= 0; i--) {
       const m = chatHistory[i];
-      if (m.role === "user" && m.text.trim() && m.text !== t(STILL_CONFUSED_KEY)) return m.text;
+      if (m.role === "user" && m.text.trim() && m.text !== STILL_CONFUSED_PROMPT) return m.text;
     }
     return chatHistory[idx]?.text.slice(0, 200) || "";
   };
@@ -844,6 +1171,18 @@ export default function App() {
     message.text.length > 200 &&
     !(message.sources && message.sources.length > 0) &&
     parseTeachingSections(message.text).sections.length === 0;
+
+  // "Go deeper" is one-shot per answer: the first tap generates the notebook,
+  // later taps scroll back to it. Regenerating would only re-serve the same
+  // cached notebook and stack a duplicate at the bottom of the thread.
+  const openDeepDive = (msgIdx: number, message: ChatMessage) => {
+    const existingId = deepDiveOf[message.id];
+    if (existingId) {
+      document.getElementById(`msg-bubble-${existingId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    handleSendMessage(questionBefore(msgIdx), { deep: true, silent: true, deepSourceId: message.id });
+  };
 
   // ---- On-demand Deep-check: examiner pass over an existing answer ----
   const handleDeepCheck = async (msg: ChatMessage, question: string) => {
@@ -856,7 +1195,10 @@ export default function App() {
         setChatHistory((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: data.text, verification: data.verification } : m)));
       }
       // Re-save under the same id so the study log keeps the corrected answer.
-      api.addMessage(convId, { id: msg.id, role: "model", text: data.text, sources: msg.sources || [] }).catch(() => {});
+      // deepFor rides along: if the original save was lost (flaky network),
+      // this re-save CREATES the row, and the deep-dive link must not be
+      // dropped with it (the upsert only backfills it, never overwrites).
+      api.addMessage(convId, { id: msg.id, role: "model", text: data.text, sources: msg.sources || [], deepFor: msg.deepFor }).catch(() => {});
     } catch (e) {
       console.error("Deep-check failed:", e);
       if (activeIdRef.current === convId) {
@@ -876,10 +1218,10 @@ export default function App() {
       return (
         <>
           {preamble && (
-            <div className="mb-4 pb-3 border-b border-[var(--color-line-soft)]">
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-[var(--color-sea)]">
-                <span className="h-px w-4 bg-[var(--color-sea)]/50" />
-                {t("tutor.examReady")}
+            <div className="mb-4 pb-3 border-b border-editorial-line-light">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-editorial-sage">
+                <span className="h-px w-4 bg-editorial-sage/50" />
+                Exam-ready answer
               </div>
               <Markdown>{preamble}</Markdown>
             </div>
@@ -894,11 +1236,13 @@ export default function App() {
   // --- Gated rendering ---
   if (authLoading || (account && dataLoading)) {
     return (
-      <div className="fahim-app flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-[var(--color-pearl)] text-[var(--color-ink)] px-6 text-center">
-        <div className="faheem-mark h-16 w-16 text-3xl motion-safe:animate-[faheem-breathe_2.2s_ease-in-out_infinite]">ف</div>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-editorial-ivory text-editorial-charcoal px-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage motion-safe:animate-[faheem-breathe_2.2s_ease-in-out_infinite]">
+          <span lang="ar" className="fhm-arabic text-2xl leading-none text-editorial-ivory">ف</span>
+        </div>
         <div>
-          <p className="text-sm font-bold text-[var(--color-ink)]">{t("loading.desk")}</p>
-          <p className="mt-1 text-xs text-[var(--color-ink-soft)]">{t("loading.deskHint")}</p>
+          <p className="text-sm font-medium text-editorial-sage">Preparing your study desk</p>
+          <p className="mt-1 text-xs text-editorial-charcoal/60">One moment. Your notebook and study log are loading.</p>
         </div>
       </div>
     );
@@ -908,8 +1252,10 @@ export default function App() {
     return (
       <Suspense
         fallback={
-          <div className="fahim-app flex min-h-[100dvh] items-center justify-center bg-[var(--color-night)]">
-            <div className="faheem-mark h-14 w-14 text-2xl">ف</div>
+          <div className="flex min-h-[100dvh] items-center justify-center bg-night">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-editorial-sage">
+              <span lang="ar" className="fhm-arabic text-2xl leading-none text-editorial-ivory">ف</span>
+            </div>
           </div>
         }
       >
@@ -918,56 +1264,50 @@ export default function App() {
     );
   }
 
-  // TODO(fahim-rtl): logical-props sweep is complete for the main app shell
-  // (header, study panel, chat panel, message bubbles, input bar, bottom nav,
-  // attachment/save bars, preferences modal) and the Markdown prose renderer.
-  // Still physical and NOT yet swept: NotebookViewer.tsx, PreExamNotebook.tsx
-  // (the notebook overlay's inner chrome), UpgradeModal.tsx, Login.tsx. The
-  // landing (src/landing/**) is intentionally LTR and must stay physical.
   return (
     <MotionConfig reducedMotion="user">
-    {/* fahim-app: applies the Arabic-capable font stack (var(--font-arabic)).
-        dir is inherited from <html> (set by LocaleProvider), so the whole shell
-        mirrors via logical properties without a hardcoded dir here. */}
-    <div className="fahim-app h-[100dvh] bg-[var(--color-pearl)] text-[var(--color-ink)] font-sans flex flex-col antialiased">
+    <div className="h-[100dvh] bg-editorial-ivory text-editorial-charcoal font-sans flex flex-col antialiased">
       {/* Header */}
-      <nav className="flex justify-between items-center px-4 py-3 md:px-8 border-b border-[var(--color-line)] bg-[var(--color-pearl)]">
-        <div className="flex items-center gap-2.5">
-          <span className="faheem-mark w-9 h-9 text-lg shrink-0" aria-hidden="true">ف</span>
-          <span className="font-bold text-[22px] leading-none tracking-tight text-[var(--color-ink)]">{t("app.name")}</span>
+      <nav className="flex justify-between items-center px-4 py-3 md:px-8 border-b border-editorial-line bg-editorial-ivory">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-[2px] bg-editorial-sage flex items-center justify-center shrink-0">
+            <span lang="ar" className="fhm-arabic text-lg leading-none" style={{ color: "var(--color-editorial-ivory)" }}>ف</span>
+          </div>
+          <span className="kod-display hidden sm:inline text-xl tracking-tight text-editorial-charcoal">Faheem</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden md:block text-xs text-[var(--color-ink-soft)] me-1">
+          <span className="hidden md:block text-xs text-editorial-charcoal/70 mr-1">
             {profile.name} · {profile.board}
           </span>
+          {/* The lamp: lifetime days you showed up. It only ever grows; an
+              unlit lamp is an invitation, never a loss. */}
+          {stats && stats.daysActive > 0 && (
+            <div
+              title={lampTitle(stats.daysActive, stats.activeToday)}
+              className="flex items-center gap-1 px-2.5 h-9 rounded-full border border-editorial-line text-xs text-editorial-charcoal/80 shrink-0 select-none"
+              id="lamp-badge"
+            >
+              <Flame size={13} className={stats.activeToday ? "text-amber-500 fill-amber-400 cfy-lamp-lit" : "text-editorial-charcoal/30"} />
+              <span className="tabular-nums">{stats.daysActive}</span>
+            </div>
+          )}
           <UsagePill
-            t={t}
             subscription={subscription}
             onClick={() => {
               setUpgradeReason("");
               setShowUpgrade(true);
             }}
           />
-          {/* Language toggle: Arabic loads by default; students may flip to
-              English. Kept compact, shows the language they'd switch TO. */}
-          <button
-            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            title={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
-            aria-label={lang === "ar" ? t("lang.switchToEnglish") : t("lang.switchToArabic")}
-            className="h-9 px-3 rounded-full border border-[var(--color-line)] flex items-center justify-center text-xs font-bold text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-ink)] transition-all cursor-pointer shrink-0"
-            id="btn-lang-toggle"
-          >
-            <span className="font-latin">{lang === "ar" ? "EN" : "ع"}</span>
-          </button>
+          <ThemeToggle className="!h-9 !w-9 shrink-0" />
           <button
             onClick={() => setNotebookOpen(true)}
-            title={t("nav.preExamNotebook")}
-            aria-label={t("nav.preExamNotebook")}
+            title="Pre-exam notebook"
+            aria-label="Pre-exam notebook"
             /* Below lg the bottom nav carries a Notebook tab, so this header
                button would be a redundant, crowding duplicate: show it only on
                desktop where there is no bottom nav. */
-            className="w-9 h-9 rounded-full border border-[var(--color-line)] hidden lg:flex items-center justify-center text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)] transition-all cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full border border-editorial-line hidden lg:flex items-center justify-center text-editorial-charcoal/60 hover:bg-editorial-stone hover:text-editorial-sage transition-all cursor-pointer shrink-0"
             id="btn-notebook"
           >
             <BookMarked size={15} />
@@ -977,23 +1317,27 @@ export default function App() {
               setEditProfileForm({ ...profile });
               setIsEditingProfile(true);
             }}
-            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-[var(--color-line)] text-xs font-semibold text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
+            title="Change your board, class, language, or study style"
+            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-editorial-line text-xs hover:bg-editorial-stone transition-colors cursor-pointer"
             id="btn-settings-profile"
           >
             <Settings size={14} />
-            <span className="hidden sm:inline">{t("nav.preferences")}</span>
+            <span className="hidden sm:inline">Preferences</span>
           </button>
           <button
             onClick={() => logout()}
-            title={t("nav.signOut")}
-            aria-label={t("nav.signOut")}
-            className="w-9 h-9 rounded-full border border-[var(--color-line)] flex items-center justify-center text-[var(--color-ink-soft)] hover:bg-[var(--color-red)]/8 hover:text-[var(--color-red)] hover:border-[var(--color-red)]/25 transition-all cursor-pointer shrink-0"
+            title="Sign out"
+            aria-label="Sign out"
+            className="w-9 h-9 rounded-full border border-editorial-line flex items-center justify-center text-editorial-charcoal/60 hover:bg-red-50 hover:text-red-700 hover:border-red-200 dark:hover:bg-red-950/50 dark:hover:text-red-300 dark:hover:border-red-900 transition-all cursor-pointer shrink-0"
             id="btn-logout"
           >
             <LogOut size={15} />
           </button>
         </div>
       </nav>
+
+      {/* Non-blocking nudge to verify email (only for unverified accounts). */}
+      <VerifyBanner />
 
       {/* Two-panel workspace */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden max-w-[1500px] w-full mx-auto pb-14 lg:pb-0">
@@ -1003,33 +1347,34 @@ export default function App() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
-          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-e border-[var(--color-line)] p-4 md:p-5 flex-col gap-4 bg-[var(--color-pearl)] overflow-y-auto`}
+          className={`${mobileView === "study" ? "flex" : "hidden"} lg:flex w-full lg:w-80 lg:shrink-0 min-h-0 border-r border-[color:rgba(90,90,64,0.14)] p-4 md:p-5 flex-col gap-4 bg-editorial-ivory overflow-y-auto`}
         >
 
-          {/* New chat: primary red action. */}
+          {/* New chat */}
           <button
             onClick={handleNewChat}
-            className="faheem-btn w-full flex items-center justify-center gap-2 !py-2.5 text-sm"
+            title="Start a fresh chat for a new doubt"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-editorial-charcoal text-white text-sm font-medium hover:bg-editorial-charcoal/90 transition-colors cursor-pointer shadow-sm"
             id="btn-new-chat"
           >
             <Plus size={16} />
-            {t("chat.newChat")}
+            New chat
           </button>
 
-          {/* Profile details: quiet context, so it grounds on sand and casts
+          {/* Profile details: quiet context, so it grounds on stone and casts
               no shadow (shadow + white are reserved for actions/active state). */}
-          <div className="bg-[var(--color-sand)] border border-[var(--color-line-soft)] rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-editorial-stone border border-editorial-line-light rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[var(--color-sea-soft)] flex items-center justify-center text-[var(--color-sea)] shrink-0">
+              <div className="w-9 h-9 rounded-full bg-editorial-sage/15 flex items-center justify-center text-editorial-sage shrink-0">
                 <User size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold text-[var(--color-ink)] truncate">{profile.name}</h3>
-                <p className="text-xs text-[var(--color-ink-soft)]">{profile.grade} · {profile.language}</p>
+                <h3 className="text-sm font-semibold text-editorial-charcoal truncate">{profile.name}</h3>
+                <p className="text-xs text-editorial-charcoal/60">{profile.grade} · {profile.language}</p>
               </div>
             </div>
-            <p className="text-xs text-[var(--color-ink-soft)] border-t border-[var(--color-line-soft)] pt-2.5">
-              «{profile.examGoals || t("study.defaultGoal")}»
+            <p className="text-xs text-editorial-charcoal/70 kod-display border-t border-editorial-line-light pt-2.5">
+              "{profile.examGoals || "Learn deeply with real analogies"}"
             </p>
           </div>
 
@@ -1037,14 +1382,13 @@ export default function App() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <MessageSquare size={14} className="text-[var(--color-sea)]" />
-                <h3 className="text-sm font-bold text-[var(--color-ink)]">{t("study.myLog")}</h3>
+                <MessageSquare size={14} className="text-editorial-sage" />
+                <h3 className="text-sm font-semibold text-editorial-sage">My Study Log</h3>
               </div>
               <button
                 onClick={handleNewChat}
-                title={t("study.startNew")}
-                aria-label={t("study.startNew")}
-                className="w-6 h-6 rounded-full bg-[var(--color-red)]/10 text-[var(--color-red)] hover:bg-[var(--color-red)]/16 flex items-center justify-center transition-colors cursor-pointer"
+                title="Start a new chat"
+                className="w-6 h-6 rounded-full bg-editorial-sage/10 text-editorial-sage hover:bg-editorial-sage/20 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Plus size={13} />
               </button>
@@ -1052,7 +1396,7 @@ export default function App() {
 
             <div className="flex flex-col gap-1.5">
               {conversations.length === 0 && (
-                <p className="text-xs text-[var(--color-ink-soft)] px-1 py-2">{t("chat.emptyLog")}</p>
+                <p className="text-xs text-editorial-charcoal/70 px-1 py-2">No chats yet. Start one above.</p>
               )}
               {conversations.map((c) => (
                 <div
@@ -1060,17 +1404,17 @@ export default function App() {
                   onClick={() => openConversation(c.id)}
                   className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                     activeId === c.id
-                      ? "bg-[var(--color-sea-soft)] border-s-2 border-[var(--color-sea)] shadow-[0_1px_2px_rgba(18,37,47,0.05)]"
-                      : "bg-transparent border-s-2 border-transparent hover:bg-[var(--color-sand)]"
+                      ? "bg-editorial-sage/10 border-l-2 border-editorial-sage shadow-[0_1px_2px_rgba(26,26,26,0.05)]"
+                      : "bg-transparent border-l-2 border-transparent hover:bg-editorial-stone"
                   }`}
                 >
-                  <MessageSquare size={13} className={activeId === c.id ? "text-[var(--color-sea)] shrink-0" : "text-[var(--color-ink-soft)] shrink-0"} />
-                  <span className={`flex-1 text-xs truncate ${activeId === c.id ? "font-bold text-[var(--color-ink)]" : "text-[var(--color-ink)]/85"}`}>{c.title || t("chat.newChat")}</span>
+                  <MessageSquare size={13} className={activeId === c.id ? "text-editorial-sage shrink-0" : "text-editorial-charcoal/50 shrink-0"} />
+                  <span className={`flex-1 text-xs truncate ${activeId === c.id ? "font-medium text-editorial-charcoal" : "text-editorial-charcoal/85"}`}>{c.title || "New chat"}</span>
                   <button
                     onClick={(e) => handleDeleteConversation(c.id, e)}
-                    title={t("chat.deleteChat")}
-                    aria-label={t("chat.deleteChat")}
-                    className="opacity-40 lg:opacity-0 lg:group-hover:opacity-100 text-[var(--color-ink-soft)] hover:text-[var(--color-red)] transition-all shrink-0"
+                    title="Delete chat"
+                    aria-label="Delete chat"
+                    className="opacity-40 lg:opacity-0 lg:group-hover:opacity-100 text-editorial-charcoal/50 hover:text-red-700 transition-all shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1079,77 +1423,82 @@ export default function App() {
             </div>
           </div>
 
+          <UnderstandingPanel enabled={comp.enabled} concepts={comp.concepts} summary={comp.summary} glowKeys={glowKeys} today={comp.today} />
+
           {/* Chapter mastery, collapsible, secondary */}
-          <div className="flex flex-col gap-2 border-t border-[var(--color-line)] pt-3 mt-auto">
+          <div className="flex flex-col gap-2 border-t border-editorial-line pt-3 mt-auto">
             <button
               onClick={() => setShowChapters((v) => !v)}
-              className="flex items-center justify-between px-1 cursor-pointer text-[var(--color-ink)]"
+              title="Your chapters and how strong each one feels"
+              className="flex items-center justify-between px-1 cursor-pointer text-editorial-sage"
             >
-              <span className="flex items-center gap-2 text-sm font-bold">
+              <span className="flex items-center gap-2 text-sm font-semibold">
                 {showChapters ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                {t("study.chapterMastery")}
+                Chapter mastery
               </span>
-              <span className="text-[10px] text-[var(--color-ink-soft)] font-latin">{chapters.length}</span>
+              <span className="text-[10px] text-editorial-charcoal/60">{chapters.length}</span>
             </button>
 
             {showChapters && (
               <>
                 <button
                   onClick={() => setIsAddingChapter((v) => !v)}
-                  className="flex items-center gap-1.5 self-start px-2.5 py-1 text-[11px] font-semibold text-[var(--color-sea)] hover:bg-[var(--color-sea-soft)] rounded-full transition-colors cursor-pointer"
+                  title="Add a chapter you are studying right now"
+                  className="flex items-center gap-1.5 self-start px-2.5 py-1 text-[11px] text-editorial-sage hover:bg-editorial-sage/10 rounded-full transition-colors cursor-pointer"
                 >
-                  <Plus size={12} /> {t("study.addChapter")}
+                  <Plus size={12} /> Add chapter
                 </button>
 
                 {isAddingChapter && (
-                  <form onSubmit={handleAddChapter} className="bg-white border border-[var(--color-line)] p-3 rounded-xl flex flex-col gap-2">
+                  <form onSubmit={handleAddChapter} className="bg-surface border border-editorial-line p-3 rounded-xl flex flex-col gap-2">
                     <input
                       type="text"
                       required
-                      placeholder={t("study.chapterPlaceholder")}
+                      placeholder="Chapter / topic name…"
                       value={newChapterName}
                       onChange={(e) => setNewChapterName(e.target.value)}
-                      className="px-3 py-1.5 border border-[var(--color-line)] rounded-lg text-xs bg-[var(--color-pearl)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] placeholder-[var(--color-ink-soft)]/60"
+                      className="px-3 py-1.5 border border-editorial-line rounded-lg text-xs bg-editorial-ivory/50 focus:outline-none focus:ring-1 focus:ring-editorial-sage placeholder-editorial-charcoal/35"
                     />
                     <div className="flex justify-end gap-1.5">
-                      <button type="button" onClick={() => setIsAddingChapter(false)} className="px-2.5 py-1 text-[10px] text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] rounded">{t("common.cancel")}</button>
-                      <button type="submit" className="px-3 py-1 text-[10px] bg-[var(--color-sea)] text-white rounded font-bold">{t("study.addAndStudy")}</button>
+                      <button type="button" onClick={() => setIsAddingChapter(false)} title="Close without adding" className="px-2.5 py-1 text-[10px] text-editorial-charcoal/60 hover:bg-editorial-stone rounded">Cancel</button>
+                      <button type="submit" title="Add this chapter and start a deep study session on it" className="px-3 py-1 text-[10px] bg-editorial-sage text-white rounded font-medium">Add & study</button>
                     </div>
                   </form>
                 )}
 
-                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pe-1">
+                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
                   {chapters.map((ch) => (
                     <div
                       key={ch.id}
-                      onClick={() => handleSendMessage(`اشرح لي «${ch.name}» بعمق.`, { deep: true })}
-                      className="group bg-[var(--color-sand)] border border-[var(--color-line-soft)] p-3 rounded-xl flex flex-col gap-2 hover:border-[var(--color-sea)]/40 hover:bg-[var(--color-sea-soft)]/60 transition-all cursor-pointer relative"
+                      onClick={() => startChapterStudy(ch.name)}
+                      className="group bg-editorial-stone border border-editorial-line-light p-3 rounded-xl flex flex-col gap-2 hover:border-editorial-sage/40 hover:bg-editorial-sage/[0.05] transition-all cursor-pointer relative"
                     >
                       <div className="flex justify-between items-start gap-1">
-                        <h4 className="text-xs font-bold text-[var(--color-ink)] leading-tight pe-4">{ch.name}</h4>
-                        <button onClick={(e) => handleDeleteChapter(ch.id, e)} className="opacity-0 group-hover:opacity-100 absolute top-2 end-2 text-[var(--color-ink-soft)] hover:text-[var(--color-red)] transition-opacity">
+                        <h4 className="text-xs font-medium text-editorial-charcoal leading-tight pr-4">{ch.name}</h4>
+                        <button onClick={(e) => handleDeleteChapter(ch.id, e)} title="Remove this chapter" className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 text-editorial-charcoal/40 hover:text-red-700 transition-opacity">
                           <Trash2 size={11} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1 text-[9px] font-bold">
+                      <div className="flex items-center gap-1 text-[9px] font-semibold">
                         {(["weak", "developing", "strong"] as const).map((m) => (
                           <button
                             key={m}
+                            title={`Mark this chapter as ${m} for you`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleUpdateMastery(ch.id, m);
                             }}
-                            className={`px-2 py-0.5 rounded-full transition-colors ${
+                            className={`px-2 py-0.5 rounded-full transition-colors capitalize ${
                               ch.mastery === m
                                 ? m === "weak"
-                                  ? "bg-[var(--color-red)]/10 text-[var(--color-red)] border border-[var(--color-red)]/25"
+                                  ? "bg-red-50 text-red-800 border border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900"
                                   : m === "developing"
-                                  ? "bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/30"
-                                  : "bg-[var(--color-sea-soft)] text-[var(--color-sea)] border border-[var(--color-sea)]/25"
-                                : "text-[var(--color-ink-soft)] hover:bg-[var(--color-pearl)]"
+                                  ? "bg-yellow-50 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/50 dark:text-yellow-300 dark:border-yellow-900"
+                                  : "bg-emerald-50/70 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900"
+                                : "text-editorial-charcoal/60 hover:bg-editorial-stone"
                             }`}
                           >
-                            {m === "weak" ? t("study.masteryWeak") : m === "developing" ? t("study.masteryDevShort") : t("study.masteryStrong")}
+                            {m === "developing" ? "Dev" : m}
                           </button>
                         ))}
                       </div>
@@ -1166,64 +1515,107 @@ export default function App() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.06, ease: [0.22, 0.61, 0.36, 1] }}
-          className={`${mobileView === "chat" ? "flex" : "hidden"} lg:flex flex-1 min-h-0 flex-col bg-white/40 p-3 md:p-6 overflow-hidden`}
+          className={`${mobileView === "chat" ? "flex" : "hidden"} lg:flex flex-1 min-h-0 flex-col bg-surface/40 p-3 md:p-6 overflow-hidden`}
         >
 
-          {/* Live status strip */}
-          {isLiveActive && (
-            <div className="mb-3 flex items-center gap-3 px-4 py-2 rounded-xl bg-[var(--color-sea-soft)] border border-[var(--color-sea)]/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-sea)] motion-safe:animate-pulse shrink-0" />
-              <span className="text-xs text-[var(--color-ink-soft)] flex-1 truncate">{liveStatus}</span>
-              <div className="flex items-center gap-0.5">
-                {[3, 6, 9, 6, 3].map((val, idx) => (
-                  <motion.div
-                    key={idx}
-                    animate={{ height: [4, val * 2, 4] }}
-                    transition={{ duration: 0.9 + idx * 0.1, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-0.5 bg-[var(--color-sea)] rounded-full"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* First Star: the free week made visible for trial students. */}
+          <TrialArc
+            subscription={subscription}
+            doubtsCleared={stats?.doubtsCleared ?? null}
+            savedCount={savedCount}
+            practiced={comp.summary.practiced}
+            landed={comp.summary.landed}
+            landingEnabled={comp.enabled}
+            scope={scope}
+          />
 
           {/* Messages */}
-          <div ref={messagesRef} className="flex-1 bg-[var(--color-pearl)] border border-[var(--color-line-soft)] rounded-2xl p-3 md:p-5 overflow-y-auto flex flex-col gap-5 min-h-[280px]">
-            {chatHistory.length === 0 && !isGenerating && (
-              <div className="faheem-pattern faheem-rise m-auto w-full max-w-lg rounded-3xl border border-[var(--color-line)] bg-[var(--color-sand)]/40 px-6 py-8 md:px-9 md:py-10 text-center flex flex-col items-center gap-4">
-                <div className="faheem-mark h-16 w-16 text-3xl shrink-0" aria-hidden="true">ف</div>
-                <div>
-                  <h2 className="font-bold text-2xl md:text-[27px] leading-snug text-[var(--color-ink)]">
-                    {profile.name
-                      ? t("chat.startTitleNamed", { name: profile.name.split(" ")[0] })
-                      : t("chat.startTitle")}
-                  </h2>
-                  <p className="mt-2.5 text-sm leading-relaxed text-[var(--color-ink-soft)]">
-                    {t("chat.startSubtitle")}
-                  </p>
-                </div>
-                <div className="w-full mt-2">
-                  <p className="mb-2 text-start font-bold text-sm text-[var(--color-ink)]">{t("chat.notSureWhere")}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {SUGGESTED_QUERIES.map((q) => (
-                      <button
-                        key={q.key}
-                        onClick={() => selectSuggestedPrompt(t(`suggest.${q.key}.prompt`))}
-                        className="group flex items-start gap-3 text-start px-4 py-3 rounded-2xl border border-[var(--color-line)] bg-white hover:border-[var(--color-sea)]/50 hover:bg-[var(--color-sea-soft)]/50 motion-safe:hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-                      >
-                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-sea-soft)] text-[var(--color-sea)]">
-                          <BookOpen size={15} />
+          <div ref={messagesRef} className="flex-1 bg-editorial-ivory border border-editorial-line-light rounded-2xl p-3 md:p-5 overflow-y-auto flex flex-col gap-5 min-h-[280px]">
+            {chatHistory.length === 0 && !isGenerating && (() => {
+              // "Today": a quiet progress mirror. Every row below is honest, it
+              // only appears when the signal is real, so a brand-new student
+              // (no streak, no landing, nothing due) sees just the warm prompt
+              // and the starters, and never an empty scoreboard.
+              const streakDays = stats && stats.daysActive > 0 ? stats.daysActive : 0;
+              const streakLit = Boolean(stats?.activeToday);
+              const lampTip = stats ? lampTitle(stats.daysActive, stats.activeToday) : "";
+              const landedToday = comp.enabled ? comp.today.learned.length : 0;
+              const fuzzyToday = comp.enabled ? comp.today.fuzzy.length : 0;
+              const showToday = comp.enabled && comp.today.touched > 0 && (landedToday > 0 || fuzzyToday > 0);
+              // The one thing worth doing first: the top concept waiting for its
+              // spaced-confirmation check. Free, and it re-uses the same handler
+              // as the Ready-to-Land card so the flow is identical.
+              const readyPick =
+                comp.enabled && !rtlDismissed && rtlState !== "posed" && comp.ready.length > 0 ? comp.ready[0] : null;
+              const firstName = profile.name ? profile.name.split(" ")[0] : "";
+              const hasMirror = streakDays > 0 || showToday || Boolean(readyPick);
+              return (
+                <div className="m-auto w-full max-w-lg px-2 py-6 flex flex-col items-center gap-5 text-center">
+                  {(streakDays > 0 || showToday) && (
+                    <div className="flex w-full items-center justify-center gap-3 flex-wrap">
+                      {streakDays > 0 && (
+                        <span
+                          title={lampTip}
+                          className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full border border-editorial-line text-xs text-editorial-charcoal/80 select-none"
+                        >
+                          <Flame size={13} className={streakLit ? "text-amber-500 fill-amber-400 cfy-lamp-lit" : "text-editorial-charcoal/30"} />
+                          <span className="tabular-nums">{streakDays}-day streak</span>
                         </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-bold text-[var(--color-ink)]">{t(`suggest.${q.key}.label`)}</span>
-                          <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--color-ink-soft)]">{t(`suggest.${q.key}.hint`)}</span>
+                      )}
+                      {showToday && (
+                        <span className="text-xs text-editorial-charcoal/60 tabular-nums">
+                          {landedToday > 0 && <>{landedToday} landed</>}
+                          {landedToday > 0 && fuzzyToday > 0 && <span className="text-editorial-charcoal/30"> · </span>}
+                          {fuzzyToday > 0 && <>{fuzzyToday} still fuzzy today</>}
                         </span>
-                      </button>
-                    ))}
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <h2 className="kod-display text-2xl md:text-[26px] leading-snug text-editorial-charcoal">
+                      {readyPick
+                        ? `Warm it up${firstName ? `, ${firstName}` : ""}.`
+                        : `What are we working through today${firstName ? `, ${firstName}` : ""}?`}
+                    </h2>
+                    <p className="mt-2.5 text-sm leading-relaxed text-editorial-sage">
+                      {readyPick
+                        ? "One small check settles what was still fuzzy. It costs no credits."
+                        : "Ask it once, ask it ten times. I will explain it a fresh way each time, until it lands."}
+                    </p>
+                  </div>
+
+                  {readyPick && (
+                    <button
+                      onClick={() => handleReadyConfirm(readyPick)}
+                      disabled={rtlState === "loading"}
+                      className="inline-flex items-center gap-2 max-w-full rounded-xl bg-editorial-sage px-4 py-2.5 text-sm font-medium text-editorial-ivory hover:bg-editorial-sage/90 disabled:opacity-60 motion-safe:active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <Sparkles size={15} className="shrink-0" />
+                      <span className="text-left">{`Land "${readyPick.label}" · 1 min check`}</span>
+                    </button>
+                  )}
+
+                  <div className="w-full mt-1">
+                    <p className="mb-2.5 text-left kod-display text-xs uppercase tracking-wide text-editorial-charcoal/60">
+                      {hasMirror ? "Or start something new" : "Not sure where to start?"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUGGESTED_QUERIES.map((q, idx) => (
+                        <button
+                          key={idx}
+                          title={q.hint}
+                          onClick={() => selectSuggestedPrompt(q.prompt)}
+                          className="rounded-full border border-editorial-line bg-surface px-3.5 py-2 text-sm text-editorial-charcoal hover:border-editorial-sage/50 hover:bg-editorial-sage/[0.06] motion-safe:active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                        >
+                          {q.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {chatHistory.map((message, msgIdx) => (
               <motion.div
@@ -1233,19 +1625,19 @@ export default function App() {
                 transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }}
                 className={`flex flex-col max-w-[92%] md:max-w-[85%] ${message.role === "user" ? "self-end items-end" : "self-start items-start"}`}
               >
-                <div className="flex items-center gap-2 mb-1 text-[10px] text-[var(--color-ink-soft)]">
-                  <span className="font-bold">{message.role === "user" ? t("chat.you") : t("app.name")}</span>
+                <div className="flex items-center gap-2 mb-1 text-[10px] text-editorial-charcoal/70">
+                  <span>{message.role === "user" ? "You" : "Faheem"}</span>
                   <span>·</span>
-                  <span className="font-latin">{message.timestamp}</span>
+                  <span>{message.timestamp}</span>
                 </div>
 
                 <div
-                  className={`p-4 md:p-5 relative ${
+                  className={`p-4 md:p-5 relative border ${
                     message.role === "user"
-                      ? "faheem-bubble-user rounded-se-sm text-sm md:text-base"
+                      ? "bg-editorial-stone/70 border-editorial-line-light rounded-2xl rounded-tr-sm text-editorial-charcoal text-sm md:text-base"
                       : message.isError
-                      ? "bg-[var(--color-sand)]/60 border border-[var(--color-line-soft)] rounded-2xl rounded-ss-sm text-[var(--color-ink-soft)] text-sm md:text-base leading-relaxed"
-                      : "faheem-card faheem-bubble-tutor rounded-ss-sm border-s-[3px] border-s-[var(--color-sea)]/45 text-sm md:text-base leading-relaxed"
+                      ? "bg-editorial-stone/60 border-editorial-line-light rounded-2xl rounded-tl-sm text-editorial-charcoal/85 text-sm md:text-base leading-relaxed"
+                      : "bg-editorial-ivory border-editorial-line border-l-[3px] border-l-editorial-sage/40 rounded-2xl rounded-tl-sm text-editorial-charcoal text-sm md:text-base leading-relaxed shadow-[0_1px_2px_rgba(26,26,26,0.05)]"
                   }`}
                   id={`msg-bubble-${message.id}`}
                 >
@@ -1260,10 +1652,10 @@ export default function App() {
                             key={i}
                             href={att.dataUrl}
                             download={att.name}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[var(--color-line-soft)] text-xs text-[var(--color-ink)] hover:bg-[var(--color-sand)]"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface border border-editorial-line-light text-xs text-editorial-charcoal hover:bg-editorial-stone"
                           >
-                            <FileText size={14} className="text-[var(--color-sea)]" />
-                            <span className="truncate max-w-40 font-latin">{att.name}</span>
+                            <FileText size={14} className="text-editorial-sage" />
+                            <span className="truncate max-w-40">{att.name}</span>
                           </a>
                         )
                       )}
@@ -1280,16 +1672,16 @@ export default function App() {
                     ))}
 
                   {/* Deep-check state: honest at every stage. The passed state
-                      earns a quiet sea seal; checking and unavailable stay
+                      earns a quiet sage seal; checking and unavailable stay
                       plain (a seal on an unverified answer would be dishonest). */}
                   {message.role === "model" && message.verification && (
                     <div
                       className={`mt-3 flex items-center gap-1.5 text-[11px] ${
                         message.verification === "passed"
-                          ? "inline-flex rounded-full bg-[var(--color-sea-soft)] px-2.5 py-1 font-bold text-[var(--color-sea)]"
+                          ? "inline-flex rounded-full bg-editorial-sage/10 px-2.5 py-1 font-medium text-editorial-sage"
                           : message.verification === "unavailable"
-                          ? "text-[var(--color-gold)]"
-                          : "text-[var(--color-sea)]"
+                          ? "text-amber-800 dark:text-amber-300"
+                          : "text-editorial-sage"
                       }`}
                     >
                       {message.verification === "checking" ? (
@@ -1300,43 +1692,21 @@ export default function App() {
                         <AlertTriangle size={12} />
                       )}
                       {message.verification === "checking"
-                        ? t("verify.checking")
+                        ? "Deep-check is reviewing this answer…"
                         : message.verification === "passed"
-                        ? t("verify.passed")
-                        : t("verify.unavailable")}
-                    </div>
-                  )}
-
-                  {/* Curriculum source (Faheem): which curriculum unit grounded
-                      this answer. This is the product's TRUST moment — the
-                      sea-teal source chip, self-settling in. */}
-                  {message.role === "model" && message.grounding && (
-                    <div className="mt-3">
-                      <span className="faheem-source">
-                        <BookOpen size={12} className="shrink-0" />
-                        <span dir="ltr" style={{ unicodeBidi: "isolate" }} className="font-latin">
-                          {message.grounding.unitTitle}
-                          {message.grounding.section ? ` · ${message.grounding.section}` : ""}
-                        </span>
-                      </span>
-                    </div>
-                  )}
-                  {/* Honest flag: the question fell outside the grade's textbooks. */}
-                  {message.role === "model" && message.outOfSyllabus && !message.grounding && (
-                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--color-gold)]">
-                      <AlertTriangle size={12} className="shrink-0" />
-                      <span>{t("grounding.outOfSyllabus")}</span>
+                        ? "Deep-checked: a second examiner pass reviewed this answer."
+                        : "Deep-check could not run this time, so this answer is shown unverified."}
                     </div>
                   )}
 
                   {/* Sources */}
                   {message.sources && message.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[var(--color-line-soft)] flex flex-wrap gap-2 items-center">
-                      <span className="text-[10px] text-[var(--color-ink-soft)] flex items-center gap-1">
-                        <Search size={10} className="text-[var(--color-sea)]" /> {t("chat.sources")}
+                    <div className="mt-3 pt-3 border-t border-editorial-line-light flex flex-wrap gap-2 items-center">
+                      <span className="text-[10px] text-editorial-charcoal/70 flex items-center gap-1">
+                        <Search size={10} className="text-editorial-sage" /> Sources:
                       </span>
                       {message.sources.map((src, sIdx) => (
-                        <a key={sIdx} href={src.uri} target="_blank" rel="noreferrer" className="text-[10px] bg-[var(--color-sea-soft)] text-[var(--color-sea)] px-2.5 py-1 rounded-full border border-[var(--color-sea)]/20 flex items-center gap-1 hover:bg-[var(--color-sea)]/12 font-latin">
+                        <a key={sIdx} href={src.uri} target="_blank" rel="noreferrer" className="text-[10px] bg-editorial-stone text-editorial-sage px-2.5 py-1 rounded-full border border-editorial-line-light flex items-center gap-1 hover:bg-editorial-sage/10">
                           {src.title}
                           <ExternalLink size={8} />
                         </a>
@@ -1350,27 +1720,29 @@ export default function App() {
                       wrapping raggedly. Listen only floats right once there is
                       room for it (sm+); on a phone it joins the same wrap. */}
                   {message.role === "model" && message.text && !message.streaming && (
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--color-line-soft)] pt-2.5">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-editorial-line-light pt-2.5">
                       {message.text.length > 200 && (
                         <button
-                          onClick={() => handleSendMessage(t(STILL_CONFUSED_KEY))}
+                          onClick={() => handleSendMessage(STILL_CONFUSED_PROMPT)}
                           disabled={isGenerating}
                           className={STILL_FUZZY_PILL}
                           id={`btn-reexplain-${message.id}`}
-                          title={t("action.stillFuzzyTitle")}
+                          title="Explain it again, a different way, as many times as you need"
                         >
-                          <Sparkles size={12} className="shrink-0" /> {t("chat.stillFuzzy")}
+                          <Sparkles size={12} className="shrink-0" /> Teach me again
                         </button>
                       )}
                       {canGoDeep(message) && (
                         <button
-                          onClick={() => handleSendMessage(questionBefore(msgIdx), { deep: true, silent: true })}
+                          onClick={() => openDeepDive(msgIdx, message)}
                           disabled={isGenerating}
                           className={ACTION_PILL}
                           id={`btn-deepdive-${message.id}`}
-                          title={t("action.goDeeperTitle")}
+                          title={deepDiveOf[message.id]
+                            ? "Jump to the study notebook you already opened for this answer"
+                            : "Open the full study view: the exam-ready answer plus the nine-part notebook"}
                         >
-                          <BookOpen size={12} className="shrink-0" /> {t("chat.goDeeper")}
+                          <BookOpen size={12} className="shrink-0" /> {deepDiveOf[message.id] ? "View notebook" : "Go deeper"}
                         </button>
                       )}
                       {message.text.length > 200 && message.verification !== "passed" && message.verification !== "checking" && (
@@ -1379,9 +1751,9 @@ export default function App() {
                           disabled={isGenerating}
                           className={ACTION_PILL}
                           id={`btn-deepcheck-${message.id}`}
-                          title={t("action.deepCheckTitle")}
+                          title="A second examiner pass double-checks the facts and calculations in this answer"
                         >
-                          <CheckCircle2 size={12} className="shrink-0" /> {t("chat.deepCheck")}
+                          <CheckCircle2 size={12} className="shrink-0" /> Deep-check
                         </button>
                       )}
                       {message.verification !== "checking" && (
@@ -1391,29 +1763,50 @@ export default function App() {
                           disabled={savingSelection}
                           className={ACTION_PILL}
                           id={`btn-savelines-${message.id}`}
-                          title={t("action.saveLinesTitle")}
+                          title="Select the lines that made it click, then save them to your Pre-exam notebook"
                         >
-                          <BookMarked size={12} className="shrink-0" /> {t("chat.saveLines")}
+                          <BookMarked size={12} className="shrink-0" /> Save lines
                         </button>
                       )}
-                      <button
-                        onClick={() => handleSpeak(message.id, message.text)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer sm:ms-auto ${
-                          playingMessageId === message.id ? "bg-[var(--color-sea)] text-white" : "bg-[var(--color-sand)] hover:bg-[var(--color-sea-soft)] text-[var(--color-sea)] border border-[var(--color-line-soft)]"
-                        }`}
-                        id={`btn-tts-${message.id}`}
-                      >
-                        {playingMessageId === message.id ? <><VolumeX size={12} className="shrink-0" /> {t("chat.mute")}</> : <><Volume2 size={12} className="shrink-0" /> {t("chat.listen")}</>}
-                      </button>
                     </div>
                   )}
+
+                  {/* First-star nudge: a trial student with no measured win yet
+                      gets one gentle pointer toward the shortest path to their
+                      first verified win, replying in their own words. Worded so it
+                      holds true even when this particular answer poses no closing
+                      check. Dismissible, one line, never a demand. */}
+                  {message.role === "model" &&
+                    message.text.length > 200 &&
+                    !message.streaming &&
+                    !message.isError &&
+                    msgIdx === chatHistory.length - 1 &&
+                    !isGenerating &&
+                    !checkNudgeDismissed &&
+                    subscription?.plan === "trial" &&
+                    comp.enabled &&
+                    comp.summary.practiced + comp.summary.landed === 0 && (
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-editorial-charcoal/60">
+                        <Star size={11} className="text-amber-500 shrink-0" />
+                        <span className="min-w-0">
+                          Reply below in your own words, that is where your first star lights up
+                        </span>
+                        <button
+                          onClick={() => setCheckNudgeDismissed(true)}
+                          aria-label="Dismiss"
+                          className="shrink-0 text-editorial-charcoal/40 hover:text-editorial-charcoal cursor-pointer"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    )}
                 </div>
               </motion.div>
             ))}
 
             {/* Facts fill the wait until the first streamed token arrives. */}
             {isGenerating && !chatHistory.some((m) => m.streaming || m.verification === "checking") && (
-              <SmartFactsLoader t={t} seedMessage={[...chatHistory].reverse().find((m) => m.role === "user")?.text || ""} />
+              <SmartFactsLoader seedMessage={[...chatHistory].reverse().find((m) => m.role === "user")?.text || ""} />
             )}
 
             <div ref={chatEndRef} />
@@ -1425,18 +1818,17 @@ export default function App() {
               {attachments.map((att, i) => (
                 <div key={i} className="relative group">
                   {att.isImage ? (
-                    <img src={att.dataUrl} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-[var(--color-line)]" />
+                    <img src={att.dataUrl} alt={att.name} className="h-16 w-16 object-cover rounded-lg border border-editorial-line" />
                   ) : (
-                    <div className="h-16 w-16 flex flex-col items-center justify-center gap-1 rounded-lg border border-[var(--color-line)] bg-white text-[var(--color-sea)] px-1">
+                    <div className="h-16 w-16 flex flex-col items-center justify-center gap-1 rounded-lg border border-editorial-line bg-surface text-editorial-sage px-1">
                       <FileText size={18} />
-                      <span className="text-[8px] text-[var(--color-ink-soft)] truncate w-full text-center font-latin">{att.name}</span>
+                      <span className="text-[8px] text-editorial-charcoal/60 truncate w-full text-center">{att.name}</span>
                     </div>
                   )}
                   <button
                     onClick={() => removeAttachment(i)}
-                    className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-[var(--color-ink)] text-white flex items-center justify-center hover:bg-[var(--color-red)] transition-colors"
-                    title={t("input.remove")}
-                    aria-label={t("input.remove")}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-editorial-charcoal text-white flex items-center justify-center hover:bg-red-700 transition-colors"
+                    title="Remove"
                   >
                     <X size={11} />
                   </button>
@@ -1444,6 +1836,27 @@ export default function App() {
               ))}
             </div>
           )}
+
+          {/* Ready to Land: on a fresh open, up to three concepts whose one
+              graded pass was on an earlier day. One 30-second check each, free,
+              and a PASS today promotes it to landed for good. Skips carry no
+              debt; the card steps aside the moment the student asks anything. */}
+          <AnimatePresence>
+            {comp.enabled &&
+              comp.ready.length > 0 &&
+              rtlState !== "posed" &&
+              !rtlDismissed &&
+              !sentThisSession &&
+              !isGenerating &&
+              !dataLoading && (
+                <ReadyToLandCard
+                  ready={comp.ready}
+                  busy={rtlState === "loading"}
+                  onConfirm={handleReadyConfirm}
+                  onDismiss={handleReadyDismiss}
+                />
+              )}
+          </AnimatePresence>
 
           {/* Selected-lines save bar: appears while the student is highlighting
               inside an answer, so keeping a line is one calm tap. */}
@@ -1454,25 +1867,26 @@ export default function App() {
               // still reviewing: the corrected final answer replaces it.
               return m?.role === "model" && !m.streaming && m.verification !== "checking";
             })() && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-sea)]/40 bg-[var(--color-sea-soft)] px-4 py-2.5">
-                <p className="min-w-0 flex-1 truncate text-xs text-[var(--color-ink-soft)]">
-                  «{selSave.text.slice(0, 90)}
-                  {selSave.text.length > 90 ? "…" : ""}»
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-editorial-sage/40 bg-editorial-sage/5 px-4 py-2.5">
+                <p className="min-w-0 flex-1 truncate text-xs italic text-editorial-charcoal/70">
+                  "{selSave.text.slice(0, 90)}
+                  {selSave.text.length > 90 ? "…" : ""}"
                 </p>
                 <button
                   onMouseDown={(e) => e.preventDefault() /* keep the selection alive */}
                   onClick={() => saveSelectionToNotebook()}
                   disabled={savingSelection}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--color-sea)] px-4 py-2 text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-60 cursor-pointer motion-safe:active:scale-[0.97]"
+                  title="Save the highlighted lines to your Pre-exam notebook"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-editorial-sage px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 cursor-pointer motion-safe:active:scale-[0.97]"
                   id="btn-save-selection"
                 >
-                  <BookMarked size={13} /> {savingSelection ? t("common.saving") : t("common.saveLines")}
+                  <BookMarked size={13} /> {savingSelection ? "Saving…" : "Save lines"}
                 </button>
               </div>
             )}
 
           {/* Input */}
-          <div className="mt-3 bg-white border border-[var(--color-line)] rounded-2xl p-2 flex items-center gap-1.5 shadow-sm focus-within:border-[var(--color-sea)] focus-within:ring-1 focus-within:ring-[var(--color-sea)]/30 transition-all">
+          <div className="mt-3 bg-surface border border-editorial-line rounded-2xl p-2 flex items-center gap-1.5 shadow-sm focus-within:border-editorial-sage focus-within:ring-1 focus-within:ring-editorial-sage/30 transition-all">
             <input
               ref={fileInputRef}
               type="file"
@@ -1484,45 +1898,31 @@ export default function App() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isGenerating || attachments.length >= MAX_ATTACHMENTS}
-              title={t("input.upload")}
-              aria-label={t("input.upload")}
-              className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)] transition-colors shrink-0 disabled:opacity-30 cursor-pointer motion-safe:active:scale-[0.96]"
+              title="Upload an image or file"
+              className="w-11 h-11 flex items-center justify-center rounded-full text-editorial-charcoal/50 hover:bg-editorial-stone hover:text-editorial-sage transition-colors shrink-0 disabled:opacity-30 cursor-pointer motion-safe:active:scale-[0.96]"
               id="btn-upload"
             >
               <Paperclip size={18} />
             </button>
             <input
               type="text"
+              dir="auto"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && handleSendMessage()}
               onPaste={handlePaste}
-              placeholder={t("chat.placeholder")}
-              className="flex-1 px-2 py-2 bg-transparent text-[var(--color-ink)] focus:outline-none text-sm md:text-base placeholder-[var(--color-ink-soft)]/50"
+              placeholder="Ask anything, or paste / upload a photo of a question…"
+              className="flex-1 px-2 py-2 bg-transparent text-editorial-charcoal focus:outline-none text-sm md:text-base placeholder-editorial-charcoal/30"
               disabled={isGenerating}
               id="input-chat"
             />
             <button
-              onClick={isLiveActive ? stopLiveSession : startLiveSession}
-              title={isLiveActive ? t("input.voiceStop") : t("input.voiceStart")}
-              aria-label={isLiveActive ? t("input.voiceStop") : t("input.voiceStart")}
-              className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors shrink-0 cursor-pointer motion-safe:active:scale-[0.96] ${
-                isLiveActive
-                  ? "bg-[var(--color-sea)] text-white hover:bg-[var(--color-sea)]/90"
-                  : "text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)] hover:text-[var(--color-sea)]"
-              }`}
-              id="btn-voice"
-            >
-              {isLiveActive ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
-            <button
               onClick={() => handleSendMessage()}
-              title={t("common.send")}
-              aria-label={t("common.send")}
-              className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 cursor-pointer motion-safe:transition-transform motion-safe:active:scale-[0.96] ${
+              title="Send your question"
+              className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 cursor-pointer motion-safe:transition-all motion-safe:active:scale-[0.96] ${
                 isGenerating
-                  ? "bg-[var(--color-red)]/70 text-white"
-                  : "bg-[var(--color-red)] hover:bg-[var(--color-red-deep)] text-white disabled:bg-transparent disabled:text-[var(--color-red)]/40 disabled:border disabled:border-[var(--color-red)]/25"
+                  ? "bg-editorial-sage/70 text-white"
+                  : "bg-editorial-sage hover:bg-editorial-sage/90 text-white disabled:bg-editorial-stone disabled:text-editorial-charcoal/45 disabled:border disabled:border-editorial-line"
               }`}
               disabled={isGenerating || (!inputText.trim() && attachments.length === 0)}
               id="btn-send-chat"
@@ -1534,31 +1934,33 @@ export default function App() {
       </div>
 
       {/* Mobile bottom nav: 2 view tabs + the Pre-exam notebook overlay */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-[var(--color-line)] bg-[var(--color-pearl)]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-editorial-line bg-editorial-ivory/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
         {([
-          { k: "study", label: t("nav.studyLog"), icon: <MessageSquare size={18} /> },
-          { k: "chat", label: t("nav.chat"), icon: <Sparkles size={18} /> }
-        ] as const).map((tab) => (
+          { k: "study", label: "Study Log", icon: <MessageSquare size={18} /> },
+          { k: "chat", label: "Chat", icon: <Sparkles size={18} /> }
+        ] as const).map((t) => (
           <button
-            key={tab.k}
-            onClick={() => setMobileView(tab.k)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold border-t-2 transition-colors ${
-              mobileView === tab.k
-                ? "text-[var(--color-red)] border-[var(--color-red)] bg-[var(--color-red)]/8"
-                : "text-[var(--color-ink-soft)] border-transparent hover:text-[var(--color-ink)]"
+            key={t.k}
+            title={t.k === "study" ? "Your chats, progress, and chapters" : "Ask and read answers"}
+            onClick={() => setMobileView(t.k)}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium border-t-2 transition-colors ${
+              mobileView === t.k
+                ? "text-editorial-sage border-editorial-sage bg-editorial-sage/8"
+                : "text-editorial-charcoal/70 border-transparent hover:text-editorial-charcoal"
             }`}
           >
-            {tab.icon}
-            {tab.label}
+            {t.icon}
+            {t.label}
           </button>
         ))}
         <button
           onClick={() => setNotebookOpen(true)}
-          className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold border-t-2 border-transparent text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors"
+          title="Every line you saved, filed by subject and chapter"
+          className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium border-t-2 border-transparent text-editorial-charcoal/70 hover:text-editorial-charcoal transition-colors"
           id="tab-notebook"
         >
           <BookMarked size={18} />
-          {t("nav.notebook")}
+          Notebook
         </button>
       </nav>
 
@@ -1574,6 +1976,9 @@ export default function App() {
         }}
       />
 
+      {/* Mastery moments: examiner-verified wins and real milestones only. */}
+      <CelebrationOverlay celebration={celebration} onDone={advanceCelebration} />
+
       {/* Quiet toast (saves, hints) */}
       <AnimatePresence>
         {toast && (
@@ -1584,7 +1989,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0, x: "-50%" }}
             exit={{ opacity: 0, y: -8, x: "-50%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-[var(--color-ink)] px-5 py-2.5 text-center text-xs text-[var(--color-chalk)] shadow-lg"
+            className="fixed left-1/2 top-4 z-[70] max-w-[92vw] rounded-full bg-editorial-charcoal px-5 py-2.5 text-center text-xs text-white shadow-lg"
           >
             {toast}
           </motion.div>
@@ -1610,100 +2015,101 @@ export default function App() {
       {/* Preferences modal */}
       <AnimatePresence>
         {isEditingProfile && (
-          <div className="fixed inset-0 bg-[var(--color-night)]/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-[#101a2b]/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
-              className="bg-[var(--color-pearl)] border border-[var(--color-line)] w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
+              className="bg-editorial-ivory border border-editorial-line w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
-                  <Settings size={18} className="text-[var(--color-sea)]" />
-                  <h3 className="text-base font-bold text-[var(--color-ink)]">{t("prefs.title")}</h3>
+                  <Settings size={18} className="text-editorial-sage" />
+                  <h3 className="text-base kod-display font-medium text-editorial-charcoal">Study Preferences</h3>
                 </div>
-                <button onClick={() => setIsEditingProfile(false)} aria-label={t("common.close")} className="text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] text-2xl cursor-pointer leading-none">&times;</button>
+                <button onClick={() => setIsEditingProfile(false)} title="Close preferences" className="text-editorial-charcoal/40 hover:text-editorial-charcoal text-2xl cursor-pointer leading-none">&times;</button>
               </div>
 
               <form onSubmit={handleSaveProfile} className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.myName")}</label>
+                  <label className="text-[11px] font-semibold text-editorial-charcoal/70">My name</label>
                   <input
                     type="text"
                     required
                     value={editProfileForm.name}
                     onChange={(e) => setEditProfileForm({ ...editProfileForm, name: e.target.value })}
-                    className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] text-[var(--color-ink)]"
+                    className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-editorial-sage text-editorial-charcoal"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.boardExam")}</label>
-                    <select value={editProfileForm.board} onChange={(e) => setEditProfileForm({ ...editProfileForm, board: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
-                      <option value="Bahrain MoE">Bahrain MoE</option>
+                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Curriculum / Board</label>
+                    {/* Values must match the backend syllabus corpus board names
+                        (backend/src/data/syllabusCorpus.ts): retrieval keys on them. */}
+                    <select value={editProfileForm.board} onChange={(e) => setEditProfileForm({ ...editProfileForm, board: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none text-editorial-charcoal">
+                      <option value="General">General Study</option>
+                      <option value="Cambridge (CAIE)">Cambridge (CAIE)</option>
+                      <option value="Pearson Edexcel">Pearson Edexcel</option>
+                      <option value="IB">IB</option>
+                      <option value="American (US)">American (US)</option>
                       <option value="CBSE">CBSE</option>
-                      <option value="Cambridge">Cambridge</option>
+                      <option value="ICSE / ISC">ICSE / ISC</option>
+                      <option value="French (AEFE)">French (AEFE)</option>
+                      <option value="SABIS">SABIS</option>
+                      <option value="UAE MoE">UAE MoE</option>
+                      <option value="Saudi Arabia MoE">Saudi Arabia MoE</option>
+                      <option value="Qatar MoEHE">Qatar MoEHE</option>
+                      <option value="Kuwait MoE">Kuwait MoE</option>
+                      <option value="Bahrain MoE">Bahrain MoE</option>
+                      <option value="Oman MoE">Oman MoE</option>
+                      <option value="None">None</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.gradeLevel")}</label>
-                    <select value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
-                      <option value="Grade 9">Grade 9</option>
-                      <option value="Grade 10">Grade 10</option>
-                      <option value="Grade 11">Grade 11</option>
-                      <option value="Grade 12">Grade 12</option>
-                    </select>
+                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Grade / Level</label>
+                    <input type="text" value={editProfileForm.grade} onChange={(e) => setEditProfileForm({ ...editProfileForm, grade: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-editorial-sage text-editorial-charcoal" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.language")}</label>
-                    <select value={editProfileForm.language} onChange={(e) => setEditProfileForm({ ...editProfileForm, language: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
-                      <option value="Arabic">{t("lang.ar")}</option>
-                      <option value="English">{t("lang.en")}</option>
+                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Language</label>
+                    <select value={editProfileForm.language} onChange={(e) => setEditProfileForm({ ...editProfileForm, language: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none text-editorial-charcoal">
+                      <option value="English">English</option>
+                      <option value="Arabic">Arabic (العربية)</option>
+                      <option value="Hindi">Hindi (हिंदी)</option>
+                      <option value="Urdu">Urdu (اردو)</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.preferredAnalogy")}</label>
-                    <select value={editProfileForm.preferredAnalogy} onChange={(e) => setEditProfileForm({ ...editProfileForm, preferredAnalogy: e.target.value })} className="px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none text-[var(--color-ink)]">
-                      <option value="Daily Life">{t("analogy.dailyLife")}</option>
-                      <option value="Sports">{t("analogy.sports")}</option>
-                      <option value="Cooking">{t("analogy.cooking")}</option>
-                      <option value="Bicycles & Trains">{t("analogy.transport")}</option>
-                      <option value="Mobile Phones & Tech">{t("analogy.tech")}</option>
+                    <label className="text-[11px] font-semibold text-editorial-charcoal/70">Preferred analogy</label>
+                    <select value={editProfileForm.preferredAnalogy} onChange={(e) => setEditProfileForm({ ...editProfileForm, preferredAnalogy: e.target.value })} className="px-4 py-2.5 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none text-editorial-charcoal">
+                      <option value="Daily Life">Daily Life / Everyday objects</option>
+                      <option value="Sports">Sports / Football / Basketball</option>
+                      <option value="Cooking">Cooking & Kitchen recipes</option>
+                      <option value="Bicycles & Trains">Bicycles, Trains & Transportation</option>
+                      <option value="Mobile Phones & Tech">Mobile Phones, Games & Apps</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.voice")}</label>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {(["Kore", "Zephyr", "Puck", "Charon", "Fenrir"] as const).map((vc) => (
-                      <button key={vc} type="button" onClick={() => setSelectedVoice(vc)} className={`py-2 px-1 rounded-full text-[11px] font-medium text-center border transition-colors cursor-pointer font-latin ${selectedVoice === vc ? "bg-[var(--color-sea)] border-[var(--color-sea)] text-white" : "bg-white border-[var(--color-line-soft)] hover:bg-[var(--color-sand)] text-[var(--color-ink)]"}`}>
-                        {vc}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold text-[var(--color-ink-soft)]">{t("prefs.examGoals")}</label>
-                  <textarea rows={2} value={editProfileForm.examGoals} onChange={(e) => setEditProfileForm({ ...editProfileForm, examGoals: e.target.value })} className="px-4 py-3 border border-[var(--color-line)] rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--color-sea)] resize-none text-[var(--color-ink)]" />
+                  <label className="text-[11px] font-semibold text-editorial-charcoal/70">Exam goals</label>
+                  <textarea rows={2} value={editProfileForm.examGoals} onChange={(e) => setEditProfileForm({ ...editProfileForm, examGoals: e.target.value })} className="px-4 py-3 border border-editorial-line rounded-xl text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-editorial-sage resize-none text-editorial-charcoal" />
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2">
-                  <button type="button" onClick={() => setIsEditingProfile(false)} className="faheem-btn-ghost px-5 py-2.5 text-sm">{t("common.cancel")}</button>
-                  <button type="submit" className="faheem-btn px-5 py-2.5 text-sm">{t("common.saveChanges")}</button>
+                  <button type="button" onClick={() => setIsEditingProfile(false)} title="Close without saving" className="px-5 py-2.5 border border-editorial-line text-editorial-charcoal hover:bg-editorial-stone rounded-full text-sm transition-colors cursor-pointer">Cancel</button>
+                  <button type="submit" title="Save your study preferences" className="px-5 py-2.5 bg-editorial-charcoal hover:bg-editorial-charcoal/90 text-white rounded-full text-sm transition-colors cursor-pointer">Save changes</button>
                 </div>
 
-                <p className="border-t border-[var(--color-line-soft)] pt-3 text-center text-[11px] text-[var(--color-ink-soft)]">
-                  {t("prefs.supportLine")}{" "}
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--color-sea)] underline underline-offset-2 hover:text-[var(--color-ink)] font-latin">
+                <p className="border-t border-editorial-line-light pt-3 text-center text-[11px] text-editorial-charcoal/70">
+                  Need help with anything, including payments? Write to{" "}
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-editorial-sage underline underline-offset-2 hover:text-editorial-charcoal">
                     {SUPPORT_EMAIL}
                   </a>
-                  {t("prefs.supportOnly")}
+                  . It is the only address we answer.
                 </p>
               </form>
             </motion.div>
@@ -1720,39 +2126,42 @@ export default function App() {
 // out, so the state is honest at a glance without ever nagging. Rendered on
 // EVERY screen size (phones are the primary audience) with a shorter label on
 // small screens, because this is the only voluntary path to plans and usage.
-function UsagePill({ t, subscription, onClick }: { t: TranslateFn; subscription?: Subscription; onClick: () => void }) {
-  let label = t("usage.plans");
-  let shortLabel = t("usage.plans");
+function UsagePill({ subscription, onClick }: { subscription?: Subscription; onClick: () => void }) {
+  let label = "Plans";
+  let shortLabel = "Plans";
   let alert = false;
   if (subscription) {
     const { state, planName, remaining } = subscription;
     if (state === "trial") {
       const left = remaining ?? 0;
-      label = t("usage.trialLabel", { n: left });
-      shortLabel = t("usage.trialShort", { n: left });
+      label = `Trial · ${left} left today`;
+      shortLabel = `${left} today`;
       alert = left <= 0;
     } else if (state === "active") {
-      label = remaining == null ? t("usage.planUnlimited", { plan: planName }) : t("usage.planLeft", { plan: planName, n: remaining });
-      shortLabel = remaining == null ? t("usage.unlimited") : t("usage.leftShort", { n: remaining });
+      // "Unlimited · Unlimited" reads like a stutter: the plan name alone says it.
+      label = remaining == null
+        ? (planName === "Unlimited" ? "Unlimited" : `${planName} · Unlimited`)
+        : `${planName} · ${remaining} left`;
+      shortLabel = remaining == null ? "Unlimited" : `${remaining} left`;
       alert = remaining != null && remaining <= 0;
     } else {
-      label = state === "plan_expired" ? t("usage.renew") : t("usage.choosePlan");
-      shortLabel = state === "plan_expired" ? t("usage.renewShort") : t("usage.plans");
+      label = state === "plan_expired" ? "Renew plan" : "Choose a plan";
+      shortLabel = state === "plan_expired" ? "Renew" : "Plans";
       alert = true;
     }
   }
   return (
     <button
       onClick={onClick}
-      title={t("usage.viewPlans")}
+      title="View plans and usage"
       id="btn-usage-plan"
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
+      className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
         alert
-          ? "border-[var(--color-gold)]/40 bg-[var(--color-gold)]/12 text-[var(--color-gold)] hover:bg-[var(--color-gold)]/18"
-          : "border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-sand)]"
+          ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-950"
+          : "border-editorial-line text-editorial-charcoal/70 hover:bg-editorial-stone"
       }`}
     >
-      <Sparkles size={13} className={alert ? "text-[var(--color-gold)]" : "text-[var(--color-sea)]"} />
+      <Sparkles size={13} className={alert ? "text-amber-600" : "text-editorial-sage"} />
       <span className="whitespace-nowrap hidden md:inline">{label}</span>
       <span className="whitespace-nowrap md:hidden">{shortLabel}</span>
     </button>
@@ -1762,23 +2171,23 @@ function UsagePill({ t, subscription, onClick }: { t: TranslateFn; subscription?
 // Engaging loader: rotates curated "Did you know?" facts (client-only, no model
 // call) while the answer generates. Facts auto-change every 10s and stay until
 // the full answer has been generated.
-function SmartFactsLoader({ seedMessage, t }: { seedMessage: string; t: TranslateFn }) {
+function SmartFactsLoader({ seedMessage }: { seedMessage: string }) {
   const [idx, setIdx] = useState(() => pickFirstFactIndex(seedMessage));
   useEffect(() => {
-    const timer = setInterval(() => setIdx((i) => (i + 1) % STUDY_FACTS.length), 10000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setIdx((i) => (i + 1) % STUDY_FACTS.length), 10000);
+    return () => clearInterval(t);
   }, []);
   const fact = STUDY_FACTS[idx] || FALLBACK_STUDY_FACT;
   return (
     <div className="self-start max-w-[92%] md:max-w-[85%] flex flex-col items-start">
-      <div className="flex items-center gap-2 mb-1.5 text-[11px] text-[var(--color-sea)]">
-        <span className="flex h-1.5 w-1.5 rounded-full bg-[var(--color-sea)] motion-safe:animate-pulse shrink-0" />
-        {t("loading.working")}
+      <div className="flex items-center gap-2 mb-1.5 text-[11px] text-editorial-sage">
+        <span className="flex h-1.5 w-1.5 rounded-full bg-editorial-sage motion-safe:animate-pulse shrink-0" />
+        Working it out carefully, and checking it before I show you.
       </div>
-      <div className="p-4 rounded-2xl bg-[var(--color-sand)]/50 border border-[var(--color-line-soft)] rounded-ss-sm max-w-md">
-        <div className="flex items-center gap-1.5 mb-2 text-[var(--color-sea)]">
+      <div className="p-4 rounded-2xl bg-editorial-stone/40 border border-editorial-line-light rounded-tl-sm max-w-md">
+        <div className="flex items-center gap-1.5 mb-2 text-editorial-sage">
           <Sparkles size={12} />
-          <span className="font-bold text-xs">{t("chat.didYouKnow")}</span>
+          <span className="kod-display text-xs">Did you know?</span>
         </div>
         <AnimatePresence mode="wait">
           <motion.p
@@ -1787,7 +2196,7 @@ function SmartFactsLoader({ seedMessage, t }: { seedMessage: string; t: Translat
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.4 }}
-            className="text-sm text-[var(--color-ink)]/85 leading-relaxed"
+            className="text-sm text-editorial-charcoal/80 kod-display leading-relaxed"
           >
             {fact.text}
           </motion.p>

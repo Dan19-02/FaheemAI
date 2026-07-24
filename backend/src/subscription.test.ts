@@ -32,8 +32,8 @@ import {
   TRIAL_DAILY_QUERIES,
   PASS_DAYS,
   RENEW_WINDOW_DAYS,
-  istDateKey,
-  nextIstMidnight,
+  utcDateKey,
+  nextUtcMidnight,
   getEntitlement,
   meterNewQuestion,
   meterNewQuestionByUserId,
@@ -67,9 +67,9 @@ async function makeUser(q: any, email: string) {
     email,
     passwordHash: "x",
     name: "Test Student",
-    board: "CBSE",
+    board: "General",
     grade: "11th Grade",
-    language: "Hinglish",
+    language: "English",
     preferredAnalogy: "Daily Life",
     examGoals: "",
     confidenceLevel: 3,
@@ -85,19 +85,19 @@ async function makeUser(q: any, email: string) {
 
   // ---- Plan catalogue matches the decided pricing ----
   assert(PLANS.length === 3, "three paid plans");
-  assert(PLAN_BY_ID.starter.price === 199 && PLAN_BY_ID.starter.monthlyQueries === 100, "Starter: ₹199 = 100 questions/month");
-  assert(PLAN_BY_ID.regular.price === 499 && PLAN_BY_ID.regular.monthlyQueries === 300, "Regular: ₹499 = 300 questions/month");
-  assert(PLAN_BY_ID.unlimited.price === 999 && PLAN_BY_ID.unlimited.monthlyQueries === null, "Unlimited: ₹999 = unlimited questions");
-  assert(PLAN_BY_ID.starter.amountPaise === 19_900 && PLAN_BY_ID.regular.amountPaise === 49_900 && PLAN_BY_ID.unlimited.amountPaise === 99_900, "paise amounts match rupee prices");
+  assert(PLAN_BY_ID.starter.price === 4.99 && PLAN_BY_ID.starter.monthlyQueries === 100, "Starter: $4.99 = 100 questions/month");
+  assert(PLAN_BY_ID.regular.price === 9.99 && PLAN_BY_ID.regular.monthlyQueries === 300, "Regular: $9.99 = 300 questions/month");
+  assert(PLAN_BY_ID.unlimited.price === 19.99 && PLAN_BY_ID.unlimited.monthlyQueries === null, "Unlimited: $19.99 = unlimited questions");
+  assert(PLAN_BY_ID.starter.amountCents === 499 && PLAN_BY_ID.regular.amountCents === 999 && PLAN_BY_ID.unlimited.amountCents === 1999, "cent amounts match dollar prices");
   assert(TRIAL_DAYS === 7 && TRIAL_DAILY_QUERIES === 10 && PASS_DAYS === 30, "trial = 7 days of 10/day; a pass = 30 days");
 
-  // ---- IST day math ----
-  assert(/^\d{4}-\d{2}-\d{2}$/.test(istDateKey()), "istDateKey is a YYYY-MM-DD date");
-  // 2026-07-02 20:00 UTC is 2026-07-03 01:30 IST: the key must be the IST date.
+  // ---- UTC day math ----
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(utcDateKey()), "utcDateKey is a YYYY-MM-DD date");
+  // 2026-07-02 20:00 UTC is still 2026-07-02 in UTC: the key must be the UTC date.
   const utcEvening = Date.parse("2026-07-02T20:00:00Z");
-  assert(istDateKey(utcEvening) === "2026-07-03", "daily window rolls at IST midnight, not UTC");
-  const reset = Date.parse(nextIstMidnight(utcEvening));
-  assert(reset > utcEvening && reset - utcEvening <= DAY_MS, "nextIstMidnight is within the next 24h");
+  assert(utcDateKey(utcEvening) === "2026-07-02", "daily window rolls at UTC midnight");
+  const reset = Date.parse(nextUtcMidnight(utcEvening));
+  assert(reset > utcEvening && reset - utcEvening <= DAY_MS, "nextUtcMidnight is within the next 24h");
 
   // ---- Signup: the free week starts the day they join ----
   const row = await makeUser(q, "trial@example.com");
@@ -109,22 +109,25 @@ async function makeUser(q: any, email: string) {
   let ent = await getEntitlement(q, row);
   assert(ent.state === "trial" && ent.active, "entitlement: trial active");
   assert(ent.limit === 10 && ent.used === 0 && ent.remaining === 10, "trial quota: 10 today, 10 remaining");
-  assert(ent.periodType === "day" && ent.periodKey === `d:${istDateKey()}`, "trial counts against today's IST window");
+  assert(ent.periodType === "day" && ent.periodKey === `d:${utcDateKey()}`, "trial counts against today's UTC window");
 
   // ---- Metering: 10 new questions pass, the 11th is blocked ----
   for (let i = 1; i <= 10; i++) {
     const m = await meterNewQuestion(q, row, `question number ${i}`);
     assert(m.ok, `question ${i}/10 allowed (remaining ${m.entitlement.remaining})`);
+    assert(m.charged, `question ${i}/10 reports charged=true (a real credit was spent)`);
   }
   const blocked = await meterNewQuestion(q, row, "question number 11");
   assert(!blocked.ok && blocked.reason === "quota", "question 11 blocked: daily trial quota is 10, never more");
+  assert(!blocked.charged, "a quota-blocked ask reports charged=false (nothing to refund)");
   assert(paywallMessage(blocked.entitlement, "quota").includes("10 free questions"), "quota paywall message mentions the 10-a-day trial");
 
   // ---- Paired retry (stream -> /chat fallback) doesn't double-charge ----
-  const before = await getUsage(q, row.id, `d:${istDateKey()}`);
+  const before = await getUsage(q, row.id, `d:${utcDateKey()}`);
   const retry = await meterNewQuestion(q, row, "question number 10"); // identical text, just charged
   assert(retry.ok, "identical paired retry passes through");
-  assert((await getUsage(q, row.id, `d:${istDateKey()}`)) === before, "paired retry does not spend a second credit");
+  assert(!retry.charged, "paired retry reports charged=false, so a disconnect refund never gives back a credit it did not spend");
+  assert((await getUsage(q, row.id, `d:${utcDateKey()}`)) === before, "paired retry does not spend a second credit");
 
   // ---- Trial expiry: after the free week, access ends ----
   await q.query(`UPDATE users SET trial_ends_at = now() - interval '1 day' WHERE id = $1`, [row.id]);
@@ -136,7 +139,7 @@ async function makeUser(q: any, email: string) {
   assert(paywallMessage(noAccess.entitlement, "no_access").includes("free week"), "trial-over paywall message mentions the free week");
 
   // ---- Payment: create -> paid (idempotent) -> plan active ----
-  await createPayment(q, { userId: row.id, plan: "starter", orderId: "order_TEST1", amount: 19_900, currency: "INR" });
+  await createPayment(q, { userId: row.id, plan: "starter", orderId: "order_TEST1", amount: 499, currency: "USD" });
   const pay = await getPaymentByOrderId(q, "order_TEST1");
   assert(pay && pay.status === "created" && pay.user_id === row.id, "payment row created for the order");
 
@@ -247,7 +250,7 @@ async function makeUser(q: any, email: string) {
   // engine: the healing path below must protect students all by itself.
   assert((await withTransaction(async () => 42, q)) === 42, "withTransaction returns the callback's value");
 
-  await createPayment(q, { userId: cu.id, plan: "starter", orderId: "order_GP", amount: 19_900, currency: "INR" });
+  await createPayment(q, { userId: cu.id, plan: "starter", orderId: "order_GP", amount: 499, currency: "USD" });
   await grantPass(cu.id, "starter", "pay_GP", "order_GP", q);
   let gpRow = await getUserById(q, cu.id);
   assert(gpRow.plan === "starter" && new Date(gpRow.plan_expires_at).getTime() > Date.now(), "grantPass marks paid AND activates the plan");
@@ -259,7 +262,7 @@ async function makeUser(q: any, email: string) {
 
   // Partial state (the old critical bug): payment marked paid, activation lost.
   const healUser = await makeUser(q, "heal@example.com");
-  await createPayment(q, { userId: healUser.id, plan: "regular", orderId: "order_HEAL", amount: 49_900, currency: "INR" });
+  await createPayment(q, { userId: healUser.id, plan: "regular", orderId: "order_HEAL", amount: 999, currency: "USD" });
   await markPaymentPaid(q, "order_HEAL", "pay_HEAL"); // simulate the crash right after mark-paid
   let healRow = await getUserById(q, healUser.id);
   assert(healRow.plan === "trial", "partial state reproduced: money taken, no plan granted");
@@ -291,10 +294,10 @@ async function makeUser(q: any, email: string) {
   const entries = await notebookEntriesFor(q, nb.id, "Physics", "Laws of Motion");
   assert(entries.length === 2 && entries[0].text.includes("Inertia"), "chapter lists its saved points in order");
 
-  // Clarify notes cache: staleness keyed on the entry count.
+  // Faheem notes cache: staleness keyed on the entry count.
   await noteUpsert(q, nb.id, "Physics", "Laws of Motion", "## Key Ideas\n- Inertia resists change.", 2);
   let note = await noteGet(q, nb.id, "Physics", "Laws of Motion");
-  assert(note !== null && note.entryCount === 2, "Clarify notes cache round-trips");
+  assert(note !== null && note.entryCount === 2, "Faheem notes cache round-trips");
   await notebookInsert(q, { id: "nb3", userId: nb.id, messageId: null, conversationId: null, question: "", text: "Momentum p = mv." });
   await notebookSetClassification(q, nb.id, "nb3", "Physics", "Laws of Motion");
   const after = await notebookEntriesFor(q, nb.id, "Physics", "Laws of Motion");
@@ -326,11 +329,11 @@ async function makeUser(q: any, email: string) {
   // Paid tiers: Starter stays locked; Regular and Unlimited unlock viewing.
   const t2 = Date.now();
   await activatePlan(q, nb.id, "starter", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(!hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Starter (₹199): notebook stays locked");
+  assert(!hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Starter ($4.99): notebook stays locked");
   await activatePlan(q, nb.id, "regular", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Regular (₹499): notebook unlocked");
+  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Regular ($9.99): notebook unlocked");
   await activatePlan(q, nb.id, "unlimited", new Date(t2).toISOString(), new Date(t2 + PASS_DAYS * DAY_MS).toISOString());
-  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Unlimited (₹999): notebook unlocked");
+  assert(hasNotebookAccess(await getEntitlement(q, await getUserById(q, nb.id))), "Unlimited ($19.99): notebook unlocked");
 
   // Lapsed pass: read-locked again, but every saved point survives untouched.
   await q.query(`UPDATE users SET plan_expires_at = now() - interval '1 day' WHERE id = $1`, [nb.id]);

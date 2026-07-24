@@ -1,65 +1,49 @@
-# Faheem
+# Faheem (فهيم) — the patient AI tutor for Gulf classrooms
 
-Arabic-first, RTL, mobile-first AI tutor grounded in Bahrain's Ministry of Education (MoE)
-national curriculum (grades 7–12), student-facing only. **Accuracy is the product**: every
-explanation is grounded in real MoE curriculum, verified before it is shown, and sourced.
+Faheem, Arabic for "the one who understands", is an AI tutor for students in
+grades 6-12 across the GCC. It explains what school rushed past, re-teaches a
+different way each time until it truly lands, verifies every answer with a
+second examiner pass, and only counts a concept as understood after the
+student proves it again on a later day.
 
-Forked from the Clarify.AI shell (React 19 + Vite + Tailwind backend/frontend). This repo
-is being built per the v2 PRD and the approved implementation plan (Grade 10 Physics pilot,
-full-production build).
-
-## Structure
-
-```
-backend/    Express + PostgreSQL + JWT API (auth, chat, notebook). AI behind a provider adapter.
-frontend/   React 19 + Vite + Tailwind. RTL/Arabic-first, KaTeX math, mobile-first.
-```
+**Languages:** English, Arabic, Hindi, Urdu (technical terms stay in English).
+**Curricula:** Cambridge (CAIE), Pearson Edexcel, IB, American (US), CBSE,
+ICSE/ISC, French (AEFE), SABIS, plus the ministry curricula of the UAE,
+Saudi Arabia, Qatar, Kuwait, Bahrain, and Oman — backed by a verified
+topic-level syllabus corpus (`backend/src/data/syllabusCorpus.ts`).
 
 ## Stack
 
-- **Frontend:** React 19 + Vite + Tailwind v4. Markdown + KaTeX (bidi-isolated for RTL) + Mermaid.
-- **Backend:** Express + PostgreSQL (pg-mem dev fallback) + JWT (email/password + Google).
-- **AI:** provider-agnostic adapter (default Gemini for the prototype; the Arabic quality
-  bake-off, PRD §10, decides the production model). Every external call is wrapped with a
-  hard timeout, backoff+jitter retries, and a circuit breaker.
+- `frontend/` — React + Vite + Tailwind v4. The public landing site and the
+  signed-in study workspace (chat, re-explain ladder, photo doubts, pre-exam
+  notebook, honest mastery tracking).
+- `backend/` — Express + Postgres (pg-mem fallback for dev). Kimi (Moonshot)
+  is the answer brain; Gemini serves image vision, embeddings/RAG, and
+  fallback. One-time monthly passes in USD via the payments provider.
 
-## Run locally (dev)
+## Run locally
 
 ```bash
-# backend
-cd backend && npm install && cp .env.example .env   # fill in GEMINI_API_KEY, JWT_SECRET, GOOGLE_CLIENT_ID
-npm run dev                                          # uses in-memory DB if DATABASE_URL unset
+# backend (copy backend/.env.example to backend/.env and fill keys first)
+cd backend && npm install && npm run dev   # http://localhost:4000
 
 # frontend
-cd frontend && npm install && npm run dev
+cd frontend && npm install && npm run dev  # http://localhost:3000 (proxies /api)
 ```
 
-## Evaluation
+Without a reachable Postgres the backend runs an in-memory dev database
+(data resets on restart, syllabus corpus ingestion skipped). Create the real
+database (`createdb faheem`) to get persistence and the full RAG corpus.
 
-A blind, rubric-based **head-to-head** — 10 Bahraini student personas (Arabic / English /
-bilingual) on real MoE units, answered by Faheem and by **real frontier models** (Google
-Gemini 3.1 Pro & 2.5 Pro via live API, Claude Opus 4.8), graded blind by 5 expert
-personas (incl. a native Arabic teacher) — 200 gradings. **Faheem ranked #1 (9.0/10),
-winning 43 of 50 gradings** (+1.35 over Gemini 3.1 Pro), leading on curriculum fit,
-pedagogy, sourcing, and Arabic — accuracy was a tie. Full methodology, honest caveats,
-and disclaimer: **[EVALUATION.md](./EVALUATION.md)**.
+Backend smoke tests: `npm run test:subscription | test:db | test:otp | test:referral`.
 
-## Deploy (Render)
+## Regenerating the syllabus corpus
 
-The repo ships a [`render.yaml`](./render.yaml) Blueprint that provisions the whole
-stack — PostgreSQL + Node API + static SPA — in one step. See **[DEPLOY.md](./DEPLOY.md)**
-for the full walkthrough (required `GEMINI_API_KEY`, URL wiring, and curriculum
-seeding). Quick version: Render Dashboard → **New → Blueprint** → connect this repo →
-**Apply**, then set `GEMINI_API_KEY` on the backend.
+Update `backend/scripts/data/GCC_Boards_Topic_Level_Syllabus_v2_VERIFIED.xlsx`,
+then:
 
-## Accuracy engine (in progress)
+```bash
+cd backend && python3 scripts/parse_syllabus.py
+```
 
-- **Grounding:** unit-scoped RAG over the real MoE corpus, hard-filtered by a stable `unit_id`.
-  Out-of-syllabus queries are **flagged**, never answered from general model knowledge.
-- **Verification (Type A):** the worked solution is checked deterministically **before display**
-  (no unverified draft is ever streamed).
-- **Sourcing:** every answer shows its unit + section and a confidence/flag marker.
-- **Launch surface = subjects that passed their validation gate** (a data + review step,
-  driven by `curriculum_subjects.gate_status`, not a code deploy).
-
-Billing is dormant in v2 (no monetization).
+The next boot against real Postgres tops up only the new chunks.

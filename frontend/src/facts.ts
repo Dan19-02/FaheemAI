@@ -15,7 +15,7 @@ export const STUDY_FACTS: StudyFact[] = [
   { text: "A bolt of lightning is about five times hotter than the surface of the Sun: roughly 30,000°C.", tags: ["physics", "heat", "weather"] },
   { text: "Your body has around 37 trillion cells, and millions of them are replaced every single second.", tags: ["biology", "cell", "human body"] },
   { text: "Water is one of the few substances that expands when it freezes, which is exactly why ice floats.", tags: ["chemistry", "physics", "water", "states of matter"] },
-  { text: "The number zero as we use it was developed in ancient India. Brahmagupta wrote the first rules for arithmetic with zero around 628 CE.", tags: ["mathematics", "history", "numbers"] },
+  { text: "The equals sign (=) was invented in 1557 by Robert Recorde, who chose two parallel lines because 'no two things can be more equal'.", tags: ["mathematics", "history", "numbers"] },
   { text: "There are more possible ways to arrange a deck of 52 cards than there are atoms on Earth.", tags: ["mathematics", "probability", "permutations"] },
   { text: "Bananas are slightly radioactive: they contain potassium-40, a naturally occurring radioactive isotope.", tags: ["chemistry", "biology", "radioactivity", "food"] },
   { text: "Sound travels about 4 times faster in water than in air, and even faster through solids like steel.", tags: ["physics", "sound", "waves"] },
@@ -32,7 +32,7 @@ export const STUDY_FACTS: StudyFact[] = [
   { text: "Hot water can sometimes freeze faster than cold water, a strange effect called the Mpemba effect, still not fully explained.", tags: ["physics", "chemistry", "water", "heat"] },
   { text: "DNA from a single human cell, if stretched out, would be about 2 metres long, and you have trillions of cells.", tags: ["biology", "dna", "cell", "genetics"] },
   { text: "The speed of light is the universe's speed limit: about 299,792 kilometres every second.", tags: ["physics", "light", "space", "constants"] },
-  { text: "Aryabhata, the 5th-century Indian mathematician, calculated the value of pi and the length of a year with remarkable accuracy.", tags: ["mathematics", "history", "astronomy"] },
+  { text: "Eratosthenes measured the circumference of the Earth over 2,200 years ago using only shadows, wells, and geometry, and got remarkably close.", tags: ["mathematics", "history", "astronomy"] },
   { text: "Salt is made of two dangerous elements (sodium, which explodes in water, and chlorine, a poison gas), yet together they're table salt.", tags: ["chemistry", "bonding", "elements", "food"] },
 ];
 

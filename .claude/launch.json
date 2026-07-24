@@ -1,17 +1,8 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "fahim-backend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "backend", "run", "dev"],
-      "port": 4000
-    },
-    {
-      "name": "fahim-frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
-      "port": 3000
-    }
+    { "name": "faheem-frontend", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "frontend"], "port": 3000 },
+    { "name": "faheem-backend", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "backend"], "port": 4000 },
+    { "name": "faheem-backend-mem", "runtimeExecutable": "env", "runtimeArgs": ["DATABASE_URL=", "npm", "run", "dev", "--prefix", "backend"], "port": 4000 }
   ]
 }

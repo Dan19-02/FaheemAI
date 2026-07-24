@@ -1,5 +1,5 @@
 /**
- * Rich markdown renderer for Clarify.AI teaching responses.
+ * Rich markdown renderer for Faheem teaching responses.
  *
  * The model is prompted to use Markdown tables, LaTeX math, and Mermaid
  * diagrams. The old UI dumped raw text, so equations and diagrams showed as
@@ -125,12 +125,8 @@ function MermaidBlock({ chart }: { chart: string }) {
   return (
     <div
       role="img"
-      aria-label="Concept flowchart drawn by Clarify.AI"
-      // dir="ltr": on the Arabic (RTL) page the flowchart would otherwise mirror
-      // left-to-right, reversing arrow direction and node order. Diagrams are
-      // direction-neutral artwork, so they stay LTR regardless of UI language.
-      dir="ltr"
-      className="my-3 flex justify-center overflow-x-auto rounded-xl border border-editorial-line-light bg-white p-3"
+      aria-label="Concept flowchart drawn by Faheem"
+      className="my-3 flex justify-center overflow-x-auto rounded-xl border border-editorial-line-light bg-surface p-3"
       dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
     >
       {svg ? undefined : <span className="text-xs text-editorial-charcoal/40">Drawing diagram…</span>}
@@ -155,48 +151,37 @@ function DiagramPending() {
   );
 }
 
+/**
+ * The teaching models sometimes emit LaTeX with backslash delimiters
+ * (\( x \) and \[ x \]) despite the prompt asking for dollars. remark-math
+ * only parses $/$$, so without this normalisation a student sees raw TeX
+ * source in the middle of a math answer. Applied at render time so old saved
+ * answers and notebook entries are healed too. Code fences are left alone.
+ */
+function normalizeMathDelimiters(md: string): string {
+  if (!md.includes("\\(") && !md.includes("\\[")) return md;
+  // Split out fenced code blocks so TeX-looking content inside them survives.
+  return md
+    .split(/(```[\s\S]*?```|`[^`]*`)/g)
+    .map((part, i) =>
+      i % 2 === 1
+        ? part
+        : part
+            .replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `$$${inner}$$`)
+            .replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner}$`)
+    )
+    .join("");
+}
+
 function MarkdownImpl({ children, streaming }: MarkdownProps) {
   return (
-    <div className="clarify-prose space-y-3 text-sm leading-[1.7] text-editorial-charcoal break-words md:text-[15px]">
+    <div dir="auto" className="faheem-prose space-y-3 text-sm leading-[1.7] text-editorial-charcoal break-words md:text-[15px]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
           // Unwrap <pre> so our block code renders without invalid <pre><div> nesting.
           pre: ({ children }) => <>{children}</>,
-          // --- CRITICAL: bidi-isolate rendered math ---
-          // rehype-katex emits inline math as <span class="math math-inline"> and
-          // block math as <div class="math math-display">. On the Arabic (RTL)
-          // page these inherit dir=rtl, which mirrors/reorders the equation. We
-          // wrap each math node in a dir="ltr" bidi-isolate so notation renders
-          // exactly as written; non-math spans/divs pass through untouched.
-          // (The index.css .katex rules are the CSS half of the same fix.)
-          // `node` is react-markdown's hast node — drop it so it is never spread
-          // onto the real DOM element (invalid attribute).
-          span: ({ children, className, node: _node, ...props }) => {
-            const isMath = !!className && /(^|\s)math(\s|$)/.test(className);
-            return (
-              <span
-                className={className}
-                {...props}
-                {...(isMath ? { dir: "ltr" as const, style: { unicodeBidi: "isolate" as const } } : {})}
-              >
-                {children}
-              </span>
-            );
-          },
-          div: ({ children, className, node: _node, ...props }) => {
-            const isMath = !!className && /(^|\s)math(\s|$)/.test(className);
-            return (
-              <div
-                className={className}
-                {...props}
-                {...(isMath ? { dir: "ltr" as const, style: { unicodeBidi: "isolate" as const } } : {})}
-              >
-                {children}
-              </div>
-            );
-          },
           code({ className, children }) {
             const match = /language-(\w+)/.exec(className || "");
             const lang = match?.[1];
@@ -223,7 +208,7 @@ function MarkdownImpl({ children, streaming }: MarkdownProps) {
             </div>
           ),
           th: ({ children }) => (
-            <th className="border border-editorial-line bg-editorial-stone/60 px-3 py-2 text-start font-semibold">
+            <th className="border border-editorial-line bg-editorial-stone/60 px-3 py-2 text-left font-semibold">
               {children}
             </th>
           ),
@@ -240,19 +225,19 @@ function MarkdownImpl({ children, streaming }: MarkdownProps) {
               {children}
             </a>
           ),
-          h1: ({ children }) => <h1 className="font-serif text-xl font-bold mt-1">{children}</h1>,
-          h2: ({ children }) => <h2 className="font-serif text-lg font-semibold mt-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="font-serif text-base font-semibold text-editorial-sage mt-2">{children}</h3>,
-          ul: ({ children }) => <ul className="ms-4 list-disc space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="ms-4 list-decimal space-y-1">{children}</ol>,
+          h1: ({ children }) => <h1 className="kod-display text-xl font-bold mt-1">{children}</h1>,
+          h2: ({ children }) => <h2 className="kod-display text-lg font-semibold mt-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="kod-display text-base font-semibold text-editorial-sage mt-2">{children}</h3>,
+          ul: ({ children }) => <ul className="ml-4 list-disc space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="ml-4 list-decimal space-y-1">{children}</ol>,
           blockquote: ({ children }) => (
-            <blockquote className="border-s-[3px] border-editorial-sage/60 bg-editorial-stone/30 py-1 ps-3 italic">
+            <blockquote className="border-l-[3px] border-editorial-sage/60 bg-editorial-stone/30 py-1 pl-3 italic">
               {children}
             </blockquote>
           ),
         }}
       >
-        {children}
+        {normalizeMathDelimiters(children)}
       </ReactMarkdown>
     </div>
   );

@@ -27,19 +27,18 @@ interface UiPlan {
 }
 
 // Mirrors the backend catalogue (subscription.ts) and the landing PricingSection.
-const NOTEBOOK_PERK = "Pre-exam notebook: save the lines that click, auto-filed by chapter, with Clarify notes for revision.";
+const NOTEBOOK_PERK = "Pre-exam notebook: save the lines that click, auto-filed by chapter, with Faheem notes for revision.";
 const UI_PLANS: UiPlan[] = [
-  { id: "starter", name: "Starter", price: 199, queries: "100 questions a month", note: "About three questions a day. Room to breathe for daily doubts.", featured: false },
-  { id: "regular", name: "Regular", price: 499, queries: "300 questions a month", note: "Ten a day: daily learning plus exam-season revision.", perk: NOTEBOOK_PERK, featured: false },
-  { id: "unlimited", name: "Unlimited", price: 999, queries: "Unlimited questions", note: "Never ration your curiosity, never count a question.", perk: NOTEBOOK_PERK, featured: true },
+  { id: "starter", name: "Starter", price: 4.99, queries: "100 questions a month", note: "About three questions a day. Room to breathe for daily doubts.", featured: false },
+  { id: "regular", name: "Regular", price: 9.99, queries: "300 questions a month", note: "Ten a day: daily learning plus exam-season revision.", perk: NOTEBOOK_PERK, featured: false },
+  { id: "unlimited", name: "Unlimited", price: 19.99, queries: "Unlimited questions", note: "Never ration your curiosity, never count a question.", perk: NOTEBOOK_PERK, featured: true },
 ];
 
 const INCLUDED = [
-  "All boards: CBSE, ICSE, State, JEE, NEET",
-  "English, Hinglish and Hindi",
+  "Every grade from 6 to 12, plus exam prep",
   "Exam-ready answers + the nine-part notebook",
   "Deep-check examiner pass",
-  "Photo doubts and voice sessions",
+  "Photo doubts on every plan",
 ];
 
 interface UpgradeModalProps {
@@ -83,7 +82,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
   // Mid-pass: purchases are locked (the server also enforces this with a 409).
   const renewLocked = passActive && expiresMs! - Date.now() > RENEW_WINDOW_DAYS * DAY_MS;
   const passEndsOn = expiresMs
-    ? new Date(expiresMs).toLocaleDateString("en-IN", { day: "numeric", month: "long" })
+    ? new Date(expiresMs).toLocaleDateString("en-US", { month: "long", day: "numeric" })
     : "";
 
   const buy = async (planId: string) => {
@@ -112,7 +111,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1e1e1a]/50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#101a2b]/50 p-4 backdrop-blur-sm">
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -125,17 +124,18 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
             <button
               onClick={onClose}
               aria-label="Close"
+              title="Close and keep studying"
               className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/50 transition-colors hover:bg-editorial-stone hover:text-editorial-charcoal"
             >
               <X size={16} />
             </button>
 
             <div className="max-w-2xl">
-              <h2 className="font-serif text-[clamp(1.6rem,4vw,2.4rem)] italic leading-tight tracking-[-0.01em] text-editorial-charcoal">
+              <h2 className="kod-display text-[clamp(1.6rem,4vw,2.4rem)] leading-tight tracking-[-0.01em] text-editorial-charcoal">
                 Keep your patient teacher going.
               </h2>
               {reason ? (
-                <p className="mt-3 rounded-2xl border border-editorial-line-light bg-white px-4 py-3 text-sm leading-relaxed text-editorial-charcoal/80">
+                <p className="mt-3 rounded-2xl border border-editorial-line-light bg-surface px-4 py-3 text-sm leading-relaxed text-editorial-charcoal/80">
                   {reason}
                 </p>
               ) : (
@@ -154,14 +154,14 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
                   <div
                     key={plan.id}
                     className={`flex flex-col rounded-3xl p-6 ${
-                      plan.featured ? "bg-night text-chalk" : "border border-editorial-line bg-white text-editorial-charcoal"
+                      plan.featured ? "border-2 border-editorial-sage bg-editorial-sage/10 text-editorial-charcoal" : "border border-editorial-line bg-surface text-editorial-charcoal"
                     }`}
                   >
-                    <h3 className={`font-serif text-lg italic ${plan.featured ? "text-sage-bright" : "text-editorial-sage"}`}>
+                    <h3 className={`kod-display text-lg text-editorial-sage`}>
                       {plan.name}
                     </h3>
                     <p className="mt-3 flex items-baseline gap-1.5">
-                      <span className="font-serif text-4xl italic tracking-tight">₹{plan.price}</span>
+                      <span className="kod-display text-4xl tracking-tight">${plan.price}</span>
                       <span className={`text-xs ${plan.featured ? "text-chalk-dim" : "text-editorial-charcoal/60"}`}>/ month</span>
                     </p>
                     <p className="mt-3 text-sm font-semibold">{plan.queries}</p>
@@ -178,6 +178,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
                     <button
                       onClick={() => buy(plan.id)}
                       disabled={busy || busyPlan !== null || renewLocked}
+                      title={`Get the ${plan.name} pass for 30 days`}
                       className={`mt-5 flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 ${
                         plan.featured ? "bg-sage-bright text-night" : "bg-editorial-charcoal text-white"
                       }`}
@@ -187,7 +188,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
                           <Loader2 size={14} className="animate-spin" /> Opening…
                         </>
                       ) : isCurrent ? (
-                        <>Renew ₹{plan.price}</>
+                        <>Renew ${plan.price}</>
                       ) : (
                         <>Choose {plan.name}</>
                       )}
@@ -203,7 +204,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
             </div>
 
             {passActive && (
-              <p className="mt-4 rounded-xl border border-editorial-line-light bg-white px-4 py-2.5 text-xs leading-relaxed text-editorial-charcoal/75">
+              <p className="mt-4 rounded-xl border border-editorial-line-light bg-surface px-4 py-2.5 text-xs leading-relaxed text-editorial-charcoal/75">
                 {renewLocked
                   ? `Your ${subscription?.planName} pass runs until ${passEndsOn}. Renewal opens in its last ${RENEW_WINDOW_DAYS} days, so nothing you have paid for is lost.`
                   : `Your ${subscription?.planName} pass ends on ${passEndsOn}. A pass bought now starts the moment the current one ends, so no days are lost.`}
@@ -229,7 +230,7 @@ export default function UpgradeModal({ open, onClose, account, subscription, rea
             <p className="mt-4 text-[11px] leading-relaxed text-editorial-charcoal/55">
               A one-time payment for 30 days of access. No auto-renewal: you decide each month.
               Buying a plan ends the free week and your plan starts right away.
-              Prices in INR, secure checkout by Razorpay. Payment trouble or any question:{" "}
+              Prices in USD, secure checkout. Payment trouble or any question:{" "}
               <a href={`mailto:${SUPPORT_EMAIL}`} className="text-editorial-sage underline underline-offset-2 hover:text-editorial-charcoal">
                 {SUPPORT_EMAIL}
               </a>

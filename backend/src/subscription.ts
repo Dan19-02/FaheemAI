@@ -6,7 +6,7 @@
  * again. There is no auto-debit. The Razorpay wiring lives in billing.ts.
  *
  * The trial: every account joins on a 'trial' plan good for 7 days, with 10
- * questions a day (reset at midnight IST), never more. After the trial they
+ * questions a day (reset at midnight UTC), never more. After the trial they
  * must hold an active paid pass to keep asking. Buying ANY plan ends the free
  * tier immediately and permanently (activatePlan clamps trial_ends_at): from
  * that moment the paid plan is the only quota.
@@ -16,24 +16,24 @@
  * all free, so being re-taught is never penalised. See meterNewQuestion.
  */
 import crypto from "crypto";
-import { type Queryable, getUserById, getUsage, chargeUsage } from "./db.js";
+import { type Queryable, getUserById, getUsage, chargeUsage, refundUsage } from "./db.js";
 
 export type PlanId = "trial" | "starter" | "regular" | "unlimited";
 
 export interface PlanDef {
   id: Exclude<PlanId, "trial">;
   name: string;
-  price: number; // rupees, for display
-  amountPaise: number; // what Razorpay charges
+  price: number; // dollars, for display
+  amountCents: number; // what the payment provider charges
   monthlyQueries: number | null; // null = unlimited
   blurb: string;
 }
 
 /** The three paid plans (must match the landing page PricingSection). */
 export const PLANS: PlanDef[] = [
-  { id: "starter", name: "Starter", price: 199, amountPaise: 19_900, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
-  { id: "regular", name: "Regular", price: 499, amountPaise: 49_900, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
-  { id: "unlimited", name: "Unlimited", price: 999, amountPaise: 99_900, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
+  { id: "starter", name: "Starter", price: 4.99, amountCents: 499, monthlyQueries: 100, blurb: "About three questions a day. Room to breathe for daily doubts." },
+  { id: "regular", name: "Regular", price: 9.99, amountCents: 999, monthlyQueries: 300, blurb: "Serious study fuel: ten a day for daily learning and exam-season revision." },
+  { id: "unlimited", name: "Unlimited", price: 19.99, amountCents: 1999, monthlyQueries: null, blurb: "The whole catch-net. Never ration your curiosity." },
 ];
 
 export const PLAN_BY_ID: Record<string, PlanDef> = Object.fromEntries(PLANS.map((p) => [p.id, p]));
@@ -45,18 +45,24 @@ export const PASS_DAYS = 30;
 export const RENEW_WINDOW_DAYS = 3;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // India is UTC+5:30, no DST.
 
-/** Today's calendar date in India (YYYY-MM-DD), so the daily reset is IST midnight. */
-export function istDateKey(nowMs = Date.now()): string {
-  return new Date(nowMs + IST_OFFSET_MS).toISOString().slice(0, 10);
+/** Today's calendar date (YYYY-MM-DD, UTC), so the daily reset is UTC midnight. */
+export function utcDateKey(nowMs = Date.now()): string {
+  return new Date(nowMs).toISOString().slice(0, 10);
 }
 
-/** ISO timestamp of the next IST midnight (when the daily trial quota refreshes). */
-export function nextIstMidnight(nowMs = Date.now()): string {
-  const shifted = new Date(nowMs + IST_OFFSET_MS);
-  shifted.setUTCHours(24, 0, 0, 0); // next midnight, read in the shifted (IST) frame
-  return new Date(shifted.getTime() - IST_OFFSET_MS).toISOString();
+/** ISO timestamp of the next UTC midnight (when the daily trial quota refreshes). */
+export function nextUtcMidnight(nowMs = Date.now()): string {
+  const d = new Date(nowMs);
+  d.setUTCHours(24, 0, 0, 0);
+  return d.toISOString();
+}
+
+/** ISO timestamp of today's UTC midnight: "since when is it today". */
+export function utcDayStartIso(nowMs = Date.now()): string {
+  const d = new Date(nowMs);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
 }
 
 export type SubState = "trial" | "active" | "trial_expired" | "plan_expired";
@@ -129,8 +135,8 @@ export function resolveEntitlement(row: any, used: number, nowMs = Date.now()): 
       used,
       remaining: remainingOf(TRIAL_DAILY_QUERIES, used),
       periodType: "day",
-      periodKey: `d:${istDateKey(nowMs)}`,
-      resetAt: nextIstMidnight(nowMs),
+      periodKey: `d:${utcDateKey(nowMs)}`,
+      resetAt: nextUtcMidnight(nowMs),
       trialEndsAt: iso(trialEnds),
       planExpiresAt: iso(planExpires),
     };
@@ -164,7 +170,7 @@ export async function getEntitlement(q: Queryable, row: any, nowMs = Date.now())
 
 /**
  * Pre-exam notebook access (user decision 2026-07-03): SAVING points is open
- * to every account, but VIEWING the notebook and generating Clarify notes
+ * to every account, but VIEWING the notebook and generating Faheem notes
  * needs an active Regular or Unlimited pass. Trial and Starter save with
  * locked viewing; a lapsed pass read-locks the notebook (never deletes it)
  * until renewal.
@@ -209,6 +215,14 @@ export interface MeterResult {
   ok: boolean;
   reason?: MeterReason;
   entitlement: Entitlement;
+  /**
+   * Did THIS call actually spend a credit? True only on a real charge; false on
+   * a dedup paired-retry passthrough, no-access, or quota block. Callers that
+   * refund (e.g. on a client disconnect before the answer arrives) must gate on
+   * this, never on ok, so a passthrough or a blocked ask is never refunded a
+   * credit it did not spend.
+   */
+  charged: boolean;
 }
 
 // One "ask" can reach the server twice: the client tries /chat/stream first and,
@@ -231,6 +245,9 @@ function chargedRecently(userId: number, message: string): boolean {
   const exp = recentlyCharged.get(dedupKey(userId, message));
   return Boolean(exp && exp > Date.now());
 }
+function unmarkCharged(userId: number, message: string): void {
+  recentlyCharged.delete(dedupKey(userId, message));
+}
 function markCharged(userId: number, message: string): void {
   const now = Date.now();
   recentlyCharged.set(dedupKey(userId, message), now + DEDUP_TTL_MS);
@@ -252,20 +269,47 @@ export async function meterNewQuestion(q: Queryable, row: any, message: string):
   // through without charging again and without re-checking the quota, because the
   // credit was already spent on the first call.
   if (hasText && chargedRecently(row.id, message)) {
-    return { ok: true, entitlement: await getEntitlement(q, row) };
+    return { ok: true, charged: false, entitlement: await getEntitlement(q, row) };
   }
 
-  const ent = await getEntitlement(q, row);
-  if (!ent.active) return { ok: false, reason: "no_access", entitlement: ent };
-
-  // chargeUsage enforces the limit inside one atomic statement, so concurrent
-  // requests can never overshoot the quota between a read and an increment.
-  const newUsed = await chargeUsage(q, row.id, ent.periodKey, ent.limit);
-  if (newUsed == null) {
-    return { ok: false, reason: "quota", entitlement: resolveEntitlement(row, ent.limit ?? ent.used) };
-  }
+  // Reserve the dedup key BEFORE the first await: two concurrent identical
+  // sends (a fast double-tap) both used to read chargedRecently()=false and
+  // both charge. JS is single-threaded, so a synchronous check-then-set here
+  // makes the second tap a free paired duplicate instead of a second charge.
   if (hasText) markCharged(row.id, message);
-  return { ok: true, entitlement: resolveEntitlement(row, newUsed) };
+  try {
+    const ent = await getEntitlement(q, row);
+    if (!ent.active) {
+      if (hasText) unmarkCharged(row.id, message);
+      return { ok: false, charged: false, reason: "no_access", entitlement: ent };
+    }
+
+    // chargeUsage enforces the limit inside one atomic statement, so concurrent
+    // requests can never overshoot the quota between a read and an increment.
+    const newUsed = await chargeUsage(q, row.id, ent.periodKey, ent.limit);
+    if (newUsed == null) {
+      if (hasText) unmarkCharged(row.id, message);
+      return { ok: false, charged: false, reason: "quota", entitlement: resolveEntitlement(row, ent.limit ?? ent.used) };
+    }
+    return { ok: true, charged: true, entitlement: resolveEntitlement(row, newUsed) };
+  } catch (err) {
+    if (hasText) unmarkCharged(row.id, message);
+    throw err;
+  }
+}
+
+/**
+ * Give the credit of a just-charged question back after the generation failed
+ * outright. Also forgets the paired-retry marker, so the student's next ask
+ * of the same question is a genuinely fresh (and again charged) question
+ * rather than a free pass on top of a refund.
+ */
+export async function refundNewQuestionByUserId(q: Queryable, userId: number, message: string): Promise<void> {
+  const row = await getUserById(q, userId);
+  if (!row) return;
+  const ent = await getEntitlement(q, row);
+  await refundUsage(q, row.id, ent.periodKey);
+  recentlyCharged.delete(dedupKey(userId, message));
 }
 
 /** Convenience for the AI routes, which only carry the user id. */
@@ -278,7 +322,7 @@ export async function meterNewQuestionByUserId(
   if (!row) {
     // Should not happen (the JWT was valid), but fail closed rather than free.
     const empty = resolveEntitlement({ plan: "trial" }, 0);
-    return { ok: false, reason: "no_access", entitlement: { ...empty, active: false, state: "trial_expired" } };
+    return { ok: false, charged: false, reason: "no_access", entitlement: { ...empty, active: false, state: "trial_expired" } };
   }
   return meterNewQuestion(q, row, message);
 }

@@ -3,18 +3,18 @@
  *
  * Students select the exact lines of an answer that made something click and
  * save them. The AI files each point under a subject and chapter automatically
- * (the student never categorises anything), and "Clarify notes" turns a
+ * (the student never categorises anything), and "Faheem notes" turns a
  * chapter's saved points into one structured, marks-style revision sheet.
  *
  * Access: SAVING is open to every signed-in account, so value accumulates from
- * day one. VIEWING the shelf and generating Clarify notes needs an active
+ * day one. VIEWING the shelf and generating Faheem notes needs an active
  * Regular or Unlimited pass (hasNotebookAccess); everyone else gets a calm
  * locked summary with their saved-point count. A lapsed pass read-locks the
  * notebook, it never deletes anything.
  *
- * Model split follows the house strategy: Gemini Flash for the tiny
- * classification tool-call (fast, cheap, runs async after save), MiniMax for
- * the Clarify notes generation with Gemini as the fallback, same as chat.
+ * Models: Gemini Flash for the tiny classification tool-call (fast, cheap,
+ * runs async after save) and for the Faheem notes generation. (The old
+ * MiniMax notes path was retired with the rest of that brain.)
  */
 import { Router } from "express";
 import type { Request, Response } from "express";
@@ -64,11 +64,11 @@ const SUBJECTS = [
   "Biology",
   "Mathematics",
   "English",
-  "Hindi",
-  "Social Science",
+  "History",
+  "Geography",
   "Computer Science",
   "Economics",
-  "Accountancy",
+  "Accounting",
   "Business Studies",
   "General",
 ];
@@ -120,12 +120,12 @@ async function classifyEntry(
       .slice(0, 60)
       .join("\n");
 
-    const prompt = `You are a librarian for an Indian student's revision notebook (board: ${board || "CBSE"}, level: ${grade || "school"}).
+    const prompt = `You are a librarian for a student's revision notebook (curriculum: ${board || "General"}, level: ${grade || "school"}).
 File this saved study snippet under exactly one subject and one chapter.
 
 RULES:
 - subject MUST be one of: ${SUBJECTS.join(", ")}
-- chapter: the standard textbook chapter name for this board and level, short (under 6 words), in English. If one of the student's existing chapters below already fits, REUSE its exact spelling instead of inventing a variant.
+- chapter: the standard textbook chapter name for this curriculum and level, short (under 6 words), in English. If one of the student's existing chapters below already fits, REUSE its exact spelling instead of inventing a variant.
 - Reply with ONLY a JSON object: {"subject":"...","chapter":"..."}
 
 STUDENT'S EXISTING CHAPTERS:
@@ -157,9 +157,9 @@ ${text.slice(0, 1500)}`;
   }
 }
 
-/** The Clarify notes writer prompt: one marks-style revision sheet per chapter. */
+/** The Faheem notes writer prompt: one marks-style revision sheet per chapter. */
 function notesSystemInstruction(profile: { board?: string; grade?: string; language?: string }): string {
-  return `You are Clarify.AI, writing a PRE-EXAM REVISION SHEET for an Indian student (board: ${profile.board || "CBSE"}, level: ${profile.grade || "school"}, language preference: ${profile.language || "English"}).
+  return `You are Faheem, writing a PRE-EXAM REVISION SHEET for a student (curriculum: ${profile.board || "General"}, level: ${profile.grade || "school"}, language preference: ${profile.language || "English"}).
 
 You will receive the exact lines the student personally saved from past answers because those lines made the concept click for them. Turn them into ONE tight, structured revision sheet they can read the night before the exam.
 
@@ -169,7 +169,7 @@ The core concepts, each as one crisp bullet.
 ## Formulas
 Every formula in LaTeX ($...$ or $$...$$), each symbol defined with its unit.
 ## Definitions
-Board-accurate definitions an examiner would award marks for. Key terms in **bold**.
+Exam-accurate definitions an examiner would award marks for. Key terms in **bold**.
 ## Watch Out
 The mistakes and confusions hiding in these points, each with the correction.
 ## One-Liners
@@ -177,7 +177,7 @@ Three to six memorable single-sentence takeaways for last-minute revision.
 
 HARD RULES:
 - Build ONLY on the student's saved points. You may complete a formula or tighten a definition for accuracy, but never introduce unrelated new topics.
-- Match the student's language preference (keep technical terms accurate in English even in Hindi or Hinglish).
+- Match the student's language preference (English, Arabic, Hindi, or Urdu); keep technical terms, formulas, and units accurate in English whichever language you write in.
 - Concise and marks-focused: this is a revision sheet, not a lesson. No preamble, no closing chatter.
 - NEVER use an em dash (U+2014) or an en dash (U+2013) anywhere. Use commas, colons, periods, or parentheses instead.`;
 }
@@ -222,6 +222,19 @@ notebookRouter.post("/notebook/entries", requireAuth, async (req: Request, res: 
 
     const row = await getUserById(pool, uid);
     if (!row) return res.status(404).json({ error: "User not found." });
+
+    // A double-tap on Save must not file the same lines twice: if the exact
+    // text from the same message is already saved, hand back the existing
+    // point instead of inserting a twin.
+    const dupe = await pool.query(
+      `SELECT id FROM notebook_entries
+       WHERE user_id = $1 AND text = $2 AND COALESCE(message_id, '') = COALESCE($3, '')
+       LIMIT 1`,
+      [uid, text, typeof req.body?.messageId === "string" ? req.body.messageId.slice(0, 80) : null]
+    );
+    if (dupe.rows[0]?.id) {
+      return res.status(200).json({ ok: true, id: dupe.rows[0].id, duplicate: true });
+    }
 
     const entry = {
       id: newEntryId(),
@@ -273,7 +286,7 @@ notebookRouter.get("/notebook", requireAuth, async (req: Request, res: Response)
   }
 });
 
-// --- One chapter: its saved points + any cached Clarify notes ---
+// --- One chapter: its saved points + any cached Faheem notes ---
 notebookRouter.get("/notebook/entries", requireAuth, async (req: Request, res: Response) => {
   try {
     const gate = await notebookGate(req, res);
@@ -356,7 +369,7 @@ ${parts.join("\n\n")}`;
 // rides the same in-flight promise instead of paying for a duplicate model call.
 const inflightNotes = new Map<string, Promise<{ text: string; generatedAt: string }>>();
 
-// --- Clarify notes: generate (or serve the cached) revision sheet ---
+// --- Faheem notes: generate (or serve the cached) revision sheet ---
 notebookRouter.post("/notebook/notes", requireAuth, async (req: Request, res: Response) => {
   try {
     const gate = await notebookGate(req, res);
@@ -394,7 +407,7 @@ notebookRouter.post("/notebook/notes", requireAuth, async (req: Request, res: Re
       const system = notesSystemInstruction(profile);
       const userContent = buildNotesContent(subject, chapter, entries);
 
-      // Clarify notes run on Gemini Flash, same brain as normal chat answers
+      // Faheem notes run on Gemini Flash, same brain as normal chat answers
       // (the MiniMax-first path was retired on the all_models_set_to_gemini
       // branch).
       if (!apiKey) throw new Error("notes-unavailable");
@@ -426,7 +439,7 @@ notebookRouter.post("/notebook/notes", requireAuth, async (req: Request, res: Re
     if (err?.message === "notes-unavailable") {
       return res.status(503).json({ error: "Notes cannot be prepared right now. Please try again shortly." });
     }
-    console.error("Clarify notes error:", err);
+    console.error("Faheem notes error:", err);
     res.status(500).json({ error: "Could not prepare your notes. Please try again." });
   }
 });

@@ -2,18 +2,17 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import {AuthProvider} from './AuthContext.tsx';
-import {LocaleProvider} from './i18n/LocaleContext.tsx';
+import {captureReferralFromUrl} from './referral.ts';
 import './index.css';
+
+// Partner links (?ref=CODE) are captured before anything renders, so the code
+// survives however the student wanders before reaching the signup card.
+captureReferralFromUrl();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LocaleProvider>
-      <AuthProvider>
-        {/* .fahim-app applies the Arabic-capable font stack (see index.css). */}
-        <div className="fahim-app">
-          <App />
-        </div>
-      </AuthProvider>
-    </LocaleProvider>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 );

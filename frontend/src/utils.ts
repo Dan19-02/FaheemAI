@@ -1,50 +1,5 @@
 import type { Attachment } from "./types";
 
-/**
- * Converts Float32 browser microphone data to raw 16-bit PCM little-endian.
- */
-export function float32ToInt16PCM(float32Array: Float32Array): ArrayBuffer {
-  const buffer = new ArrayBuffer(float32Array.length * 2);
-  const view = new DataView(buffer);
-  for (let i = 0; i < float32Array.length; i++) {
-    const s = Math.max(-1, Math.min(1, float32Array[i]));
-    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-  }
-  return buffer;
-}
-
-/**
- * Encodes an ArrayBuffer to standard base64 format.
- */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-/**
- * Converts 16-bit PCM little-endian base64 back to Float32.
- * This is used for playing back model audio responses.
- */
-export function base64ToFloat32PCM(base64: string): Float32Array {
-  const binary = window.atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  const int16Array = new Int16Array(bytes.buffer);
-  const float32Array = new Float32Array(int16Array.length);
-  for (let i = 0; i < int16Array.length; i++) {
-    float32Array[i] = int16Array[i] / 32768.0;
-  }
-  return float32Array;
-}
-
 /** Read a File as a data URL (base64). */
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -100,7 +55,7 @@ export function dataUrlToBase64(dataUrl: string): string {
 }
 
 /**
- * Text parsing utility that parses Clarify.AI structured responses
+ * Text parsing utility that parses Faheem structured responses
  * into logical blocks for visual notebooks if sections are detected.
  */
 export interface NotebookSection {
@@ -115,35 +70,48 @@ export interface ParsedTeaching {
   sections: NotebookSection[];
 }
 
+// Memoized: the workspace parses every completed answer at least twice per
+// render (notebook detection + the Go-deeper gate), and re-renders per
+// streaming paint. Keyed by the full text; a small cap bounds memory.
+const parseMemo = new Map<string, ParsedTeaching>();
+const PARSE_MEMO_MAX = 100;
+
 export function parseTeachingSections(text: string): ParsedTeaching {
-  // The 9 notebook sections are identified by their EMOJI alone, which is
-  // language-agnostic: the model teaches in Arabic (or English) and titles the
-  // sections in that language, but the emoji is the stable key. Each carries a
-  // fallback label for when the header is just the bare emoji.
+  const hit = parseMemo.get(text);
+  if (hit) return hit;
+  const parsed = parseTeachingSectionsUncached(text);
+  if (parseMemo.size >= PARSE_MEMO_MAX) {
+    const oldest = parseMemo.keys().next().value;
+    if (oldest !== undefined) parseMemo.delete(oldest);
+  }
+  parseMemo.set(text, parsed);
+  return parsed;
+}
+
+function parseTeachingSectionsUncached(text: string): ParsedTeaching {
+  // The 9 Faheem notebook sections, identified by emoji + title.
   const defs = [
-    { emoji: "🌟", label: "الفكرة الكبرى" },
-    { emoji: "🤔", label: "مثال من حياتك" },
-    { emoji: "📖", label: "شرح مبسّط" },
-    { emoji: "🖼", label: "تمثيل بصري" },
-    { emoji: "🧠", label: "التعريف الرسمي" },
-    { emoji: "✏", label: "مثال محلول" },
-    { emoji: "⚠", label: "أخطاء شائعة" },
-    { emoji: "🎯", label: "سؤال تحقّق" },
-    { emoji: "📌", label: "ملخّص" },
+    { emoji: "🌟", title: "Big Idea" },
+    { emoji: "🤔", title: "Everyday Analogy" },
+    { emoji: "📖", title: "Simple Explanation" },
+    { emoji: "🖼", title: "Visual Representation" },
+    { emoji: "🧠", title: "Formal Definition" },
+    { emoji: "✏", title: "Worked Example" },
+    { emoji: "⚠", title: "Common Mistakes" },
+    { emoji: "🎯", title: "Quick Check Question" },
+    { emoji: "📌", title: "One-Line Summary" }
   ];
 
-  // Locate each header by its emoji, tolerantly: allow optional markdown prefix
-  // (#, *), optional numbering ("1.", "1)"), whitespace, and an optional emoji
-  // variation selector. Capture the rest of that header line as the section
-  // title (whatever language the model wrote it in), so the tab shows the
-  // Arabic title, not a hardcoded English one.
+  // Locate each header tolerantly: allow optional markdown prefixes (#, *),
+  // optional numbering ("1.", "1)"), surrounding whitespace, and an optional
+  // emoji variation selector. This way the tabbed notebook still renders even
+  // when a model wraps headers in **bold** or ## headings.
   const found: { idx: number; headerEnd: number; emoji: string; title: string }[] = [];
   for (const def of defs) {
-    const re = new RegExp(`[#*>\\s]*\\d*[.)]?\\s*${def.emoji}\\uFE0F?[ \\t]*([^\\n]*)`);
+    const re = new RegExp(`[#*>\\s]*\\d*\\s*[.)]?\\s*${def.emoji}\\uFE0F?\\s*\\**${def.title}\\**`, "i");
     const m = re.exec(text);
     if (m) {
-      const rawTitle = (m[1] || "").replace(/[*#:>\-=\s]+$/, "").replace(/\*\*/g, "").trim();
-      found.push({ idx: m.index, headerEnd: m.index + m[0].length, emoji: def.emoji, title: rawTitle || def.label });
+      found.push({ idx: m.index, headerEnd: m.index + m[0].length, emoji: def.emoji, title: def.title });
     }
   }
 

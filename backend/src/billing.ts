@@ -18,6 +18,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import crypto from "crypto";
 import { requireAuth } from "./auth.js";
+import { requireAdmin } from "./adminAuth.js";
 import { rateLimit } from "./ai.js";
 import {
   pool,
@@ -46,25 +47,25 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "";
 const RAZORPAY_API = "https://api.razorpay.com/v1";
 
 /** The ONLY support contact. All student-facing "reach us" copy uses this. */
-const SUPPORT_EMAIL = "support@clarifyai.in";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@faheem.ai";
 
 export const billingConfigured = Boolean(KEY_ID && KEY_SECRET);
 if (!billingConfigured) {
   console.warn("[Billing] RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set: payments are disabled until they are.");
 } else {
   const mode = KEY_ID.startsWith("rzp_live") ? "LIVE" : "TEST";
-  console.log(`[Billing] Razorpay enabled (${mode} keys). Plans: ${PLANS.map((p) => `${p.name} ₹${p.price}`).join(", ")}.`);
+  console.log(`[Billing] Razorpay enabled (${mode} keys). Plans: ${PLANS.map((p) => `${p.name} $${p.price}`).join(", ")}.`);
 }
 
 const PASS_MS = PASS_DAYS * 24 * 60 * 60 * 1000;
 
 /** Create an order on Razorpay via the REST API (Basic auth = key id:secret). */
-async function razorpayCreateOrder(amountPaise: number, receipt: string, notes: Record<string, string>) {
+async function razorpayCreateOrder(amountCents: number, receipt: string, notes: Record<string, string>) {
   const auth = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
   const resp = await fetch(`${RAZORPAY_API}/orders`, {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt, notes, payment_capture: 1 }),
+    body: JSON.stringify({ amount: amountCents, currency: "USD", receipt, notes, payment_capture: 1 }),
   });
   if (!resp.ok) {
     const body = await resp.text().catch(() => "");
@@ -138,14 +139,14 @@ billingRouter.get("/billing/plans", (_req: Request, res: Response) => {
       id: p.id,
       name: p.name,
       price: p.price,
-      amountPaise: p.amountPaise,
+      amountCents: p.amountCents,
       monthlyQueries: p.monthlyQueries,
       blurb: p.blurb,
     })),
     trial: { days: TRIAL_DAYS, dailyQueries: TRIAL_DAILY_QUERIES },
     passDays: PASS_DAYS,
     configured: billingConfigured,
-    currency: "INR",
+    currency: "USD",
   });
 });
 
@@ -180,15 +181,15 @@ billingRouter.post("/billing/order", requireAuth, async (req: Request, res: Resp
     // starts AT the current expiry (grantPass chains the windows).
     const decision = renewalDecision(row);
     if (!decision.allowed) {
-      const until = new Date(decision.activeUntilMs!).toLocaleDateString("en-IN", { day: "numeric", month: "long", timeZone: "Asia/Kolkata" });
+      const until = new Date(decision.activeUntilMs!).toLocaleDateString("en-US", { day: "numeric", month: "long", timeZone: "UTC" });
       return res.status(409).json({
         error: `Your current pass is active until ${until}. Renewal opens in its last ${RENEW_WINDOW_DAYS} days, so nothing you have paid for is lost.`,
       });
     }
 
-    const receipt = `clarify_${uid}_${Date.now()}`.slice(0, 40); // Razorpay caps receipt at 40 chars
-    const order = await razorpayCreateOrder(def.amountPaise, receipt, { userId: String(uid), plan: def.id });
-    await createPayment(pool, { userId: uid, plan: def.id, orderId: order.id, amount: def.amountPaise, currency: "INR" });
+    const receipt = `faheem_${uid}_${Date.now()}`.slice(0, 40); // Razorpay caps receipt at 40 chars
+    const order = await razorpayCreateOrder(def.amountCents, receipt, { userId: String(uid), plan: def.id });
+    await createPayment(pool, { userId: uid, plan: def.id, orderId: order.id, amount: def.amountCents, currency: "USD" });
 
     res.json({
       orderId: order.id,
@@ -245,21 +246,11 @@ billingRouter.post("/billing/verify", requireAuth, async (req: Request, res: Res
 
 // --- Admin / support grant: comp a pass without a payment ---
 // For internal testing and support (a refund gone wrong, a goodwill pass).
-// Inert unless ADMIN_GRANT_TOKEN is set in the environment; the caller must
-// present that exact token in the x-admin-token header. Never exposed to the
-// app UI; it is a curl-only tool for the operator.
-const ADMIN_GRANT_TOKEN = process.env.ADMIN_GRANT_TOKEN || "";
-
-billingRouter.post("/billing/admin/grant", async (req: Request, res: Response) => {
+// Guarded by the shared operator guard (adminAuth.ts): ADMIN_GRANT_TOKEN in
+// the x-admin-token header, same as the referral admin API. Never exposed to
+// the app UI; it is a curl-only tool for the operator.
+billingRouter.post("/billing/admin/grant", requireAdmin, async (req: Request, res: Response) => {
   try {
-    if (!ADMIN_GRANT_TOKEN) return res.status(503).json({ error: "Admin grants are not enabled." });
-    if (!rateLimit(`admin-grant:${req.ip}`, 10)) return res.status(429).json({ error: "Too many attempts." });
-    const given = Buffer.from(String(req.headers["x-admin-token"] || ""));
-    const expected = Buffer.from(ADMIN_GRANT_TOKEN);
-    if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
-      return res.status(401).json({ error: "Not allowed." });
-    }
-
     const email = String(req.body?.email || "").trim().toLowerCase();
     const planId = String(req.body?.plan || "");
     const days = Math.min(3650, Math.max(1, Number(req.body?.days) || PASS_DAYS));

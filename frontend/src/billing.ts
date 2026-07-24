@@ -61,11 +61,11 @@ export async function startCheckout(plan: string, account: Account, cb: Checkout
     order_id: order.orderId,
     amount: order.amount,
     currency: order.currency,
-    name: "Clarify.AI",
+    name: "Faheem",
     description: `${order.planName} plan, 30 days`,
     image: "/favicon.svg",
     prefill: { email: order.prefill.email || account.email, name: order.prefill.name || account.profile.name },
-    theme: { color: "#6f7d5f" }, // editorial sage
+    theme: { color: "#d9a13f" }, // lamp gold (2026-07-24 Faheem rebrand)
     handler: async (resp: any) => {
       try {
         const { subscription } = await api.verifyPayment({

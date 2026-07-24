@@ -1,6 +1,6 @@
 /**
  * The Pre-exam notebook: every line the student chose to keep, auto-filed by
- * subject and chapter, with one AI-written revision sheet ("Clarify notes")
+ * subject and chapter, with one AI-written revision sheet ("Faheem notes")
  * per chapter. Opens as a full-screen overlay on every device.
  *
  * Locked state (trial, Starter, lapsed pass): saving has been quietly working
@@ -8,9 +8,9 @@
  * with a calm path to the plans. Nothing is ever deleted while locked.
  */
 import { useEffect, useRef, useState } from "react";
-import { X, BookMarked, ChevronRight, ArrowLeft, Trash2, Loader2, Sparkles, Lock, RefreshCw } from "lucide-react";
+import { X, BookMarked, ChevronRight, ArrowLeft, Trash2, Loader2, Sparkles, Lock, RefreshCw, Printer } from "lucide-react";
 import { api } from "./api";
-import type { NotebookSummary, NotebookEntry, ClarifyNote, Subscription } from "./types";
+import type { NotebookSummary, NotebookEntry, FaheemNote, Subscription } from "./types";
 import { Markdown } from "./Markdown";
 
 interface PreExamNotebookProps {
@@ -27,7 +27,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
   const [summary, setSummary] = useState<NotebookSummary | null>(null);
   const [level, setLevel] = useState<Level>({ view: "subjects" });
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
-  const [note, setNote] = useState<ClarifyNote | null>(null);
+  const [note, setNote] = useState<FaheemNote | null>(null);
   const [loading, setLoading] = useState(false);
   const [notesBusy, setNotesBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
     setNotesBusy(true);
     setError(null);
     try {
-      const fresh = await api.generateClarifyNotes(subject, chapter);
+      const fresh = await api.generateFaheemNotes(subject, chapter);
       if (seq !== reqSeq.current) return; // navigated away: never paint into another chapter
       setNote(fresh);
     } catch (e: any) {
@@ -117,6 +117,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           <button
             onClick={back}
             aria-label="Back"
+            title="Go back one level"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-editorial-line text-editorial-charcoal/60 transition-colors hover:bg-editorial-stone cursor-pointer"
           >
             <ArrowLeft size={15} />
@@ -127,7 +128,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="truncate font-serif text-lg italic text-editorial-charcoal">
+          <h2 className="truncate kod-display text-lg text-editorial-charcoal">
             {level.view === "points" ? level.chapter : level.view === "chapters" ? level.subject : "Pre-exam notebook"}
           </h2>
           <p className="truncate text-[11px] text-editorial-charcoal/70">
@@ -167,18 +168,19 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-editorial-sage/10 text-editorial-sage">
                 <Lock size={22} />
               </div>
-              <h3 className="font-serif text-2xl italic text-editorial-charcoal">
+              <h3 className="kod-display text-2xl text-editorial-charcoal">
                 {summary.savedCount > 0
                   ? `${summary.savedCount} saved point${summary.savedCount === 1 ? "" : "s"} waiting for you.`
                   : "Your revision shelf, ready when you are."}
               </h3>
               <p className="text-sm leading-relaxed text-editorial-charcoal/70">
                 Keep saving the lines that make things click; they are filed safely under their subject and chapter.
-                The Pre-exam notebook opens on the Regular and Unlimited plans, with Clarify notes that turn your
+                The Pre-exam notebook opens on the Regular and Unlimited plans, with Faheem notes that turn your
                 points into one revision sheet per chapter.
               </p>
               <button
                 onClick={onUpgrade}
+                title="See the plans that open your notebook"
                 className="rounded-full bg-editorial-charcoal px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
                 id="btn-notebook-upgrade"
               >
@@ -193,7 +195,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               {(summary.subjects?.length || 0) === 0 ? (
                 <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-14 text-center">
                   <BookMarked size={26} className="text-editorial-sage" />
-                  <h3 className="font-serif text-xl italic text-editorial-charcoal">Nothing saved yet.</h3>
+                  <h3 className="kod-display text-xl text-editorial-charcoal">Nothing saved yet.</h3>
                   <p className="text-sm leading-relaxed text-editorial-charcoal/70">
                     When an answer makes something click, select the lines you want to keep and tap Save lines.
                     They will file themselves here, ready for revision.
@@ -204,11 +206,12 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                   {summary.subjects!.map((s) => (
                     <button
                       key={s.subject}
+                      title={`Open your saved ${s.subject} points`}
                       onClick={() => setLevel({ view: "chapters", subject: s.subject })}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white p-5 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-surface p-5 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
                     >
                       <div>
-                        <h3 className="font-serif text-lg italic text-editorial-charcoal">{s.subject}</h3>
+                        <h3 className="kod-display text-lg text-editorial-charcoal">{s.subject}</h3>
                         <p className="mt-1 text-xs text-editorial-charcoal/70">
                           {s.chapters.length} chapter{s.chapters.length === 1 ? "" : "s"} · {s.count} point{s.count === 1 ? "" : "s"}
                         </p>
@@ -227,8 +230,9 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               {(summary.subjects?.find((s) => s.subject === level.subject)?.chapters || []).map((c) => (
                 <button
                   key={c.chapter}
+                  title={`Open the points you saved in ${c.chapter}`}
                   onClick={() => openChapter(level.subject, c.chapter)}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-white px-5 py-4 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-editorial-line bg-surface px-5 py-4 text-left transition-all hover:border-editorial-sage/40 cursor-pointer"
                 >
                   <div>
                     <h4 className="text-sm font-semibold text-editorial-charcoal">{c.chapter}</h4>
@@ -242,20 +246,20 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
             </div>
           )}
 
-          {/* One chapter: Clarify notes + the saved points */}
+          {/* One chapter: Faheem notes + the saved points */}
           {!loading && level.view === "points" && (
             <div className="flex flex-col gap-5">
-              {/* Clarify notes */}
-              <div className="rounded-2xl border border-editorial-line bg-white p-5">
+              {/* Faheem notes */}
+              <div className="rounded-2xl border border-editorial-line bg-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="flex items-center gap-1.5 text-sm font-semibold text-editorial-charcoal">
-                    <Sparkles size={14} className="text-editorial-sage" /> Clarify notes
+                    <Sparkles size={14} className="text-editorial-sage" /> Faheem notes
                   </h3>
                   <button
                     onClick={() => makeNotes(level.subject, level.chapter)}
                     disabled={notesBusy || entries.length === 0 || (note !== null && !note.stale)}
                     className="flex items-center gap-1.5 rounded-full bg-editorial-sage px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                    id="btn-clarify-notes"
+                    id="btn-faheem-notes"
                     title={
                       note && !note.stale
                         ? "These notes already cover all your saved points"
@@ -271,7 +275,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                         <RefreshCw size={13} /> {note.stale ? "Refresh notes" : "Up to date"}
                       </>
                     ) : (
-                      <>Clarify notes</>
+                      <>Faheem notes</>
                     )}
                   </button>
                 </div>
@@ -283,11 +287,29 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
                 )}
                 {note && !notesBusy && (
                   <div className="mt-4 border-t border-editorial-line-light pt-4 text-sm leading-relaxed text-editorial-charcoal">
-                    <Markdown>{note.text}</Markdown>
-                    <p className="mt-3 text-[10px] text-editorial-charcoal/60">
-                      Prepared {new Date(note.generatedAt).toLocaleString()}
-                      {note.stale ? " · you have saved new points since, refresh when ready" : ""}
-                    </p>
+                    {/* sheet-print: @media print shows ONLY this block, so
+                        printing gives one clean revision sheet, the
+                        night-before-exam page students fold into a pocket. */}
+                    <div className="sheet-print">
+                      <p className="hidden print:block mb-2 text-xs font-semibold">
+                        {level.view === "points" ? `${level.subject} · ${level.chapter} · ` : ""}Faheem revision sheet
+                      </p>
+                      <Markdown>{note.text}</Markdown>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-[10px] text-editorial-charcoal/60">
+                        Prepared {new Date(note.generatedAt).toLocaleString()}
+                        {note.stale ? " · you have saved new points since, refresh when ready" : ""}
+                      </p>
+                      <button
+                        onClick={() => window.print()}
+                        className="flex shrink-0 items-center gap-1.5 rounded-full border border-editorial-line px-3 py-1.5 text-[11px] text-editorial-charcoal/80 hover:bg-editorial-stone transition-colors cursor-pointer"
+                        id="btn-print-sheet"
+                        title="Print this revision sheet as one clean page"
+                      >
+                        <Printer size={12} /> Print sheet
+                      </button>
+                    </div>
                   </div>
                 )}
                 {!note && !notesBusy && (
@@ -300,7 +322,7 @@ export default function PreExamNotebook({ open, onClose, subscription, onUpgrade
               {/* The saved points */}
               <div className="flex flex-col gap-2.5">
                 {entries.map((e) => (
-                  <div key={e.id} className="group rounded-2xl border border-editorial-line-light bg-white p-4">
+                  <div key={e.id} className="group rounded-2xl border border-editorial-line-light bg-surface p-4">
                     {e.question && (
                       <p className="mb-1.5 text-[11px] italic text-editorial-charcoal/60">from: "{e.question.slice(0, 120)}"</p>
                     )}

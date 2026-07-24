@@ -78,6 +78,10 @@ export async function initDb(): Promise<void> {
       });
       try {
         await candidate.query("SELECT 1");
+        // A dropped idle connection (managed PG reaps them; failovers) emits
+        // 'error' on the pool; with no listener Node treats it as uncaught and
+        // kills the whole process. Log it and let node-postgres reconnect.
+        candidate.on("error", (err) => console.error("[DB] idle client error (non-fatal):", err?.message || err));
         pool = candidate;
         await initSchema(pool);
         dbMode = "postgres";
@@ -105,6 +109,14 @@ export async function initDb(): Promise<void> {
     console.warn(`[DB] Could not reach local Postgres. Falling back to in-memory dev DB.`);
   } else {
     console.warn("[DB] DATABASE_URL not set.");
+  }
+
+  // In production the in-memory fallback would silently vanish all accounts and
+  // payments on the next restart; refuse it. (index.ts already asserts
+  // DATABASE_URL is set before start(); this is the backstop for any init path.)
+  if (process.env.NODE_ENV === "production") {
+    console.error("[DB] FATAL: no reachable DATABASE_URL in production; refusing the in-memory fallback (data would reset on every restart).");
+    process.exit(1);
   }
 
   // Zero-setup in-memory fallback (data resets on restart). DEV ONLY.
@@ -136,9 +148,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT,
   google_sub TEXT UNIQUE,
   name TEXT NOT NULL DEFAULT 'Student',
-  board TEXT NOT NULL DEFAULT 'CBSE',
+  board TEXT NOT NULL DEFAULT 'General',
   grade TEXT NOT NULL DEFAULT '11th Grade',
-  language TEXT NOT NULL DEFAULT 'Hinglish',
+  language TEXT NOT NULL DEFAULT 'English',
   preferred_analogy TEXT NOT NULL DEFAULT 'Daily Life',
   exam_goals TEXT NOT NULL DEFAULT '',
   confidence_level INTEGER NOT NULL DEFAULT 3,
@@ -149,12 +161,60 @@ CREATE TABLE IF NOT EXISTS users (
   trial_ends_at TIMESTAMPTZ,
   plan_started_at TIMESTAMPTZ,
   plan_expires_at TIMESTAMPTZ,
+  -- Email ownership. Fresh DBs default new rows to false; the migration
+  -- grandfathers every PRE-EXISTING account to true so nobody is locked out.
+  -- Google accounts are created with true (Google already proved the email).
+  email_verified BOOLEAN NOT NULL DEFAULT false,
+  -- Bumped on every password reset. Embedded in the JWT and checked by
+  -- requireAuth, so a reset evicts any session minted with an older version.
+  token_version INTEGER NOT NULL DEFAULT 0,
+  -- Partner attribution: the referral code entered at signup (normalized,
+  -- uppercase). Plain TEXT with no FK, matching messages.conversation_id, so
+  -- it works on every engine and a deleted code never blocks user deletes.
+  referral_code TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- NOTE: idx_users_referral_code deliberately lives ONLY in runMigrations. On a
+-- pre-existing database this CREATE TABLE is a no-op, so the column does not
+-- exist until the migration ALTER runs; an index here would abort the whole
+-- SCHEMA_SQL batch at boot (same reason idx_users_google_sub is migration-only).
+
+-- Referral codes handed to partners (financial institutes, schools, creators).
+-- One row per code; users.referral_code points back at code. use_count exists
+-- ONLY to enforce max_uses atomically at claim time; reporting always counts
+-- attributed users (the source of truth) instead.
+CREATE TABLE IF NOT EXISTS referral_codes (
+  code TEXT PRIMARY KEY,
+  partner_name TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  active BOOLEAN NOT NULL DEFAULT true,
+  max_uses INTEGER,
+  use_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- One-time codes for email verification + password reset (unified, purpose-
+-- discriminated). We store HMAC(code) not the code; consumed_at makes a code
+-- single-use; attempts caps guessing. email is denormalized so the reset flow
+-- stays enumeration-safe and survives a concurrent user delete.
+CREATE TABLE IF NOT EXISTS auth_codes (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  purpose TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 5,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_auth_codes_email_purpose ON auth_codes(email, purpose, created_at);
+
 -- Per-question usage counters. period_key is 'd:YYYY-MM-DD' for the daily trial
--- quota (reset midnight IST) or 'p:<pass-start-ms>' for a paid monthly pass, so
+-- quota (reset midnight UTC) or 'p:<pass-start-ms>' for a paid monthly pass, so
 -- a fresh pass gets a fresh counter automatically.
 CREATE TABLE IF NOT EXISTS usage_counters (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -172,7 +232,7 @@ CREATE TABLE IF NOT EXISTS payments (
   order_id TEXT UNIQUE NOT NULL,
   payment_id TEXT,
   amount INTEGER NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'INR',
+  currency TEXT NOT NULL DEFAULT 'USD',
   status TEXT NOT NULL DEFAULT 'created',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -196,6 +256,9 @@ CREATE TABLE IF NOT EXISTS messages (
   mode TEXT,
   sources JSONB NOT NULL DEFAULT '[]'::jsonb,
   attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- For a deep-dive notebook: the id of the answer whose "Go deeper" produced
+  -- it. Lets the client keep that button one-shot across reloads.
+  deep_for TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id, created_at);
@@ -232,7 +295,7 @@ CREATE TABLE IF NOT EXISTS notebook_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_notebook_user ON notebook_entries(user_id, subject, chapter, created_at);
 
--- Cached "Clarify notes": one AI-generated revision sheet per chapter, rebuilt
+-- Cached "Faheem notes": one AI-generated revision sheet per chapter, rebuilt
 -- only when the chapter's saved points change (entry_count is the staleness key).
 CREATE TABLE IF NOT EXISTS notebook_notes (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -254,171 +317,59 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   embedding JSONB NOT NULL
 );
 
--- ===========================================================================
--- FAHIM curriculum spine.
---
--- One immutable surrogate key, unit_id (e.g. 'bh.g10.physics.u3'), is the join
--- key across grounding, notebook, and telemetry. It NEVER changes once minted;
--- textbook edition/section live in mutable attribute columns so a re-issue
--- updates attributes, not the key.
---
--- Enum-like columns (accuracy_type, gate_status, verification_outcome, ...) are
--- plain TEXT with allowed values documented in comments and enforced in app
--- code, matching the existing schema's convention (plan/role/status are all
--- plain TEXT). This keeps the in-memory pg-mem dev/test engine happy.
--- ===========================================================================
-
--- Subject registry. gate_status = the launch surface: the app serves only
--- rows where gate_status = 'live'. Allowed: 'draft' | 'in_review' | 'blocked'
--- | 'live'. accuracy_type: 'A' objective | 'B' language | 'C' interpretive |
--- 'D' sensitive/doctrinal. Enabling a subject is an UPDATE here, not a deploy.
-CREATE TABLE IF NOT EXISTS curriculum_subjects (
-  subject_id TEXT PRIMARY KEY,
-  -- Board/curriculum this subject belongs to: 'moe' (Bahrain MoE), 'cbse',
-  -- 'cambridge'. subject_id is board-qualified (e.g. 'cbse.physics') so the
-  -- same subject name across boards never collides.
-  board TEXT NOT NULL DEFAULT 'moe',
-  name_ar TEXT NOT NULL DEFAULT '',
-  name_en TEXT NOT NULL DEFAULT '',
-  accuracy_type TEXT NOT NULL DEFAULT 'A',
-  -- How well this subject can be grounded TODAY: 'textbook' (real textbook text
-  -- ingested, e.g. NCERT), 'syllabus' (only outline/topics), 'proxy' (nearest
-  -- documented grade used as a stand-in), 'structure' (system structure only).
-  -- Confidence/sourcing surfacing reads this so we never imply textbook-true
-  -- grounding we don't have.
-  grounding_level TEXT NOT NULL DEFAULT 'syllabus',
-  gate_status TEXT NOT NULL DEFAULT 'draft',
-  correctness_bar NUMERIC,
-  min_review_sample INTEGER NOT NULL DEFAULT 100,
-  curriculum_version TEXT NOT NULL DEFAULT '',
-  enabled_at TIMESTAMPTZ,
-  enabled_by TEXT,
+-- The Landing Signal (see landing.ts): whether a concept has landed for a student.
+-- comprehension_events is an append-only audit log and the honesty source of
+-- truth; concept_mastery is the derived per-concept state the UI reads. We
+-- store only DERIVED verdicts, never the student's raw answers (minors).
+CREATE TABLE IF NOT EXISTS comprehension_events (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id TEXT,
+  concept_key TEXT NOT NULL,
+  concept_label TEXT,
+  chapter_tag TEXT,
+  -- still_fuzzy | check_pass | check_partial | check_fail | check_echoed
+  -- | deeper | stuck | rephrase_ok | new_topic | affirmation_only | silent
+  trigger_type TEXT NOT NULL,
+  verdict TEXT NOT NULL,           -- understood | partial | not_understood | unconfirmed
+  confidence TEXT NOT NULL,        -- high | medium | low
+  source TEXT NOT NULL,            -- tap | check | inferred | self_report
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_comp_events_user ON comprehension_events(user_id, created_at);
 
-CREATE TABLE IF NOT EXISTS curriculum_grades (
-  grade_id TEXT PRIMARY KEY,
-  board TEXT NOT NULL DEFAULT 'moe',
-  label_ar TEXT NOT NULL DEFAULT '',
-  label_en TEXT NOT NULL DEFAULT '',
-  -- India Class 9-12 equivalent, so the three boards line up in the UI.
-  india_equiv TEXT NOT NULL DEFAULT '',
-  cycle TEXT NOT NULL DEFAULT ''
+CREATE TABLE IF NOT EXISTS concept_mastery (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  concept_key TEXT NOT NULL,
+  concept_label TEXT,
+  chapter_tag TEXT,
+  -- working_on_it | practiced | landed  (never asserted silently as 'strong')
+  state TEXT NOT NULL DEFAULT 'working_on_it',
+  probed_pass_count INTEGER NOT NULL DEFAULT 0,   -- examiner-graded transfer PASSes
+  struggle_count INTEGER NOT NULL DEFAULT 0,      -- trusted negatives
+  inferred_pass_count INTEGER NOT NULL DEFAULT 0, -- behavioral (never promotes alone)
+  last_pass_at TIMESTAMPTZ,                        -- for spaced confirmation (later-day 2nd pass = landed)
+  last_verdict TEXT,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- first measured touch (time-to-understand runs from here)
+  -- Forgetting curve: how many post-landed retention passes (0..3) and when
+  -- the next gentle re-check is due. NULL next_review_at = nothing scheduled.
+  review_stage INTEGER NOT NULL DEFAULT 0,
+  next_review_at TIMESTAMPTZ,
+  -- Shadow canonical id: normalized cross-student concept identity. Written in
+  -- the background, read by nothing user-facing yet (aggregation groundwork).
+  canonical_key TEXT,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, concept_key)
 );
 
--- unit_id is the immutable join key used everywhere downstream. is_in_syllabus
--- lets a unit be marked out-of-scope without deleting it; enabled is the
--- per-unit go-live flag (a subject can be 'live' while some units are still dark).
-CREATE TABLE IF NOT EXISTS curriculum_units (
-  unit_id TEXT PRIMARY KEY,
-  board TEXT NOT NULL DEFAULT 'moe',
-  subject_id TEXT NOT NULL REFERENCES curriculum_subjects(subject_id) ON DELETE CASCADE,
-  grade_id TEXT NOT NULL REFERENCES curriculum_grades(grade_id) ON DELETE CASCADE,
-  seq INTEGER NOT NULL DEFAULT 0,
-  title_ar TEXT NOT NULL DEFAULT '',
-  title_en TEXT NOT NULL DEFAULT '',
-  source_textbook TEXT NOT NULL DEFAULT '',
-  source_edition TEXT NOT NULL DEFAULT '',
-  curriculum_version TEXT NOT NULL DEFAULT '',
-  is_in_syllabus BOOLEAN NOT NULL DEFAULT TRUE,
-  enabled BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_units_subject_grade ON curriculum_units(subject_id, grade_id, seq);
-
-CREATE TABLE IF NOT EXISTS curriculum_objectives (
-  id TEXT PRIMARY KEY,
-  unit_id TEXT NOT NULL REFERENCES curriculum_units(unit_id) ON DELETE CASCADE,
-  seq INTEGER NOT NULL DEFAULT 0,
-  text_ar TEXT NOT NULL DEFAULT '',
-  text_en TEXT NOT NULL DEFAULT ''
-);
-CREATE INDEX IF NOT EXISTS idx_objectives_unit ON curriculum_objectives(unit_id, seq);
-
--- Bilingual key terms: Arabic term + surfaced English technical term are DATA,
--- not prompt-glued, so term surfacing is consistent and reviewer-approved.
-CREATE TABLE IF NOT EXISTS curriculum_key_terms (
-  id TEXT PRIMARY KEY,
-  unit_id TEXT NOT NULL REFERENCES curriculum_units(unit_id) ON DELETE CASCADE,
-  term_ar TEXT NOT NULL DEFAULT '',
-  term_en TEXT NOT NULL DEFAULT '',
-  definition_ar TEXT NOT NULL DEFAULT '',
-  definition_en TEXT NOT NULL DEFAULT ''
-);
-CREATE INDEX IF NOT EXISTS idx_key_terms_unit ON curriculum_key_terms(unit_id);
-
--- Provenance: which section/page a chunk came from, so the UI can show
--- "Unit 3 · Section 3.2" and cite a page span.
-CREATE TABLE IF NOT EXISTS corpus_refs (
-  ref_id TEXT PRIMARY KEY,
-  unit_id TEXT NOT NULL REFERENCES curriculum_units(unit_id) ON DELETE CASCADE,
-  section_label TEXT NOT NULL DEFAULT '',
-  page_from INTEGER,
-  page_to INTEGER,
-  source_uri TEXT NOT NULL DEFAULT ''
-);
-CREATE INDEX IF NOT EXISTS idx_corpus_refs_unit ON corpus_refs(unit_id);
-
--- The real MoE textbook corpus, chunked per section. Retrieval HARD-FILTERS by
--- unit_id first (never a whole-corpus scan), then ranks within that one unit.
--- embedding is JSONB + JS cosine for the single-subject pilot; migrate to
--- pgvector once the corpus grows past one subject (deferred, by decision).
--- content_display is verbatim (for citation); content_embed is the normalized
--- text actually embedded.
-CREATE TABLE IF NOT EXISTS corpus_chunks (
-  chunk_id TEXT PRIMARY KEY,
-  unit_id TEXT NOT NULL REFERENCES curriculum_units(unit_id) ON DELETE CASCADE,
-  ref_id TEXT,
-  section_label TEXT NOT NULL DEFAULT '',
-  content_display TEXT NOT NULL,
-  content_embed TEXT NOT NULL DEFAULT '',
+-- Global registry of canonical concepts (label + embedding for match-by-meaning).
+CREATE TABLE IF NOT EXISTS concept_canon (
+  canonical_key TEXT PRIMARY KEY,
+  label TEXT,
   embedding JSONB,
-  token_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_corpus_chunks_unit ON corpus_chunks(unit_id);
-
--- ===========================================================================
--- Accuracy telemetry. One row per served answer, keyed on unit_id, holding NO
--- student free-text (minors / data-minimisation). This is how a subject earns
--- its go-live and how trust failures are caught upstream of a teacher report.
--- ===========================================================================
--- verification_outcome: 'verified' | 'corrected' | 'failed' | 'unavailable'
---   | 'not_applicable'. confidence: 'high' | 'medium' | 'low' | 'out_of_syllabus'.
-CREATE TABLE IF NOT EXISTS accuracy_events (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  subject_id TEXT,
-  unit_id TEXT,
-  grade_id TEXT,
-  language TEXT,
-  accuracy_type TEXT,
-  groundedness NUMERIC,
-  verification_outcome TEXT,
-  out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE,
-  confidence TEXT,
-  answer_hash TEXT,
-  latency_ms INTEGER,
-  cache_hit BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE INDEX IF NOT EXISTS idx_accuracy_events_subject ON accuracy_events(subject_id, unit_id, created_at);
-
--- Human ground-truth: a teacher-reported error per subject+unit. status:
--- 'open' | 'triaged' | 'fixed' | 'rejected'.
-CREATE TABLE IF NOT EXISTS teacher_reports (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  reporter_id TEXT,
-  reporter_role TEXT,
-  subject_id TEXT,
-  unit_id TEXT,
-  message_id TEXT,
-  error_type TEXT,
-  severity TEXT,
-  note TEXT NOT NULL DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'open'
-);
-CREATE INDEX IF NOT EXISTS idx_teacher_reports_subject ON teacher_reports(subject_id, unit_id, created_at);
 `;
 
 export async function initSchema(q: Queryable = pool): Promise<void> {
@@ -435,6 +386,8 @@ export async function runMigrations(q: Queryable = pool): Promise<void> {
   for (const sql of [
     `ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id TEXT`,
     `ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB NOT NULL DEFAULT '[]'::jsonb`,
+    // Deep-dive link: which answer's "Go deeper" produced this notebook.
+    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS deep_for TEXT`,
     `ALTER TABLE explanation_cache ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT FALSE`,
     // Google sign-in: link accounts by Google's stable subject id, and let
     // Google-only accounts have no password. Runs once against existing DBs.
@@ -446,30 +399,110 @@ export async function runMigrations(q: Queryable = pool): Promise<void> {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_started_at TIMESTAMPTZ`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ`,
+    // Email verification, for accounts created before it shipped. Added WITHOUT
+    // a default first (ADD COLUMN ... DEFAULT false would flag every existing
+    // account unverified in one shot), then GRANDFATHER all pre-existing rows to
+    // true, THEN set the default so future signups start unverified. We stop
+    // short of SET NOT NULL on purpose (like first_seen_at): it would force a
+    // full-table ACCESS EXCLUSIVE scan on the boot path that blocks listen, and
+    // createUser/createGoogleUser always write the column explicitly anyway.
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN`,
+    `UPDATE users SET email_verified = true WHERE email_verified IS NULL`,
+    `ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT false`,
+    // Session-eviction counter for password reset. Constant default = a
+    // metadata-only add on modern Postgres (no table rewrite); existing rows = 0.
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`,
+    // Partner referral attribution, for databases created before it shipped.
+    // Nullable with no default: existing accounts simply have no referrer.
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT`,
+    `CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`,
+    `CREATE TABLE IF NOT EXISTS referral_codes (
+      code TEXT PRIMARY KEY,
+      partner_name TEXT NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      active BOOLEAN NOT NULL DEFAULT true,
+      max_uses INTEGER,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+    // One-time codes (verification + reset), for databases created before this.
+    `CREATE TABLE IF NOT EXISTS auth_codes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 5,
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_auth_codes_email_purpose ON auth_codes(email, purpose, created_at)`,
     // Existing early-access accounts (created before billing shipped) get a
     // FRESH week from the day this code first runs, honouring the "free while
     // in early access, plans switch on at launch" promise. Runs once per
     // account: after this backfill, trial_ends_at is never NULL again. New
     // signups are unaffected (createUser stamps signup + 7 days explicitly).
     `UPDATE users SET trial_ends_at = now() + interval '7 days' WHERE trial_ends_at IS NULL`,
-    // FAHIM curriculum provenance. Attach the immutable unit_id + source/section
-    // + confidence/verification/out-of-syllabus signals to every answer and saved
-    // note. The old free-text subject/chapter columns STAY as a display cache so
-    // the Arabic<->English render toggle never rewrites stored text.
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS unit_id TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS language TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS source_section TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS confidence TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS groundedness NUMERIC`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS verification_outcome TEXT`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS unit_id TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS language TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS source_section TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS confidence TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS groundedness NUMERIC`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS verification_outcome TEXT`,
-    `ALTER TABLE notebook_entries ADD COLUMN IF NOT EXISTS out_of_syllabus BOOLEAN NOT NULL DEFAULT FALSE`,
+    // Landing Signal tables, added for databases created before this feature.
+    `CREATE TABLE IF NOT EXISTS comprehension_events (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      conversation_id TEXT,
+      concept_key TEXT NOT NULL,
+      concept_label TEXT,
+      chapter_tag TEXT,
+      trigger_type TEXT NOT NULL,
+      verdict TEXT NOT NULL,
+      confidence TEXT NOT NULL,
+      source TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS concept_mastery (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      concept_key TEXT NOT NULL,
+      concept_label TEXT,
+      chapter_tag TEXT,
+      state TEXT NOT NULL DEFAULT 'working_on_it',
+      probed_pass_count INTEGER NOT NULL DEFAULT 0,
+      struggle_count INTEGER NOT NULL DEFAULT 0,
+      inferred_pass_count INTEGER NOT NULL DEFAULT 0,
+      last_pass_at TIMESTAMPTZ,
+      last_verdict TEXT,
+      first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      review_stage INTEGER NOT NULL DEFAULT 0,
+      next_review_at TIMESTAMPTZ,
+      canonical_key TEXT,
+      last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (user_id, concept_key)
+    )`,
+    // Time-to-understand + forgetting curve + canonical shadow id, for
+    // databases created before these columns existed. first_seen_at is added
+    // WITHOUT a default first (ADD COLUMN ... DEFAULT now() would stamp every
+    // existing row with the deploy time and the backfill would never fire),
+    // then future inserts get the default, then existing rows backfill from
+    // last_seen_at (the least-wrong available anchor), once.
+    `ALTER TABLE concept_mastery ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ`,
+    `ALTER TABLE concept_mastery ALTER COLUMN first_seen_at SET DEFAULT now()`,
+    `UPDATE concept_mastery SET first_seen_at = last_seen_at WHERE first_seen_at IS NULL`,
+    `ALTER TABLE concept_mastery ADD COLUMN IF NOT EXISTS review_stage INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE concept_mastery ADD COLUMN IF NOT EXISTS next_review_at TIMESTAMPTZ`,
+    `ALTER TABLE concept_mastery ADD COLUMN IF NOT EXISTS canonical_key TEXT`,
+    // Concepts that were already landed before the forgetting curve shipped
+    // get their first gentle re-check scheduled. review_stage = 0 guards this
+    // to run once: a concept that later completes the ladder holds stage 3.
+    `UPDATE concept_mastery SET next_review_at = now() + interval '3 days'
+      WHERE state = 'landed' AND next_review_at IS NULL AND review_stage = 0`,
+    `CREATE INDEX IF NOT EXISTS idx_comp_events_user ON comprehension_events(user_id, created_at)`,
+    `CREATE TABLE IF NOT EXISTS concept_canon (
+      canonical_key TEXT PRIMARY KEY,
+      label TEXT,
+      embedding JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
   ]) {
     try {
       await q.query(sql);
@@ -484,6 +517,7 @@ export function rowToUser(row: any) {
   return {
     id: row.id,
     email: row.email,
+    emailVerified: row.email_verified === true,
     profile: {
       name: row.name,
       board: row.board,
@@ -508,6 +542,8 @@ export interface NewUser {
   examGoals: string;
   confidenceLevel: number;
   chapters: any[];
+  /** Normalized partner referral code claimed for this signup (or null). */
+  referralCode?: string | null;
 }
 
 // Every new account gets one free week from the moment they join. Kept in sync
@@ -517,8 +553,10 @@ const SIGNUP_TRIAL_DAYS = 7;
 export async function createUser(q: Queryable, u: NewUser) {
   const trialEndsAt = new Date(Date.now() + SIGNUP_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { rows } = await q.query(
-    `INSERT INTO users (email, password_hash, name, board, grade, language, preferred_analogy, exam_goals, confidence_level, chapters, plan, trial_ends_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'trial',$11)
+    // email_verified defaults to false, but set it explicitly so a new account
+    // is never left ambiguous regardless of when the column default landed.
+    `INSERT INTO users (email, password_hash, name, board, grade, language, preferred_analogy, exam_goals, confidence_level, chapters, plan, trial_ends_at, email_verified, referral_code)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'trial',$11, false, $12)
      RETURNING *`,
     [
       u.email.toLowerCase(),
@@ -532,6 +570,7 @@ export async function createUser(q: Queryable, u: NewUser) {
       u.confidenceLevel,
       JSON.stringify(u.chapters),
       trialEndsAt,
+      u.referralCode || null,
     ]
   );
   return rows[0];
@@ -556,8 +595,10 @@ export async function getUserByGoogleSub(q: Queryable, sub: string) {
 
 /** Link a Google identity to an existing (email/password) account. */
 export async function linkGoogleSub(q: Queryable, id: number, sub: string) {
+  // Linking Google to an existing email/password account also verifies the
+  // email: Google just proved the student controls that inbox.
   const { rows } = await q.query(
-    `UPDATE users SET google_sub = $2, updated_at = now() WHERE id = $1 RETURNING *`,
+    `UPDATE users SET google_sub = $2, email_verified = true, updated_at = now() WHERE id = $1 RETURNING *`,
     [id, sub]
   );
   return rows[0] || null;
@@ -567,16 +608,20 @@ export interface NewGoogleUser {
   email: string;
   googleSub: string;
   name: string;
+  /** Normalized partner referral code claimed for this signup (or null). */
+  referralCode?: string | null;
 }
 
 /** Create an account from a verified Google identity (no password). */
 export async function createGoogleUser(q: Queryable, u: NewGoogleUser) {
   const trialEndsAt = new Date(Date.now() + SIGNUP_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { rows } = await q.query(
-    `INSERT INTO users (email, password_hash, google_sub, name, board, grade, language, preferred_analogy, exam_goals, confidence_level, chapters, plan, trial_ends_at)
-     VALUES ($1, NULL, $2, $3, 'CBSE', '11th Grade', 'Hinglish', 'Daily Life', '', 3, $4, 'trial', $5)
+    // email_verified = true: Google only returns identities with a verified email
+    // (auth.ts rejects email_verified === false), so there is nothing to re-prove.
+    `INSERT INTO users (email, password_hash, google_sub, name, board, grade, language, preferred_analogy, exam_goals, confidence_level, chapters, plan, trial_ends_at, email_verified, referral_code)
+     VALUES ($1, NULL, $2, $3, 'General', '11th Grade', 'English', 'Daily Life', '', 3, $4, 'trial', $5, true, $6)
      RETURNING *`,
-    [u.email.toLowerCase(), u.googleSub, u.name || "Student", JSON.stringify(DEFAULT_CHAPTERS), trialEndsAt]
+    [u.email.toLowerCase(), u.googleSub, u.name || "Student", JSON.stringify(DEFAULT_CHAPTERS), trialEndsAt, u.referralCode || null]
   );
   return rows[0];
 }
@@ -585,22 +630,55 @@ export async function createGoogleUser(q: Queryable, u: NewGoogleUser) {
  * Resolve a verified Google identity to a user row, creating or linking as
  * needed: match by google_sub first, then adopt an existing same-email account
  * (linking the two), otherwise create a fresh Google-only account.
+ *
+ * Referral attribution is best-effort and CREATE-only: a returning student who
+ * happens to carry a ?ref= link must never be re-attributed, and an invalid or
+ * exhausted code must never block a Google sign-in (the student cannot fix a
+ * code mid-OAuth the way the email form can). The claim (redeemReferralCode)
+ * enforces active + max_uses atomically; when it fails the account is simply
+ * created unattributed.
+ *
+ * Returns { row, created } so the caller can tell a fresh signup from a
+ * returning sign-in (the frontend keeps a captured ?ref= code alive until a
+ * signup actually consumes it).
  */
 export async function findOrCreateGoogleUser(
   q: Queryable,
-  g: { sub: string; email: string; name: string }
-) {
+  g: { sub: string; email: string; name: string },
+  referralCode?: string | null
+): Promise<{ row: any; created: boolean }> {
   const bySub = await getUserByGoogleSub(q, g.sub);
-  if (bySub) return bySub;
+  if (bySub) return { row: bySub, created: false };
 
   const byEmail = await getUserByEmail(q, g.email);
   if (byEmail) {
     // Existing password account signing in with Google for the first time:
     // link them so both paths reach the same study log.
-    return byEmail.google_sub ? byEmail : await linkGoogleSub(q, byEmail.id, g.sub);
+    return {
+      row: byEmail.google_sub ? byEmail : await linkGoogleSub(q, byEmail.id, g.sub),
+      created: false,
+    };
   }
 
-  return createGoogleUser(q, { email: g.email, googleSub: g.sub, name: g.name });
+  let claimed: string | null = null;
+  if (referralCode) {
+    try {
+      claimed = (await redeemReferralCode(q, referralCode)) ? referralCode : null;
+    } catch {
+      claimed = null; // attribution is never worth failing an account creation
+    }
+  }
+  try {
+    const row = await createGoogleUser(q, { email: g.email, googleSub: g.sub, name: g.name, referralCode: claimed });
+    return { row, created: true };
+  } catch (e) {
+    // Creation failed after a successful claim (e.g. a concurrent first
+    // sign-in for the same identity): hand the use back so the cap stays true.
+    // Logged (not silent): if this release itself fails, use_count drifts one
+    // above the true count and only this line makes that visible.
+    if (claimed) void releaseReferralCode(q, claimed).catch((err: any) => console.error("[Referral] release after failed Google create failed:", err?.message));
+    throw e;
+  }
 }
 
 export interface ProfileUpdate {
@@ -634,6 +712,120 @@ export async function updateUser(q: Queryable, id: number, p: ProfileUpdate) {
     ]
   );
   return rows[0] || null;
+}
+
+// ---- Email verification + password reset ----
+
+/** Flip a user's email_verified flag (verification success, or a reset — which
+ *  proves inbox control too). */
+export async function setEmailVerified(q: Queryable, userId: number, verified: boolean): Promise<void> {
+  await q.query(`UPDATE users SET email_verified = $2, updated_at = now() WHERE id = $1`, [userId, verified]);
+}
+
+/**
+ * Set a new password AND bump token_version in one statement, so every session
+ * minted before the reset (including a stolen one) is evicted. A reset also
+ * verifies the email — the student just proved they control the inbox. Returns
+ * the new token_version so the caller can mint a fresh, still-valid session.
+ */
+export async function updatePasswordHash(q: Queryable, userId: number, passwordHash: string): Promise<number | null> {
+  const { rows } = await q.query(
+    `UPDATE users SET password_hash = $2, token_version = token_version + 1,
+       email_verified = true, updated_at = now()
+     WHERE id = $1 RETURNING token_version`,
+    [userId, passwordHash]
+  );
+  return rows[0] ? Number(rows[0].token_version) : null;
+}
+
+export interface NewAuthCode {
+  userId: number | null;
+  email: string;
+  purpose: string;
+  codeHash: string;
+  expiresAtIso: string;
+  maxAttempts: number;
+}
+
+/**
+ * Issue a fresh code, first retiring any older unconsumed code for the same
+ * (email, purpose) so only the newest is ever valid (single active code).
+ */
+export async function insertAuthCode(q: Queryable, c: NewAuthCode): Promise<void> {
+  await q.query(
+    `UPDATE auth_codes SET consumed_at = now()
+     WHERE email = $1 AND purpose = $2 AND consumed_at IS NULL`,
+    [c.email.toLowerCase(), c.purpose]
+  );
+  await q.query(
+    `INSERT INTO auth_codes (user_id, email, purpose, code_hash, expires_at, max_attempts)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [c.userId, c.email.toLowerCase(), c.purpose, c.codeHash, c.expiresAtIso, c.maxAttempts]
+  );
+}
+
+/** Send-throttle inputs: newest issue time + how many codes went out this hour,
+ *  both DB-backed so a limiter reset or a second instance cannot reopen them. */
+export async function authCodeThrottle(
+  q: Queryable,
+  email: string,
+  purpose: string
+): Promise<{ lastCreatedAtMs: number | null; countLastHour: number }> {
+  const { rows } = await q.query(
+    `SELECT max(created_at) AS last, count(*) FILTER (WHERE created_at > now() - interval '1 hour') AS n
+     FROM auth_codes WHERE email = $1 AND purpose = $2`,
+    [email.toLowerCase(), purpose]
+  );
+  const last = rows[0]?.last ? new Date(rows[0].last).getTime() : null;
+  return { lastCreatedAtMs: last, countLastHour: Number(rows[0]?.n || 0) };
+}
+
+/** Flat shape (not a discriminated union): the project runs with strict:false,
+ *  where union narrowing on `ok` is unreliable, so every field is just optional
+ *  and callers branch on `.ok`. */
+export interface VerifyOutcome {
+  ok: boolean;
+  userId?: number | null;
+  email?: string;
+  reason?: "no_code" | "used" | "expired" | "locked" | "wrong";
+  attemptsLeft?: number;
+}
+
+/**
+ * Atomically check-and-consume the newest code for (email, purpose). The whole
+ * read → compare → (consume | increment) runs inside one transaction with the
+ * row locked (SELECT ... FOR UPDATE), so N concurrent guesses serialize: the
+ * attempt counter can't be lost-updated past the cap and a correct code can be
+ * consumed exactly once. `codeHash` is the HMAC of the submitted code.
+ */
+export async function verifyAuthCode(
+  email: string,
+  purpose: string,
+  codeHash: string,
+  compare: (storedHash: string, submittedHash: string) => boolean,
+  p: any = pool
+): Promise<VerifyOutcome> {
+  return withTransaction<VerifyOutcome>(async (tx): Promise<VerifyOutcome> => {
+    const { rows } = await tx.query(
+      `SELECT id, user_id, email, code_hash, attempts, max_attempts, expires_at, consumed_at
+       FROM auth_codes WHERE email = $1 AND purpose = $2
+       ORDER BY created_at DESC LIMIT 1
+       FOR UPDATE`,
+      [email.toLowerCase(), purpose]
+    );
+    const row = rows[0];
+    if (!row) return { ok: false, reason: "no_code" };
+    if (row.consumed_at) return { ok: false, reason: "used" };
+    if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
+    if (row.attempts >= row.max_attempts) return { ok: false, reason: "locked" };
+
+    if (!compare(String(row.code_hash), codeHash)) {
+      await tx.query(`UPDATE auth_codes SET attempts = attempts + 1 WHERE id = $1`, [row.id]);
+      return { ok: false, reason: "wrong", attemptsLeft: Math.max(0, row.max_attempts - (row.attempts + 1)) };
+    }
+    await tx.query(`UPDATE auth_codes SET consumed_at = now(), attempts = attempts + 1 WHERE id = $1`, [row.id]);
+    return { ok: true, userId: row.user_id ?? null, email: row.email };
+  }, p);
 }
 
 // ---- Usage metering (one credit per new question) ----
@@ -767,6 +959,158 @@ export async function activatePlan(
   return rows[0] || null;
 }
 
+// ---- Partner referral codes ----
+
+export interface NewReferralCode {
+  code: string;
+  partnerName: string;
+  notes?: string;
+  maxUses?: number | null;
+}
+
+export async function createReferralCode(q: Queryable, c: NewReferralCode) {
+  const { rows } = await q.query(
+    `INSERT INTO referral_codes (code, partner_name, notes, max_uses)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [c.code, c.partnerName, c.notes || "", c.maxUses ?? null]
+  );
+  return rows[0];
+}
+
+export async function getReferralCode(q: Queryable, code: string) {
+  const { rows } = await q.query(`SELECT * FROM referral_codes WHERE code = $1`, [code]);
+  return rows[0] || null;
+}
+
+export interface ReferralCodePatch {
+  partnerName?: string;
+  notes?: string;
+  active?: boolean;
+  /** undefined = leave as-is, null = clear the cap, number = set it. */
+  maxUses?: number | null;
+}
+
+/** Partial update; only the fields present in the patch change. */
+export async function updateReferralCode(q: Queryable, code: string, p: ReferralCodePatch) {
+  const sets: string[] = [];
+  const params: any[] = [code];
+  const add = (fragment: string, value: any) => {
+    params.push(value);
+    sets.push(`${fragment} = $${params.length}`);
+  };
+  if (p.partnerName !== undefined) add("partner_name", p.partnerName);
+  if (p.notes !== undefined) add("notes", p.notes);
+  if (p.active !== undefined) add("active", p.active);
+  if (p.maxUses !== undefined) add("max_uses", p.maxUses);
+  if (!sets.length) return getReferralCode(q, code);
+  const { rows } = await q.query(
+    `UPDATE referral_codes SET ${sets.join(", ")}, updated_at = now() WHERE code = $1 RETURNING *`,
+    params
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Atomically claim one use of a code. Same idiom as chargeUsage: the
+ * active + cap check lives INSIDE the UPDATE's WHERE clause, so two concurrent
+ * signups can never both slip past the last remaining slot. Returns the
+ * updated row, or null when the code is missing, inactive, or full.
+ */
+export async function redeemReferralCode(q: Queryable, code: string) {
+  const { rows } = await q.query(
+    `UPDATE referral_codes SET use_count = use_count + 1, updated_at = now()
+     WHERE code = $1 AND active = true AND (max_uses IS NULL OR use_count < max_uses)
+     RETURNING *`,
+    [code]
+  );
+  return rows[0] || null;
+}
+
+/** Hand a claimed use back (signup failed after the claim). Floors at 0. */
+export async function releaseReferralCode(q: Queryable, code: string): Promise<void> {
+  await q.query(
+    `UPDATE referral_codes SET use_count = CASE WHEN use_count > 0 THEN use_count - 1 ELSE 0 END,
+       updated_at = now()
+     WHERE code = $1`,
+    [code]
+  );
+}
+
+export interface ReferralCodeStats {
+  code: string;
+  partnerName: string;
+  notes: string;
+  active: boolean;
+  maxUses: number | null;
+  useCount: number;
+  /** Accounts attributed to this code (source of truth: users.referral_code). */
+  signupCount: number;
+  /** Attributed accounts that proved their email (filters scripted junk). */
+  verifiedCount: number;
+  /** Attributed accounts that have bought a pass at least once. */
+  paidCount: number;
+  createdAt: string;
+}
+
+/**
+ * Every code with its attributed signup + paid counts. Two plain queries
+ * merged in JS (no FILTER / correlated subqueries) so the exact same code
+ * runs on real Postgres and the pg-mem dev/test fallback.
+ */
+export async function listReferralCodeStats(q: Queryable): Promise<ReferralCodeStats[]> {
+  const { rows: codes } = await q.query(`SELECT * FROM referral_codes ORDER BY created_at DESC`);
+  const { rows: counts } = await q.query(
+    `SELECT referral_code, count(*) AS n
+     FROM users WHERE referral_code IS NOT NULL GROUP BY referral_code`
+  );
+  const { rows: verified } = await q.query(
+    `SELECT referral_code, count(*) AS n
+     FROM users WHERE referral_code IS NOT NULL AND email_verified = true
+     GROUP BY referral_code`
+  );
+  const { rows: paid } = await q.query(
+    `SELECT referral_code, count(*) AS n
+     FROM users WHERE referral_code IS NOT NULL AND plan_started_at IS NOT NULL
+     GROUP BY referral_code`
+  );
+  const signupBy = new Map(counts.map((r: any) => [r.referral_code, Number(r.n)]));
+  const verifiedBy = new Map(verified.map((r: any) => [r.referral_code, Number(r.n)]));
+  const paidBy = new Map(paid.map((r: any) => [r.referral_code, Number(r.n)]));
+  return codes.map((r: any) => ({
+    code: r.code,
+    partnerName: r.partner_name,
+    notes: r.notes || "",
+    active: r.active === true,
+    maxUses: r.max_uses == null ? null : Number(r.max_uses),
+    useCount: Number(r.use_count || 0),
+    signupCount: signupBy.get(r.code) || 0,
+    verifiedCount: verifiedBy.get(r.code) || 0,
+    paidCount: paidBy.get(r.code) || 0,
+    createdAt: new Date(r.created_at).toISOString(),
+  }));
+}
+
+/** The people behind a code: every account attributed to it, newest first. */
+export async function referralSignups(q: Queryable, code: string, limit = 500) {
+  const { rows } = await q.query(
+    `SELECT id, email, name, board, grade, plan, plan_started_at, email_verified, created_at
+     FROM users WHERE referral_code = $1
+     ORDER BY created_at DESC LIMIT $2`,
+    [code, limit]
+  );
+  return rows.map((r: any) => ({
+    id: r.id,
+    email: r.email,
+    name: r.name,
+    board: r.board,
+    grade: r.grade,
+    plan: r.plan,
+    emailVerified: r.email_verified === true,
+    hasPaid: r.plan_started_at != null,
+    signedUpAt: new Date(r.created_at).toISOString(),
+  }));
+}
+
 // ---- Pre-exam notebook ----
 
 export interface NotebookEntryInsert {
@@ -837,7 +1181,7 @@ export async function notebookTree(
   }));
 }
 
-/** Count + newest save time for one chapter: the Clarify-notes staleness key.
+/** Count + newest save time for one chapter: the Faheem-notes staleness key.
  *  A raw count (not a capped fetch length) so staleness can never pin "fresh". */
 export async function notebookChapterStats(
   q: Queryable,
@@ -916,11 +1260,13 @@ export interface StoredMessage {
   mode?: string;
   sources?: { title: string; uri: string }[];
   attachments?: any[];
+  /** For a deep-dive notebook: id of the answer whose "Go deeper" made it. */
+  deepFor?: string;
 }
 
 export async function getMessages(q: Queryable, userId: number, conversationId: string, limit = 200) {
   const { rows } = await q.query(
-    `SELECT id, role, text, mode, sources, attachments, created_at
+    `SELECT id, role, text, mode, sources, attachments, deep_for, created_at
      FROM messages WHERE user_id = $1 AND conversation_id = $2 ORDER BY created_at ASC LIMIT $3`,
     [userId, conversationId, limit]
   );
@@ -931,6 +1277,7 @@ export async function getMessages(q: Queryable, userId: number, conversationId: 
     mode: r.mode || undefined,
     sources: r.sources || [],
     attachments: r.attachments || [],
+    deepFor: r.deep_for || undefined,
     timestamp: new Date(r.created_at).toLocaleTimeString(),
   }));
 }
@@ -938,12 +1285,16 @@ export async function getMessages(q: Queryable, userId: number, conversationId: 
 export async function addMessage(q: Queryable, userId: number, m: StoredMessage) {
   // Upsert on id: re-saving an existing message updates its text and sources,
   // which is how a Deep-checked (examiner-corrected) answer replaces the
-  // original in the study log.
+  // original in the study log. deep_for only ever backfills: an existing link
+  // always wins (a re-save that omits it must not erase it), but a row whose
+  // creating save lost the link (e.g. it was the deep-check re-save after the
+  // real first save died on a flaky network) picks it up from any later save.
   await q.query(
-    `INSERT INTO messages (id, user_id, conversation_id, role, text, mode, sources, attachments)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, sources = EXCLUDED.sources`,
-    [m.id, userId, m.conversationId, m.role, m.text, m.mode || null, JSON.stringify(m.sources || []), JSON.stringify(m.attachments || [])]
+    `INSERT INTO messages (id, user_id, conversation_id, role, text, mode, sources, attachments, deep_for)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text, sources = EXCLUDED.sources,
+       deep_for = COALESCE(messages.deep_for, EXCLUDED.deep_for)`,
+    [m.id, userId, m.conversationId, m.role, m.text, m.mode || null, JSON.stringify(m.sources || []), JSON.stringify(m.attachments || []), m.deepFor || null]
   );
   // Bump the conversation so the most recently used one floats to the top.
   await q.query(`UPDATE conversations SET updated_at = now() WHERE id = $1 AND user_id = $2`, [m.conversationId, userId]);
@@ -1160,486 +1511,185 @@ export async function cacheClearMismatchedEmbeddings(q: Queryable, dims: number)
   );
 }
 
-// ===========================================================================
-// FAHIM curriculum spine + telemetry.
-//
-// These back the accuracy engine, FR1 context selection, and the per-subject
-// validation gate. Sprint 1 lands the data layer; the chat path wires into it
-// in later phases. Nothing here is on the student critical path yet.
-// ===========================================================================
-
-// ---- Subjects (the launch surface) ----
-
-export interface CurriculumSubject {
-  subjectId: string;
-  board: string;
-  nameAr: string;
-  nameEn: string;
-  /** 'A' objective | 'B' language | 'C' interpretive | 'D' sensitive/doctrinal. */
-  accuracyType: string;
-  /** 'textbook' | 'syllabus' | 'proxy' | 'structure' — how deep grounding can go. */
-  groundingLevel: string;
-  /** 'draft' | 'in_review' | 'blocked' | 'live'. Only 'live' is served to students. */
-  gateStatus: string;
-  correctnessBar: number | null;
-  minReviewSample: number;
-  curriculumVersion: string;
-}
-
-function rowToSubject(r: any): CurriculumSubject {
-  return {
-    subjectId: r.subject_id,
-    board: r.board || "moe",
-    nameAr: r.name_ar,
-    nameEn: r.name_en,
-    accuracyType: r.accuracy_type,
-    groundingLevel: r.grounding_level || "syllabus",
-    gateStatus: r.gate_status,
-    correctnessBar: r.correctness_bar == null ? null : Number(r.correctness_bar),
-    minReviewSample: Number(r.min_review_sample || 0),
-    curriculumVersion: r.curriculum_version || "",
-  };
-}
-
-/** Create or update a subject. Deliberately does NOT touch gate_status on
- *  conflict, so re-running a seed can never silently un-launch a live subject
- *  (gate changes go through setSubjectGateStatus, an explicit review action). */
-export async function upsertSubject(
-  q: Queryable,
-  s: {
-    subjectId: string;
-    board: string;
-    nameAr: string;
-    nameEn: string;
-    accuracyType: string;
-    groundingLevel?: string;
-    gateStatus?: string;
-    correctnessBar?: number | null;
-    minReviewSample?: number;
-    curriculumVersion?: string;
-  }
-): Promise<void> {
-  await q.query(
-    `INSERT INTO curriculum_subjects
-       (subject_id, board, name_ar, name_en, accuracy_type, grounding_level, gate_status, correctness_bar, min_review_sample, curriculum_version)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-     ON CONFLICT (subject_id) DO UPDATE SET
-       board = EXCLUDED.board,
-       name_ar = EXCLUDED.name_ar,
-       name_en = EXCLUDED.name_en,
-       accuracy_type = EXCLUDED.accuracy_type,
-       grounding_level = EXCLUDED.grounding_level,
-       correctness_bar = EXCLUDED.correctness_bar,
-       min_review_sample = EXCLUDED.min_review_sample,
-       curriculum_version = EXCLUDED.curriculum_version`,
-    [
-      s.subjectId,
-      s.board,
-      s.nameAr,
-      s.nameEn,
-      s.accuracyType,
-      s.groundingLevel ?? "syllabus",
-      s.gateStatus ?? "draft",
-      s.correctnessBar ?? null,
-      s.minReviewSample ?? 100,
-      s.curriculumVersion ?? "",
-    ]
-  );
-}
-
-/** All subjects for a board (or every subject if board omitted), for ops/authoring. */
-export async function listSubjects(q: Queryable, board?: string): Promise<CurriculumSubject[]> {
-  const { rows } = board
-    ? await q.query(`SELECT * FROM curriculum_subjects WHERE board = $1 ORDER BY subject_id`, [board])
-    : await q.query(`SELECT * FROM curriculum_subjects ORDER BY board, subject_id`);
-  return rows.map(rowToSubject);
-}
-
-/** Flip a subject's gate status. Setting 'live' stamps who/when. This is the
- *  entire "enable a subject" action: a data + review step, not a code deploy. */
-export async function setSubjectGateStatus(
-  q: Queryable,
-  subjectId: string,
-  gateStatus: string,
-  enabledBy?: string
-): Promise<void> {
-  await q.query(
-    `UPDATE curriculum_subjects
-       SET gate_status = $2,
-           enabled_at = CASE WHEN $2 = 'live' THEN now() ELSE enabled_at END,
-           enabled_by = COALESCE($3, enabled_by)
-     WHERE subject_id = $1`,
-    [subjectId, gateStatus, enabledBy ?? null]
-  );
-}
-
-/** Update how deeply a subject can be grounded (set 'textbook' once real
- *  textbook corpus is ingested for it). Drives honest confidence surfacing. */
-export async function setSubjectGrounding(q: Queryable, subjectId: string, level: string): Promise<void> {
-  await q.query(`UPDATE curriculum_subjects SET grounding_level = $2 WHERE subject_id = $1`, [subjectId, level]);
-}
-
-export async function getSubject(q: Queryable, subjectId: string): Promise<CurriculumSubject | null> {
-  const { rows } = await q.query(`SELECT * FROM curriculum_subjects WHERE subject_id = $1`, [subjectId]);
-  return rows[0] ? rowToSubject(rows[0]) : null;
-}
-
-/** The launch surface: only subjects that have passed their gate. */
-export async function listLiveSubjects(q: Queryable): Promise<CurriculumSubject[]> {
-  const { rows } = await q.query(`SELECT * FROM curriculum_subjects WHERE gate_status = 'live' ORDER BY subject_id`);
-  return rows.map(rowToSubject);
-}
-
-// ---- Grades ----
-
-export async function upsertGrade(
-  q: Queryable,
-  g: { gradeId: string; board: string; labelAr: string; labelEn: string; indiaEquiv?: string; cycle?: string }
-): Promise<void> {
-  await q.query(
-    `INSERT INTO curriculum_grades (grade_id, board, label_ar, label_en, india_equiv, cycle)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     ON CONFLICT (grade_id) DO UPDATE SET
-       board = EXCLUDED.board, label_ar = EXCLUDED.label_ar, label_en = EXCLUDED.label_en,
-       india_equiv = EXCLUDED.india_equiv, cycle = EXCLUDED.cycle`,
-    [g.gradeId, g.board, g.labelAr, g.labelEn, g.indiaEquiv ?? "", g.cycle ?? ""]
-  );
-}
-
-/** Grades for a board, ordered by India-equivalent so the three boards line up. */
-export async function listGrades(q: Queryable, board?: string): Promise<{ gradeId: string; board: string; labelEn: string; labelAr: string; indiaEquiv: string }[]> {
-  const { rows } = board
-    ? await q.query(`SELECT * FROM curriculum_grades WHERE board = $1 ORDER BY india_equiv, grade_id`, [board])
-    : await q.query(`SELECT * FROM curriculum_grades ORDER BY board, india_equiv, grade_id`);
-  return rows.map((r) => ({ gradeId: r.grade_id, board: r.board || "moe", labelEn: r.label_en, labelAr: r.label_ar, indiaEquiv: r.india_equiv || "" }));
-}
-
-// ---- Units (the immutable unit_id join key) ----
-
-export interface CurriculumUnit {
-  unitId: string;
-  board: string;
-  subjectId: string;
-  gradeId: string;
-  seq: number;
-  titleAr: string;
-  titleEn: string;
-  sourceTextbook: string;
-  sourceEdition: string;
-  curriculumVersion: string;
-  isInSyllabus: boolean;
-  enabled: boolean;
-}
-
-function rowToUnit(r: any): CurriculumUnit {
-  return {
-    unitId: r.unit_id,
-    board: r.board || "moe",
-    subjectId: r.subject_id,
-    gradeId: r.grade_id,
-    seq: Number(r.seq || 0),
-    titleAr: r.title_ar,
-    titleEn: r.title_en,
-    sourceTextbook: r.source_textbook || "",
-    sourceEdition: r.source_edition || "",
-    curriculumVersion: r.curriculum_version || "",
-    isInSyllabus: r.is_in_syllabus !== false,
-    enabled: r.enabled === true,
-  };
-}
-
-/** Create or update a unit. `enabled` is NOT overwritten on conflict (per-unit
- *  go-live is controlled by setUnitEnabled), so re-seeding is safe. */
-export async function upsertUnit(
-  q: Queryable,
-  u: {
-    unitId: string;
-    board: string;
-    subjectId: string;
-    gradeId: string;
-    seq: number;
-    titleAr: string;
-    titleEn: string;
-    sourceTextbook?: string;
-    sourceEdition?: string;
-    curriculumVersion?: string;
-    isInSyllabus?: boolean;
-  }
-): Promise<void> {
-  await q.query(
-    `INSERT INTO curriculum_units
-       (unit_id, board, subject_id, grade_id, seq, title_ar, title_en, source_textbook, source_edition, curriculum_version, is_in_syllabus)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     ON CONFLICT (unit_id) DO UPDATE SET
-       board = EXCLUDED.board,
-       subject_id = EXCLUDED.subject_id,
-       grade_id = EXCLUDED.grade_id,
-       seq = EXCLUDED.seq,
-       title_ar = EXCLUDED.title_ar,
-       title_en = EXCLUDED.title_en,
-       source_textbook = EXCLUDED.source_textbook,
-       source_edition = EXCLUDED.source_edition,
-       curriculum_version = EXCLUDED.curriculum_version,
-       is_in_syllabus = EXCLUDED.is_in_syllabus`,
-    [
-      u.unitId,
-      u.board,
-      u.subjectId,
-      u.gradeId,
-      u.seq,
-      u.titleAr,
-      u.titleEn,
-      u.sourceTextbook ?? "",
-      u.sourceEdition ?? "",
-      u.curriculumVersion ?? "",
-      u.isInSyllabus ?? true,
-    ]
-  );
-}
-
-export async function setUnitEnabled(q: Queryable, unitId: string, enabled: boolean): Promise<void> {
-  await q.query(`UPDATE curriculum_units SET enabled = $2 WHERE unit_id = $1`, [unitId, enabled]);
-}
-
-export async function getUnit(q: Queryable, unitId: string): Promise<CurriculumUnit | null> {
-  const { rows } = await q.query(`SELECT * FROM curriculum_units WHERE unit_id = $1`, [unitId]);
-  return rows[0] ? rowToUnit(rows[0]) : null;
-}
-
 /**
- * Units for a subject+grade, ordered by sequence. FR1 reads this to build the
- * unit picker; pass enabledOnly for the student-facing list (only enabled,
- * in-syllabus units), and the full list for authoring/ops.
+ * Give one question credit back after a failed generation, never below zero.
+ * A student must not pay for an answer that never arrived. (CASE instead of
+ * GREATEST so the statement also runs on the pg-mem fallback.)
  */
-export async function listUnits(
-  q: Queryable,
-  subjectId: string,
-  gradeId: string,
-  opts: { enabledOnly?: boolean } = {}
-): Promise<CurriculumUnit[]> {
-  const where = opts.enabledOnly
-    ? `subject_id = $1 AND grade_id = $2 AND enabled = TRUE AND is_in_syllabus = TRUE`
-    : `subject_id = $1 AND grade_id = $2`;
-  const { rows } = await q.query(`SELECT * FROM curriculum_units WHERE ${where} ORDER BY seq ASC`, [subjectId, gradeId]);
-  return rows.map(rowToUnit);
-}
-
-// ---- Objectives & bilingual key terms ----
-
-export async function insertObjective(
-  q: Queryable,
-  o: { id: string; unitId: string; seq: number; textAr: string; textEn: string }
-): Promise<void> {
+export async function refundUsage(q: Queryable, userId: number, periodKey: string): Promise<void> {
   await q.query(
-    `INSERT INTO curriculum_objectives (id, unit_id, seq, text_ar, text_en)
-     VALUES ($1,$2,$3,$4,$5)
-     ON CONFLICT (id) DO UPDATE SET seq = EXCLUDED.seq, text_ar = EXCLUDED.text_ar, text_en = EXCLUDED.text_en`,
-    [o.id, o.unitId, o.seq, o.textAr, o.textEn]
+    `UPDATE usage_counters SET count = CASE WHEN count > 0 THEN count - 1 ELSE 0 END
+     WHERE user_id = $1 AND period_key = $2`,
+    [userId, periodKey]
   );
 }
 
-export async function objectivesForUnit(q: Queryable, unitId: string): Promise<{ textAr: string; textEn: string }[]> {
-  const { rows } = await q.query(`SELECT text_ar, text_en FROM curriculum_objectives WHERE unit_id = $1 ORDER BY seq ASC`, [unitId]);
-  return rows.map((r) => ({ textAr: r.text_ar, textEn: r.text_en }));
+// ---- Landing Signal storage (see landing.ts recordLanding) ----------------
+
+import crypto from "crypto";
+
+export type LandingVerdict = "understood" | "partial" | "not_understood" | "unconfirmed";
+export type ConceptState = "working_on_it" | "practiced" | "landed";
+
+export interface LandingEvent {
+  userId: number;
+  conversationId: string | null;
+  conceptKey: string;
+  conceptLabel?: string | null;
+  chapterTag?: string | null;
+  triggerType: string;
+  verdict: LandingVerdict;
+  confidence: "high" | "medium" | "low";
+  source: "tap" | "check" | "inferred" | "self_report";
 }
 
-export async function insertKeyTerm(
-  q: Queryable,
-  t: { id: string; unitId: string; termAr: string; termEn: string; definitionAr?: string; definitionEn?: string }
-): Promise<void> {
+/** Append one comprehension event (the honesty audit log). Never throws into
+ *  the request path: a lost signal must never break a student's answer. */
+export async function recordComprehensionEvent(q: Queryable, e: LandingEvent): Promise<void> {
   await q.query(
-    `INSERT INTO curriculum_key_terms (id, unit_id, term_ar, term_en, definition_ar, definition_en)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     ON CONFLICT (id) DO UPDATE SET
-       term_ar = EXCLUDED.term_ar, term_en = EXCLUDED.term_en,
-       definition_ar = EXCLUDED.definition_ar, definition_en = EXCLUDED.definition_en`,
-    [t.id, t.unitId, t.termAr, t.termEn, t.definitionAr ?? "", t.definitionEn ?? ""]
-  );
-}
-
-export async function keyTermsForUnit(
-  q: Queryable,
-  unitId: string
-): Promise<{ termAr: string; termEn: string; definitionAr: string; definitionEn: string }[]> {
-  const { rows } = await q.query(
-    `SELECT term_ar, term_en, definition_ar, definition_en FROM curriculum_key_terms WHERE unit_id = $1`,
-    [unitId]
-  );
-  return rows.map((r) => ({ termAr: r.term_ar, termEn: r.term_en, definitionAr: r.definition_ar, definitionEn: r.definition_en }));
-}
-
-// ---- Corpus (the real MoE content, retrieved by unit_id hard filter) ----
-
-export async function insertCorpusRef(
-  q: Queryable,
-  r: { refId: string; unitId: string; sectionLabel: string; pageFrom?: number | null; pageTo?: number | null; sourceUri?: string }
-): Promise<void> {
-  await q.query(
-    `INSERT INTO corpus_refs (ref_id, unit_id, section_label, page_from, page_to, source_uri)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     ON CONFLICT (ref_id) DO UPDATE SET
-       section_label = EXCLUDED.section_label, page_from = EXCLUDED.page_from,
-       page_to = EXCLUDED.page_to, source_uri = EXCLUDED.source_uri`,
-    [r.refId, r.unitId, r.sectionLabel, r.pageFrom ?? null, r.pageTo ?? null, r.sourceUri ?? ""]
-  );
-}
-
-export interface CorpusChunk {
-  chunkId: string;
-  unitId: string;
-  refId: string | null;
-  sectionLabel: string;
-  contentDisplay: string;
-  contentEmbed: string;
-  embedding: number[] | null;
-  tokenCount: number;
-}
-
-export async function insertCorpusChunk(q: Queryable, c: CorpusChunk): Promise<void> {
-  await q.query(
-    `INSERT INTO corpus_chunks (chunk_id, unit_id, ref_id, section_label, content_display, content_embed, embedding, token_count)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (chunk_id) DO UPDATE SET
-       ref_id = EXCLUDED.ref_id, section_label = EXCLUDED.section_label,
-       content_display = EXCLUDED.content_display, content_embed = EXCLUDED.content_embed,
-       embedding = EXCLUDED.embedding, token_count = EXCLUDED.token_count`,
+    `INSERT INTO comprehension_events
+       (id, user_id, conversation_id, concept_key, concept_label, chapter_tag, trigger_type, verdict, confidence, source)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
     [
-      c.chunkId,
-      c.unitId,
-      c.refId,
-      c.sectionLabel,
-      c.contentDisplay,
-      c.contentEmbed,
-      c.embedding ? JSON.stringify(c.embedding) : null,
-      c.tokenCount,
+      `ce-${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}`,
+      e.userId, e.conversationId, e.conceptKey, e.conceptLabel ?? null, e.chapterTag ?? null,
+      e.triggerType, e.verdict, e.confidence, e.source,
     ]
   );
 }
 
-/** The hard pre-filter: every chunk for ONE unit. Retrieval ranks within this,
- *  never across the whole corpus, which is what makes grounding curriculum-true
- *  and out-of-syllabus detection nearly free. */
-export async function corpusChunksForUnit(q: Queryable, unitId: string): Promise<CorpusChunk[]> {
+export interface ConceptMasteryRow {
+  concept_key: string;
+  concept_label: string | null;
+  chapter_tag: string | null;
+  state: ConceptState;
+  probed_pass_count: number;
+  struggle_count: number;
+  inferred_pass_count: number;
+  last_pass_at: string | null;
+  last_verdict: string | null;
+  first_seen_at: string | null;
+  review_stage: number;
+  next_review_at: string | null;
+  canonical_key: string | null;
+  last_seen_at: string;
+}
+
+const MASTERY_COLS = `concept_key, concept_label, chapter_tag, state, probed_pass_count, struggle_count,
+            inferred_pass_count, last_pass_at, last_verdict, first_seen_at, review_stage, next_review_at,
+            canonical_key, last_seen_at`;
+
+export async function getConceptMastery(q: Queryable, userId: number, conceptKey: string): Promise<ConceptMasteryRow | null> {
   const { rows } = await q.query(
-    `SELECT chunk_id, unit_id, ref_id, section_label, content_display, content_embed, embedding, token_count
-     FROM corpus_chunks WHERE unit_id = $1`,
-    [unitId]
+    `SELECT ${MASTERY_COLS} FROM concept_mastery WHERE user_id = $1 AND concept_key = $2`,
+    [userId, conceptKey]
   );
-  return rows.map((r) => ({
-    chunkId: r.chunk_id,
-    unitId: r.unit_id,
-    refId: r.ref_id || null,
-    sectionLabel: r.section_label || "",
-    contentDisplay: r.content_display,
-    contentEmbed: r.content_embed || "",
-    embedding: Array.isArray(r.embedding) ? r.embedding : null,
-    tokenCount: Number(r.token_count || 0),
-  }));
+  return (rows[0] as ConceptMasteryRow) || null;
 }
 
-export async function corpusChunkCountForUnit(q: Queryable, unitId: string): Promise<number> {
-  const { rows } = await q.query(`SELECT count(*) AS n FROM corpus_chunks WHERE unit_id = $1`, [unitId]);
-  return Number(rows[0]?.n || 0);
+export async function listConceptMastery(q: Queryable, userId: number): Promise<ConceptMasteryRow[]> {
+  const { rows } = await q.query(
+    `SELECT ${MASTERY_COLS} FROM concept_mastery WHERE user_id = $1 ORDER BY last_seen_at DESC LIMIT 500`,
+    [userId]
+  );
+  return rows as ConceptMasteryRow[];
 }
 
-/** All corpus chunks for a whole board+grade (across every unit), each carrying
- *  its unit title. This is how the chat flow resolves subject+unit SERVER-SIDE:
- *  the student just asks, and retrieval finds the best-matching unit's content. */
-export async function corpusChunksForBoardGrade(
+/** Today's comprehension events (the session memory summary read). */
+export async function listComprehensionEventsSince(
   q: Queryable,
-  board: string,
-  gradeId: string
-): Promise<(CorpusChunk & { unitTitle: string })[]> {
+  userId: number,
+  sinceIso: string
+): Promise<{ concept_key: string; concept_label: string | null; verdict: string; trigger_type: string }[]> {
   const { rows } = await q.query(
-    `SELECT c.chunk_id, c.unit_id, c.ref_id, c.section_label, c.content_display, c.content_embed, c.embedding, c.token_count,
-            u.title_en AS unit_title
-     FROM corpus_chunks c JOIN curriculum_units u ON u.unit_id = c.unit_id
-     WHERE u.board = $1 AND u.grade_id = $2`,
-    [board, gradeId]
+    `SELECT concept_key, concept_label, verdict, trigger_type
+       FROM comprehension_events WHERE user_id = $1 AND created_at >= $2
+       ORDER BY created_at ASC LIMIT 500`,
+    [userId, sinceIso]
   );
-  return rows.map((r) => ({
-    chunkId: r.chunk_id,
-    unitId: r.unit_id,
-    refId: r.ref_id || null,
-    sectionLabel: r.section_label || "",
-    contentDisplay: r.content_display,
-    contentEmbed: r.content_embed || "",
-    embedding: Array.isArray(r.embedding) ? r.embedding : null,
-    tokenCount: Number(r.token_count || 0),
-    unitTitle: r.unit_title || "",
+  return rows as any[];
+}
+
+/** The global canonical-concept registry (see knowledge.ts canonicalizeConcept). */
+export async function canonAll(
+  q: Queryable
+): Promise<{ canonical_key: string; label: string | null; embedding: number[] | null }[]> {
+  const { rows } = await q.query(`SELECT canonical_key, label, embedding FROM concept_canon`);
+  return rows.map((r: any) => ({
+    canonical_key: r.canonical_key,
+    label: r.label,
+    embedding: typeof r.embedding === "string" ? JSON.parse(r.embedding) : r.embedding,
   }));
 }
 
-// ---- Accuracy telemetry ----
-
-export interface AccuracyEventInsert {
-  id: string;
-  subjectId?: string | null;
-  unitId?: string | null;
-  gradeId?: string | null;
-  language?: string | null;
-  accuracyType?: string | null;
-  groundedness?: number | null;
-  verificationOutcome?: string | null;
-  outOfSyllabus?: boolean;
-  confidence?: string | null;
-  answerHash?: string | null;
-  latencyMs?: number | null;
-  cacheHit?: boolean;
-}
-
-/** One row per served answer. Holds NO student free-text (minors / minimisation);
- *  answerHash is a hash of the answer, not the answer itself. */
-export async function insertAccuracyEvent(q: Queryable, e: AccuracyEventInsert): Promise<void> {
+export async function canonInsert(
+  q: Queryable,
+  canonicalKey: string,
+  label: string | null,
+  embedding: number[] | null
+): Promise<void> {
   await q.query(
-    `INSERT INTO accuracy_events
-       (id, subject_id, unit_id, grade_id, language, accuracy_type, groundedness, verification_outcome, out_of_syllabus, confidence, answer_hash, latency_ms, cache_hit)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-    [
-      e.id,
-      e.subjectId ?? null,
-      e.unitId ?? null,
-      e.gradeId ?? null,
-      e.language ?? null,
-      e.accuracyType ?? null,
-      e.groundedness ?? null,
-      e.verificationOutcome ?? null,
-      e.outOfSyllabus ?? false,
-      e.confidence ?? null,
-      e.answerHash ?? null,
-      e.latencyMs ?? null,
-      e.cacheHit ?? false,
-    ]
+    `INSERT INTO concept_canon (canonical_key, label, embedding) VALUES ($1, $2, $3)
+     ON CONFLICT (canonical_key) DO NOTHING`,
+    [canonicalKey, label, embedding ? JSON.stringify(embedding) : null]
   );
 }
 
-export interface TeacherReportInsert {
-  id: string;
-  reporterId?: string | null;
-  reporterRole?: string | null;
-  subjectId?: string | null;
-  unitId?: string | null;
-  messageId?: string | null;
-  errorType?: string | null;
-  severity?: string | null;
-  note?: string;
-}
-
-export async function insertTeacherReport(q: Queryable, r: TeacherReportInsert): Promise<void> {
+/** Upsert a concept's derived state. Callers pass the already-decided new
+ *  state and the counter deltas; the honesty rules live in landing.ts. */
+export async function upsertConceptMastery(
+  q: Queryable,
+  userId: number,
+  conceptKey: string,
+  patch: {
+    conceptLabel?: string | null;
+    chapterTag?: string | null;
+    state?: ConceptState;
+    lastVerdict?: LandingVerdict;
+    incProbedPass?: number;
+    incStruggle?: number;
+    incInferredPass?: number;
+    stampPassNow?: boolean;
+    /** Forgetting curve: absolute retention stage (0..3). */
+    reviewStage?: number;
+    /** Forgetting curve: set next_review_at (ISO) or clear it (null). Omit to leave unchanged. */
+    nextReviewAt?: string | null;
+    /** Shadow canonical id (set once by the background canonicalizer). */
+    canonicalKey?: string;
+  }
+): Promise<void> {
+  // Ensure the row exists, then apply deltas in one conditional UPDATE.
   await q.query(
-    `INSERT INTO teacher_reports
-       (id, reporter_id, reporter_role, subject_id, unit_id, message_id, error_type, severity, note, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'open')`,
+    `INSERT INTO concept_mastery (user_id, concept_key, concept_label, chapter_tag)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id, concept_key) DO NOTHING`,
+    [userId, conceptKey, patch.conceptLabel ?? null, patch.chapterTag ?? null]
+  );
+  await q.query(
+    `UPDATE concept_mastery SET
+       concept_label = COALESCE($3, concept_label),
+       chapter_tag = COALESCE($4, chapter_tag),
+       state = COALESCE($5, state),
+       last_verdict = COALESCE($6, last_verdict),
+       probed_pass_count = probed_pass_count + $7,
+       struggle_count = struggle_count + $8,
+       inferred_pass_count = inferred_pass_count + $9,
+       last_pass_at = CASE WHEN $10 THEN now() ELSE last_pass_at END,
+       review_stage = COALESCE($11, review_stage),
+       next_review_at = CASE WHEN $12 THEN $13 ELSE next_review_at END,
+       canonical_key = COALESCE($14, canonical_key),
+       last_seen_at = now(),
+       updated_at = now()
+     WHERE user_id = $1 AND concept_key = $2`,
     [
-      r.id,
-      r.reporterId ?? null,
-      r.reporterRole ?? null,
-      r.subjectId ?? null,
-      r.unitId ?? null,
-      r.messageId ?? null,
-      r.errorType ?? null,
-      r.severity ?? null,
-      r.note ?? "",
+      userId, conceptKey, patch.conceptLabel ?? null, patch.chapterTag ?? null,
+      patch.state ?? null, patch.lastVerdict ?? null,
+      patch.incProbedPass ?? 0, patch.incStruggle ?? 0, patch.incInferredPass ?? 0,
+      patch.stampPassNow ? true : false,
+      patch.reviewStage ?? null,
+      patch.nextReviewAt !== undefined,
+      patch.nextReviewAt ?? null,
+      patch.canonicalKey ?? null,
     ]
   );
 }

@@ -5,7 +5,7 @@
  * can be judged against "every other AI" before it ships.
  *
  * Usage:
- *   node scripts/bakeoff.mjs            # Clarify answers via the local server
+ *   node scripts/bakeoff.mjs            # Faheem answers via the local server
  *   node scripts/bakeoff.mjs --raw      # also raw MiniMax / Gemini baselines
  *   node scripts/bakeoff.mjs --tag v2   # label the output files
  *
@@ -35,18 +35,17 @@ const TAG = args.includes("--tag") ? args[args.indexOf("--tag") + 1] : "run";
 const TIMEOUT_MS = 300_000;
 
 // ---- The fixed question set. Add questions here as the suite grows. ----
-// The test student mirrors the app's default profile (CBSE, 11th, Hinglish)
-// with a realistic Class 11 study log; the English variant is the control
-// that shows how much differentiation survives without the Hinglish wrapper.
+// The test student mirrors the app's default profile (General, 11th, English)
+// with a realistic grade 11 study log.
 const PROFILE = {
-  board: "CBSE",
+  board: "General",
   grade: "11th Grade",
-  language: "Hinglish",
+  language: "English",
   preferredAnalogy: "Daily Life",
 };
 const RECENT_TOPICS = ["Motion in a Straight Line (finding it hard)", "Laws of Motion", "Units and Measurements"];
 const Q1 =
-  "Sir I didn't understand refraction in class today. Why does a pencil look bent when I put it in a glass of water? Please explain simply.";
+  "I didn't understand refraction in class today. Why does a pencil look bent when I put it in a glass of water? Please explain simply.";
 const Q2 =
   "A ball is dropped from the top of a tower 80 m high. Calculate the time it takes to reach the ground and its velocity just before hitting the ground. (g = 10 m/s²)";
 
@@ -86,7 +85,7 @@ async function api(pathname, body, token, signal) {
 
 /** The bake-off account: created on first run, reused after. */
 async function login() {
-  const creds = { email: "bakeoff@clarify.local", password: "bakeoff-local-only" };
+  const creds = { email: "bakeoff@faheem.local", password: "bakeoff-local-only" };
   try {
     const r = await api("/auth/login", creds);
     return r.token;
@@ -136,7 +135,7 @@ async function callRawGemini(question, signal) {
 
 // ---- Run ----
 const token = await login();
-console.log(`Bake-off "${TAG}" against ${BASE} (${CASES.length} Clarify cases${RAW ? " + raw baselines" : ""})`);
+console.log(`Bake-off "${TAG}" against ${BASE} (${CASES.length} Faheem cases${RAW ? " + raw baselines" : ""})`);
 
 const jobs = CASES.map((c) =>
   timed(c.label, async (signal) => {

@@ -1,24 +1,15 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-build/
-*.tsbuildinfo
-
-# Secrets & env (NEVER commit)
-.env
-.env.*
-!.env.example
-
-# OS / editor
+**/node_modules/
+**/dist/
+**/build/
+coverage/
 .DS_Store
 *.log
 
-# Local tooling output (graphify knowledge-graph; regenerable, not part of the app)
-graphify-out/
+# Secrets (each folder has its own .env)
+.env
+**/.env
+**/.env.local
+!**/.env.example
 
-# Local corpus source (curriculum PDFs are licensed; keep out of git)
-backend/corpus-source/
-# Derived corpus chunks (regenerable from source; can be large)
-backend/corpus/
+# Parked legacy files
+_legacy/
