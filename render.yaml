@@ -60,8 +60,10 @@ services:
       - key: SUPPORT_EMAIL
         value: support@clarifyai.in
       # Must match the static site's public URL exactly (scheme, no slash).
+      # (Render suffixed the service URLs because the old prototype's services
+      # held the plain names.)
       - key: CORS_ORIGIN
-        value: https://faheem-frontend.onrender.com
+        value: https://faheem-frontend-gadn.onrender.com
 
   - type: web
     name: faheem-frontend
@@ -77,4 +79,4 @@ services:
     envVars:
       # Baked in at build time; must be the backend's public URL (no slash).
       - key: VITE_API_URL
-        value: https://faheem-backend.onrender.com
+        value: https://faheem-backend-yb26.onrender.com
