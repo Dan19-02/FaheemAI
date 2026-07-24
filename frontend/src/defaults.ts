@@ -1,7 +1,7 @@
 import type { StudentProfile, ChapterProgress } from "./types";
 
 /** The one and only support contact. Every "reach us" surface uses this. */
-export const SUPPORT_EMAIL = "support@faheem.ai";
+export const SUPPORT_EMAIL = "support@clarifyai.in";
 
 // Intentionally empty. Students start with a clean Chapter Mastery list and
 // add their own chapters. (No demo/prefilled data.)

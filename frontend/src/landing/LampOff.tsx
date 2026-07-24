@@ -72,7 +72,7 @@ export function LandingFooter({ onAuth }: LampOffProps) {
         </nav>
       </div>
       <p className="mx-auto mt-9 max-w-6xl text-[12px] text-chalk-dim">
-        &copy; 2026 Faheem AI &middot; Questions, payments, anything at all:{" "}
+        &copy; 2026 Faheem AI &middot; A product of Clarify Labs &middot; Questions, payments, anything at all:{" "}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="text-chalk underline underline-offset-2 transition-colors hover:text-gold-bright">
           {SUPPORT_EMAIL}
         </a>

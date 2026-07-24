@@ -17,7 +17,7 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_ENDPOINT = process.env.MAIL_API_URL || "https://api.resend.com/emails";
 const MAIL_FROM = process.env.MAIL_FROM || "Faheem AI <no-reply@faheem.ai>";
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@faheem.ai";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@clarifyai.in";
 const IS_PROD = process.env.NODE_ENV === "production";
 
 if (!RESEND_API_KEY) {

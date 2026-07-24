@@ -47,7 +47,7 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "";
 const RAZORPAY_API = "https://api.razorpay.com/v1";
 
 /** The ONLY support contact. All student-facing "reach us" copy uses this. */
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@faheem.ai";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@clarifyai.in";
 
 export const billingConfigured = Boolean(KEY_ID && KEY_SECRET);
 if (!billingConfigured) {
